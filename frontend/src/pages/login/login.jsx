@@ -1,7 +1,7 @@
 import { useState } from "react";
 import {Mail, Lock, Eye, EyeOff, CheckCircle2, ShieldCheck, Monitor, User, Home, Users, Clock, GraduationCap, LogIn,} from "lucide-react";
 import logoCobach from "../../assets/img/logo-cobach.png";
-import calendarImg from "../../assets/img/imagen-login.png";
+import calendarImg from "../../assets/img/imagen-login.jpg";
 import "./login.css";
 
 const ROLES = [
@@ -34,12 +34,14 @@ export default function Login() {
 
   return (
     <div className="login">
-      {/* Fondo  */}
+      <div className="login__glow-beam" aria-hidden="true" />
       <div className="login__bg" aria-hidden="true" />
 
       <div className="login__top">
         {/* izquierdo (imagen) */}
         <div className="login__hero">
+          <div className="login__dot-circle" aria-hidden="true" />
+          <div className="login__dot-grid" aria-hidden="true" />
           <img
             className="login__hero-img"
             src={calendarImg}
