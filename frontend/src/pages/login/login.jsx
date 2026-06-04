@@ -1,7 +1,7 @@
 import { useState } from "react";
 import {Mail, Lock, Eye, EyeOff, CheckCircle2, ShieldCheck, Monitor, User, Home, Users, Clock, GraduationCap, LogIn,} from "lucide-react";
 import logoCobach from "../../assets/img/logo-cobach.png";
-import calendarImg from "../../assets/img/CalendarioLogin.png";
+import calendarImg from "../../assets/img/imagen-login.png";
 import "./login.css";
 
 const ROLES = [
@@ -40,13 +40,8 @@ export default function Login() {
       <div className="login__top">
         {/* izquierdo (imagen) */}
         <div className="login__hero">
-          {/* por ahora como no encontre una imagen paredica puse el horario de fondo con un desenfoque
-            cuando ya se tenga la imagen quitar el desenfoque:
-            quitar la clase "login__hero-img--blur" de la <img>
-            elimina el bloque <div className="login__hero-content">
-          */}
           <img
-            className="login__hero-img login__hero-img--blur"
+            className="login__hero-img"
             src={calendarImg}
             alt="Bienvenido a la agenda digital COBACH"
           />
