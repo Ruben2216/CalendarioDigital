@@ -1,0 +1,170 @@
+import { useState } from "react";
+import {Mail, Lock, Eye, EyeOff, CheckCircle2, ShieldCheck, Monitor, User, Home, Users, Clock, GraduationCap, LogIn,} from "lucide-react";
+import logoCobach from "../../assets/img/logo-cobach.png";
+import calendarImg from "../../assets/img/CalendarioLogin.png";
+import "./login.css";
+
+const ROLES = [
+  { id: "admin", label: "Administrador", icon: ShieldCheck },
+  { id: "docente", label: "Docente", icon: Monitor },
+  { id: "alumno", label: "Alumno", icon: User },
+  { id: "tutor", label: "Padre/Tutor", icon: Home },
+];
+
+const FEATURES = [
+  { icon: ShieldCheck, title: "Seguro", desc: "Protegemos tu información" },
+  { icon: Users, title: "Confiable", desc: "Plataforma institucional" },
+  { icon: Clock, title: "Disponible", desc: "Accede 24/7 desde cualquier lugar" },
+  { icon: GraduationCap, title: "Educación", desc: "Comprometidos contigo" },
+];
+
+export default function Login() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [role, setRole] = useState("admin");
+
+  const emailValid = /\S+@\S+\.\S+/.test(email);
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    // conectar con la API de autenticacion o con google auth
+    console.log({ email, password, role });
+  };
+
+  return (
+    <div className="login">
+      {/* Fondo  */}
+      <div className="login__bg" aria-hidden="true" />
+
+      <div className="login__top">
+        {/* izquierdo (imagen) */}
+        <div className="login__hero">
+          {/* por ahora como no encontre una imagen paredica puse el horario de fondo con un desenfoque
+            cuando ya se tenga la imagen quitar el desenfoque:
+            quitar la clase "login__hero-img--blur" de la <img>
+            elimina el bloque <div className="login__hero-content">
+          */}
+          <img
+            className="login__hero-img login__hero-img--blur"
+            src={calendarImg}
+            alt="Bienvenido a la agenda digital COBACH"
+          />
+          <div className="login__hero-content">
+            <p className="login__hero-kicker">Bienvenido a</p>
+            <h1 className="login__hero-title">
+              la agenda digital <span>COBACH</span>
+            </h1>
+            <p className="login__hero-text">
+              Accede a los servicios académicos, administrativos e
+              institucionales.
+            </p>
+          </div>
+        </div>
+
+        {/* derecho (formulario) */}
+        <aside className="login__panel">
+          <form className="login__card" onSubmit={handleSubmit}>
+            <img
+              className="login__logo"
+              src={logoCobach}
+              alt="Colegio de Bachilleres de Chiapas"
+            />
+
+            <h2 className="login__title">Bienvenido</h2>
+            <p className="login__subtitle">
+              Ingresa con tus credenciales institucionales
+            </p>
+
+            {/* Correo */}
+            <label className="login__label" htmlFor="email">
+              Correo institucional
+            </label>
+            <div className="login__field">
+              <Mail className="login__field-icon" />
+              <input
+                id="email"
+                type="email"
+                placeholder="usuario@cobach.edu.mx"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+              {emailValid && <CheckCircle2 className="login__field-check" />}
+            </div>
+
+            {/* Contraseña */}
+            <label className="login__label" htmlFor="password">
+              Contraseña
+            </label>
+            <div className="login__field">
+              <Lock className="login__field-icon" />
+              <input
+                id="password"
+                type={showPassword ? "text" : "password"}
+                placeholder="••••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+              <button
+                type="button"
+                className="login__eye"
+                onClick={() => setShowPassword((v) => !v)}
+                aria-label={
+                  showPassword ? "Ocultar contraseña" : "Mostrar contraseña"
+                }
+              >
+                {showPassword ? <EyeOff /> : <Eye />}
+              </button>
+            </div>
+
+            {/* Perfil de acceso (roles) */}
+            <p className="login__label login__label--block">Perfil de acceso</p>
+            <div className="login__roles">
+              {ROLES.map(({ id, label, icon: Icon }) => (
+                <button
+                  key={id}
+                  type="button"
+                  className={`login__role ${
+                    role === id ? "login__role--active" : ""
+                  }`}
+                  onClick={() => setRole(id)}
+                >
+                  <Icon />
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            {/* Inicio de sesion / olvidar contraseña */}
+            <button type="submit" className="login__submit">
+              <LogIn />
+              Iniciar sesión
+            </button>
+
+            <p className="login__forgot">
+              ¿Olvidaste tu contraseña?{" "}
+              <a href="#recuperar">Recuperar acceso</a>
+            </p>
+          </form>
+        </aside>
+      </div>
+
+      {/* Footer */}
+      <footer className="login__footer">
+        {FEATURES.map(({ icon: Icon, title, desc }) => (
+          <div className="login__feature" key={title}>
+            <span className="login__feature-icon">
+              <Icon />
+            </span>
+            <div>
+              <p className="login__feature-title">{title}</p>
+              <p className="login__feature-desc">{desc}</p>
+            </div>
+          </div>
+        ))}
+      </footer>
+    </div>
+  );
+}
