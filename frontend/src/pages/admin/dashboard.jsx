@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { LayoutDashboard, Calendar, Clock, Users, Menu, Search, Bell, ChevronDown, ChevronLeft, ChevronRight, Plus, MapPin, Pencil, AlertTriangle, FileText, GraduationCap, Megaphone, LogOut, CheckCheck, Trash2, } from "lucide-react";
+import { LayoutDashboard, Calendar, Clock, Users, Menu, Bell, ChevronDown, ChevronLeft, ChevronRight, Plus, MapPin, Pencil, AlertTriangle, FileText, GraduationCap, Megaphone, LogOut, CheckCheck, Trash2, TrendingUp, AlertCircle, } from "lucide-react";
 import Modal from "../../components/modal/Modal.jsx";
 import logoCobach from "../../assets/img/logo-cobach.png";
 import styles from "./dashboard.module.css";
@@ -122,7 +122,6 @@ export default function Dashboard() {
     () => !window.matchMedia("(max-width: 920px)").matches
   );
   const [seccionActiva, setSeccionActiva] = useState("dashboard");
-  const [busqueda, setBusqueda] = useState("");
   const [notifAbierto, setNotifAbierto] = useState(false);
   const [notificaciones, setNotificaciones] = useState(NOTIFICACIONES_INICIALES);
   const [modalAbierto, setModalAbierto] = useState(false);
@@ -211,20 +210,10 @@ export default function Dashboard() {
   };
 
   const proximosEventos = useMemo(() => {
-    const termino = busqueda.trim().toLowerCase();
     return eventos
       .filter((evento) => evento.fecha >= claveHoy)
-      .filter((evento) => {
-        if (!termino) return true;
-        const categoria = CATEGORIAS[evento.categoria].etiqueta.toLowerCase();
-        return (
-          evento.titulo.toLowerCase().includes(termino) ||
-          categoria.includes(termino) ||
-          evento.ubicacion.toLowerCase().includes(termino)
-        );
-      })
       .sort((a, b) => a.fecha.localeCompare(b.fecha));
-  }, [eventos, busqueda, claveHoy]);
+  }, [eventos, claveHoy]);
 
   const celdasCalendario = useMemo(() => {
     const anio = mesVisible.getFullYear();
@@ -355,16 +344,6 @@ export default function Dashboard() {
           <div className={styles["barra-superior__titulo"]}>
             <h1>Agenda Escolar Digital</h1>
             <p>Colegio de Bachilleres de Chiapas</p>
-          </div>
-
-          <div className={styles["buscador"]}>
-            <Search size={16} />
-            <input
-              type="search"
-              placeholder="Buscar eventos por nombre, categoría o lugar..."
-              value={busqueda}
-              onChange={(e) => setBusqueda(e.target.value)}
-            />
           </div>
 
           <div className={styles["barra-superior__derecha"]}>
@@ -500,23 +479,62 @@ export default function Dashboard() {
                 </button>
               </section>
 
+              <section className={styles["indicadores"]}>
+                <article className={styles["indicador"]}>
+                  <span className={`${styles["indicador__icono"]} ${styles["indicador__icono--naranja"]}`}>
+                    <Users size={21} />
+                  </span>
+                  <div>
+                    <div className={styles["indicador__valor"]}>312</div>
+                    <div className={styles["indicador__etiqueta"]}>
+                      Usuarios activos
+                    </div>
+                    <div className={`${styles["indicador__nota"]} ${styles["indicador__nota--positiva"]}`}>
+                      <TrendingUp size={12} />
+                      18 nuevos esta semana
+                    </div>
+                  </div>
+                </article>
+
+                <article className={styles["indicador"]}>
+                  <span className={`${styles["indicador__icono"]} ${styles["indicador__icono--morado"]}`}>
+                    <Bell size={21} />
+                  </span>
+                  <div>
+                    <div className={styles["indicador__valor"]}>
+                      {notificaciones.length}
+                    </div>
+                    <div className={styles["indicador__etiqueta"]}>
+                      Notificaciones pendientes
+                    </div>
+                    <div className={`${styles["indicador__nota"]} ${styles["indicador__nota--alerta"]}`}>
+                      <AlertCircle size={12} />
+                      {notifSinLeer} sin leer
+                    </div>
+                  </div>
+                </article>
+              </section>
+
               <article className={styles["tarjeta"]}>
                 <div className={styles["tarjeta__cabecera"]}>
                   <div className={styles["tarjeta__titulo"]}>
                     <Calendar size={16} />
                     Próximos eventos
                   </div>
-                  {busqueda.trim() && (
-                    <span className={styles["tarjeta__nota"]}>
-                      {proximosEventos.length} resultado(s)
-                    </span>
-                  )}
+                  <button
+                    type="button"
+                    className={styles["tarjeta__enlace"]}
+                    onClick={() => seleccionarSeccion("eventos")}
+                  >
+                    Ver todos
+                    <ChevronRight size={14} />
+                  </button>
                 </div>
 
                 <div className={styles["eventos"]}>
                   {proximosEventos.length === 0 ? (
                     <p className={styles["eventos__vacio"]}>
-                      No hay eventos que coincidan.
+                      No hay eventos próximos.
                     </p>
                   ) : (
                     proximosEventos.map((evento) => {
@@ -736,6 +754,47 @@ export default function Dashboard() {
                       {cat.etiqueta}
                     </span>
                   ))}
+                </div>
+              </article>
+
+              <article className={styles["tarjeta"]}>
+                <div className={styles["tarjeta__cabecera"]}>
+                  <div className={styles["tarjeta__titulo"]}>
+                    <Bell size={16} />
+                    Notificaciones
+                  </div>
+                  {notifSinLeer > 0 && (
+                    <span className={`${styles["etiqueta"]} ${styles["etiqueta--azul"]}`}>
+                      {notifSinLeer} nuevas
+                    </span>
+                  )}
+                </div>
+
+                <div className={styles["panel-notif__lista"]}>
+                  {notificaciones.length === 0 ? (
+                    <p className={styles["eventos__vacio"]}>
+                      No tienes notificaciones.
+                    </p>
+                  ) : (
+                    notificaciones.slice(0, 5).map(({ id, icono: Icono, color, titulo, subtitulo, sinLeer }) => (
+                      <div
+                        key={id}
+                        className={`${styles["notif-fila"]} ${
+                          sinLeer ? styles["notif-fila--sin-leer"] : ""
+                        }`}
+                      >
+                        <span className={`${styles["notif-fila__icono"]} ${styles[`notif-fila__icono--${color}`]}`}>
+                          <Icono size={15} />
+                        </span>
+                        <div className={styles["notif-fila__copia"]}>
+                          <p className={styles["notif-fila__titulo"]}>{titulo}</p>
+                          <span className={styles["notif-fila__subtitulo"]}>
+                            {subtitulo}
+                          </span>
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </div>
               </article>
             </aside>
