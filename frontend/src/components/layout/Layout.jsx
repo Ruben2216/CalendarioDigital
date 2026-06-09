@@ -1,0 +1,311 @@
+import { useEffect, useRef, useState } from "react";
+import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import {
+  LayoutDashboard, Calendar, Clock, Users, Menu, Bell, ChevronDown,
+  Plus, Pencil, AlertTriangle, FileText, LogOut, CheckCheck, Trash2,
+} from "lucide-react";
+import Modal from "../modal/Modal.jsx";
+import logoCobach from "../../assets/img/logo-cobach.png";
+import styles from "./Layout.module.css";
+
+const NAV = [
+  { etiqueta: "Dashboard", icono: LayoutDashboard, ruta: "/dashboard" },
+  { etiqueta: "Calendario", icono: Calendar, ruta: "/calendario" },
+  { etiqueta: "Eventos", icono: Clock, ruta: "/eventos" },
+  { etiqueta: "Usuarios", icono: Users, ruta: "/usuarios" },
+];
+
+const NOTIFICACIONES_INICIALES = [
+  { id: 1, icono: Pencil, color: "azul", titulo: "Examen de Física actualizado al 6 jun", subtitulo: "Hace 2 horas · Prof. García", sinLeer: true },
+  { id: 2, icono: Plus, color: "verde", titulo: "Nuevo evento: Torneo deportivo interplantel", subtitulo: "Hace 5 horas · Administración", sinLeer: true },
+  { id: 3, icono: Users, color: "gris", titulo: "3 nuevos usuarios registrados", subtitulo: "Ayer · Sistema", sinLeer: true },
+  { id: 4, icono: AlertTriangle, color: "naranja", titulo: "Recordatorio: Periodo de inscripciones cierra el 10 jun", subtitulo: "Hace 2 días · Dirección", sinLeer: false },
+  { id: 5, icono: FileText, color: "azul", titulo: "Calendario mayo exportado por 12 usuarios", subtitulo: "Hace 3 días", sinLeer: false },
+];
+
+const ZONA = "America/Mexico_City";
+
+export default function Layout() {
+  const navigate = useNavigate();
+
+  const [esMovil, setEsMovil] = useState(
+    () => window.matchMedia("(max-width: 920px)").matches
+  );
+  const [menuAbierto, setMenuAbierto] = useState(
+    () => !window.matchMedia("(max-width: 920px)").matches
+  );
+  const [notifAbierto, setNotifAbierto] = useState(false);
+  const [notificaciones, setNotificaciones] = useState(NOTIFICACIONES_INICIALES);
+  const [cerrarSesionAbierto, setCerrarSesionAbierto] = useState(false);
+
+  const notifRef = useRef(null);
+
+  useEffect(() => {
+    const alClicar = (e) => {
+      if (notifRef.current && !notifRef.current.contains(e.target)) {
+        setNotifAbierto(false);
+      }
+    };
+    document.addEventListener("mousedown", alClicar);
+    return () => document.removeEventListener("mousedown", alClicar);
+  }, []);
+
+  useEffect(() => {
+    const consulta = window.matchMedia("(max-width: 920px)");
+    const alCambiar = (e) => {
+      setEsMovil(e.matches);
+      setMenuAbierto(!e.matches);
+    };
+    consulta.addEventListener("change", alCambiar);
+    return () => consulta.removeEventListener("change", alCambiar);
+  }, []);
+
+  useEffect(() => {
+    if (!esMovil || !notifAbierto) return;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [esMovil, notifAbierto]);
+
+  const fechaLarga = new Intl.DateTimeFormat("es-MX", {
+    weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: ZONA,
+  }).format(new Date());
+
+  const horaActual = new Date().toLocaleTimeString("es-MX", {
+    timeZone: ZONA, hour: "2-digit", minute: "2-digit",
+  });
+
+  const cerrarMenuMovil = () => {
+    if (esMovil) setMenuAbierto(false);
+  };
+
+  const notifSinLeer = notificaciones.filter((n) => n.sinLeer).length;
+  const marcarTodasLeidas = () =>
+    setNotificaciones((prev) => prev.map((n) => ({ ...n, sinLeer: false })));
+  const limpiarNotificaciones = () => setNotificaciones([]);
+
+  return (
+    <div
+      className={`${styles["aplicacion"]} ${
+        menuAbierto ? "" : styles["aplicacion--compacto"]
+      }`}
+    >
+      {menuAbierto && (
+        <div
+          className={styles["respaldo"]}
+          onClick={() => setMenuAbierto(false)}
+          aria-hidden="true"
+        />
+      )}
+
+      <aside className={styles["barra-lateral"]}>
+        <div className={styles["barra-lateral__marca"]}>
+          <img src={logoCobach} alt="Logo de Cobach" width="155" height="75" />
+        </div>
+
+        <nav className={styles["navegacion"]} aria-label="Navegación principal">
+          {NAV.map(({ etiqueta, icono: Icono, ruta }) => (
+            <NavLink
+              key={ruta}
+              to={ruta}
+              onClick={cerrarMenuMovil}
+              className={({ isActive }) =>
+                `${styles["navegacion__opcion"]} ${
+                  isActive ? styles["navegacion__opcion--activa"] : ""
+                }`
+              }
+            >
+              <Icono size={18} />
+              {etiqueta}
+            </NavLink>
+          ))}
+        </nav>
+
+        <div className={styles["barra-lateral__pie"]}>
+          <div className={styles["sesion"]}>
+            <span className={styles["sesion__punto"]} aria-hidden="true" />
+            <div>
+              <div className={styles["sesion__titulo"]}>Sesión activa</div>
+              <div className={styles["sesion__subtitulo"]}>
+                Último acceso:
+                <br />
+                {fechaLarga}, {horaActual}
+              </div>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            className={styles["cerrar-sesion"]}
+            onClick={() => setCerrarSesionAbierto(true)}
+          >
+            <LogOut size={18} />
+            Cerrar sesión
+          </button>
+        </div>
+      </aside>
+
+      <main className={styles["principal"]}>
+        <header className={styles["barra-superior"]}>
+          <button
+            type="button"
+            className={styles["barra-superior__menu"]}
+            onClick={() => setMenuAbierto((v) => !v)}
+            aria-label={menuAbierto ? "Ocultar menú" : "Mostrar menú"}
+          >
+            <Menu size={20} />
+          </button>
+
+          <div className={styles["barra-superior__titulo"]}>
+            <h1>Agenda Escolar Digital</h1>
+            <p>Colegio de Bachilleres de Chiapas</p>
+          </div>
+
+          <div className={styles["barra-superior__derecha"]}>
+            <div className={styles["notificaciones"]} ref={notifRef}>
+              <button
+                type="button"
+                className={styles["notificaciones__boton"]}
+                onClick={() => setNotifAbierto((v) => !v)}
+                aria-label="Notificaciones"
+              >
+                <Bell size={20} />
+                {notifSinLeer > 0 && (
+                  <span className={styles["notificaciones__contador"]}>
+                    {notifSinLeer}
+                  </span>
+                )}
+              </button>
+
+              {notifAbierto && (
+                <>
+                  <div
+                    className={styles["respaldo-notif"]}
+                    onClick={() => setNotifAbierto(false)}
+                    aria-hidden="true"
+                  />
+                  <div className={styles["panel-notif"]}>
+                    <div className={styles["panel-notif__cabecera"]}>
+                      <span className={styles["panel-notif__titulo"]}>
+                        Notificaciones
+                      </span>
+                      <span className="etiqueta etiqueta--azul">
+                        {notifSinLeer} nuevas
+                      </span>
+                    </div>
+
+                    {notificaciones.length > 0 && (
+                      <div className={styles["panel-notif__acciones"]}>
+                        <button
+                          type="button"
+                          className={styles["panel-notif__accion"]}
+                          onClick={marcarTodasLeidas}
+                          disabled={notifSinLeer === 0}
+                        >
+                          <CheckCheck size={14} />
+                          Marcar como leído
+                        </button>
+                        <button
+                          type="button"
+                          className={`${styles["panel-notif__accion"]} ${styles["panel-notif__accion--peligro"]}`}
+                          onClick={limpiarNotificaciones}
+                        >
+                          <Trash2 size={14} />
+                          Limpiar todo
+                        </button>
+                      </div>
+                    )}
+
+                    <div className={styles["panel-notif__lista"]}>
+                      {notificaciones.length === 0 ? (
+                        <p className={styles["panel-notif__vacio"]}>
+                          No tienes notificaciones.
+                        </p>
+                      ) : (
+                        notificaciones.map(({ id, icono: Icono, color, titulo, subtitulo, sinLeer }) => (
+                          <div
+                            key={id}
+                            className={`${styles["notif-fila"]} ${
+                              sinLeer ? styles["notif-fila--sin-leer"] : ""
+                            }`}
+                          >
+                            <span className={`${styles["notif-fila__icono"]} ${styles[`notif-fila__icono--${color}`]}`}>
+                              <Icono size={15} />
+                            </span>
+                            <div className={styles["notif-fila__copia"]}>
+                              <p className={styles["notif-fila__titulo"]}>{titulo}</p>
+                              <span className={styles["notif-fila__subtitulo"]}>
+                                {subtitulo}
+                              </span>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
+            <span className={styles["barra-superior__divisor"]} aria-hidden="true" />
+
+            <div className={styles["plantel"]}>
+              <div>
+                <small>Plantel</small>
+                <strong>COBACH 01 - Tuxtla</strong>
+              </div>
+              <ChevronDown size={14} />
+            </div>
+
+            <div className={styles["usuario"]}>
+              <span className={styles["usuario__avatar"]}>JR</span>
+              <div className={styles["usuario__info"]}>
+                <strong>José R. Clemente</strong>
+                <span>Administrador</span>
+              </div>
+              <ChevronDown size={14} />
+            </div>
+          </div>
+        </header>
+
+        <div className={styles["contenido"]}>
+          <Outlet />
+        </div>
+      </main>
+
+      <Modal
+        abierto={cerrarSesionAbierto}
+        titulo="Cerrar sesión"
+        onCerrar={() => setCerrarSesionAbierto(false)}
+        pie={
+          <>
+            <button
+              type="button"
+              className="boton boton--fantasma"
+              onClick={() => setCerrarSesionAbierto(false)}
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              className="boton boton--peligro"
+              onClick={() => {
+                setCerrarSesionAbierto(false);
+                navigate("/login");
+              }}
+            >
+              <LogOut size={16} />
+              Cerrar sesión
+            </button>
+          </>
+        }
+      >
+        <p className={styles["confirmacion"]}>
+          ¿Estás seguro de que deseas cerrar sesión? Tendrás que iniciar sesión
+          nuevamente para volver a entrar.
+        </p>
+      </Modal>
+    </div>
+  );
+}
