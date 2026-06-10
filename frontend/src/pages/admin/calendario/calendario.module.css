@@ -274,28 +274,100 @@
   padding: 2px 7px;
 }
 
-/* Cuerpo (calendario + aside) */
+/* Cuerpo (calendario + panel lateral).
+   En escritorio el calendario ocupa todo el ancho y, al abrir el panel, este
+   crece desde 0 hasta 320px (con transición), empujando el calendario. */
 .calendario__cuerpo {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 320px;
-  gap: 16px;
-  align-items: start;
+  display: flex;
+  align-items: flex-start;
 }
 
 .calendario__principal {
+  flex: 1;
+  min-width: 0;
   display: grid;
   gap: 16px;
-  min-width: 0;
 }
 
 .calendario__aside {
+  flex: none;
+  width: 0;
+  margin-left: 0;
+  overflow: hidden;
   display: grid;
   gap: 16px;
+  align-content: start;
+  transition: width 0.26s ease, margin-left 0.26s ease;
+}
+
+.calendario__aside--abierto {
+  width: 320px;
+  margin-left: 16px;
 }
 
 /* Lienzo que contiene FullCalendar */
 .lienzo {
   padding: 0;
+}
+
+/* Encabezado del panel lateral (con botón de cerrar) */
+.panel-cab {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 2px 2px 0;
+}
+
+.panel-cab__titulo {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted-2);
+}
+
+.panel-cab__cerrar {
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--muted);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.panel-cab__cerrar:hover {
+  background: #eef2f8;
+  color: #15233d;
+}
+
+/* Botón "Panel" de la toolbar: punto que avisa de filtros activos */
+.barra__panel-btn {
+  position: relative;
+}
+
+.barra__panel-punto {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--blue);
+  box-shadow: 0 0 0 2px #fff;
+}
+
+/* Fondo oscuro del panel (solo aparece cuando se abre como cajón en móvil) */
+.panel-respaldo {
+  display: none;
+}
+
+.panel-respaldo--visible {
+  opacity: 1;
 }
 
 /* Panel de eventos del día */
@@ -558,12 +630,49 @@
 
 /* Responsive */
 @media (max-width: 1100px) {
-  .calendario__cuerpo {
-    grid-template-columns: minmax(0, 1fr);
+  /* En pantallas medianas/chicas el panel se abre como CAJÓN que se DESLIZA
+     desde la derecha (mismo efecto que la barra lateral), sin encoger el
+     calendario. */
+  .calendario__aside {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: min(88vw, 360px);
+    margin-left: 0;
+    z-index: 70;
+    padding: 14px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    background: var(--bg);
+    box-shadow: -12px 0 32px rgba(2, 17, 56, 0.22);
+    transform: translateX(100%);
+    transition: transform 0.26s ease;
   }
 
-  .calendario__aside {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .calendario__aside--abierto {
+    width: min(88vw, 360px);
+    margin-left: 0;
+    transform: translateX(0);
+  }
+
+  .panel-respaldo {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 65;
+    background: rgba(2, 17, 56, 0.45);
+    backdrop-filter: blur(2px);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.26s ease, visibility 0.26s ease;
+  }
+
+  .panel-respaldo--visible {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
   }
 }
 

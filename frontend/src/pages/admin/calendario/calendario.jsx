@@ -11,6 +11,7 @@ import esLocale from "@fullcalendar/core/locales/es";
 import {
   CalendarDays, CalendarRange, LayoutGrid, List, ChevronLeft, ChevronRight,
   ChevronDown, Plus, Download, Pencil, Copy, Trash2, Settings2, Filter, Tag,
+  PanelRight, X,
 } from "lucide-react";
 import Modal from "../../../components/modal/Modal.jsx";
 import {
@@ -58,6 +59,8 @@ export default function Calendario() {
   const [pickerAbierto, setPickerAbierto] = useState(false);            // selector de mes
   const [anioPicker, setAnioPicker] = useState(() => hoy.getFullYear());
   const [vistaMenu, setVistaMenu] = useState(false);                    // menú desplegable de vista
+  
+  const [panelAbierto, setPanelAbierto] = useState(false);
 
   // Estado de los 3 modales
   const [modalEvento, setModalEvento] = useState(false);
@@ -69,11 +72,20 @@ export default function Calendario() {
 
   // Referencias: a FullCalendar (para controlarlo) y a los desplegables.
   const calendarRef = useRef(null);
+  const lienzoRef = useRef(null);
   const pickerRef = useRef(null);
   const vistaRef = useRef(null);
 
   // Acceso corto a la API de FullCalendar (prev, next, today, changeView...).
   const api = () => calendarRef.current?.getApi();
+
+  useEffect(() => {
+    const el = lienzoRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return undefined;
+    const observador = new ResizeObserver(() => api()?.updateSize());
+    observador.observe(el);
+    return () => observador.disconnect();
+  }, [vista]);
 
   useEffect(() => {
     const alClicar = (e) => {
@@ -159,6 +171,7 @@ export default function Calendario() {
 
   const esVistaFC = vista === "mes" || vista === "semana";
   const usaPicker = vista === "mes" || vista === "lista";
+  const hayFiltros = filtroTipo !== "todos" || filtroArea !== "todas";
 
   // Texto que se muestra en la toolbar según la vista.
   const tituloBarra = useMemo(() => {
@@ -448,6 +461,19 @@ export default function Calendario() {
                 <Plus size={16} />
                 Nuevo evento
               </button>
+
+              {/* Mostrar/ocultar el panel lateral (simbología, tipos, filtros) */}
+              <button
+                type="button"
+                className={`boton boton--fantasma ${styles["barra__panel-btn"]}`}
+                aria-pressed={panelAbierto}
+                onClick={() => setPanelAbierto((v) => !v)}
+                title={panelAbierto ? "Ocultar panel" : "Mostrar panel"}
+              >
+                <PanelRight size={16} />
+                Panel
+                {hayFiltros && !panelAbierto && <span className={styles["barra__panel-punto"]} />}
+              </button>
             </div>
           </div>
 
@@ -455,7 +481,7 @@ export default function Calendario() {
                Mes y Semana las dibuja FullCalendar; Anual y Lista son
                componentes propios */}
           {esVistaFC ? (
-            <div className={`tarjeta ${styles["lienzo"]}`}>
+            <div className={`tarjeta ${styles["lienzo"]}`} ref={lienzoRef}>
               <div className="cal-fc">
                 <FullCalendar
                   ref={calendarRef}
@@ -578,8 +604,30 @@ export default function Calendario() {
           </div>
         </div>
 
-        {/* ---- ASIDE DERECHO: simbología, tipos de evento y filtros ---- */}
-        <aside className={styles["calendario__aside"]}>
+        <div
+          className={`${styles["panel-respaldo"]} ${panelAbierto ? styles["panel-respaldo--visible"] : ""}`}
+          onClick={() => setPanelAbierto(false)}
+          aria-hidden="true"
+        />
+
+        {/* ---- PANEL LATERAL: simbología, tipos de evento y filtros ---- */}
+        <aside
+          className={`${styles["calendario__aside"]} ${panelAbierto ? styles["calendario__aside--abierto"] : ""}`}
+          aria-hidden={!panelAbierto}
+        >
+          {/* Encabezado del panel con X para cerrarlo */}
+          <div className={styles["panel-cab"]}>
+            <span className={styles["panel-cab__titulo"]}>Panel</span>
+            <button
+              type="button"
+              className={styles["panel-cab__cerrar"]}
+              onClick={() => setPanelAbierto(false)}
+              aria-label="Cerrar panel"
+            >
+              <X size={18} />
+            </button>
+          </div>
+
           {/* Simbología: leyenda de colores (sale de los tipos de evento) */}
           <article className="tarjeta">
             <div className="tarjeta__cabecera">
