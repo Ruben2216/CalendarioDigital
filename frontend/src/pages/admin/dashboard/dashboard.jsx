@@ -1,0 +1,388 @@
+import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import {
+  Calendar, Clock, Users, Bell, ChevronLeft, ChevronRight, MapPin,
+  GraduationCap, Megaphone, TrendingUp, AlertCircle,
+} from "lucide-react";
+import {
+  ZONA, NOMBRES_MES, ABREV_MES, ahoraMexico, aClaveFecha, desdeClaveFecha,
+  formatoHora, formatoFechaLarga,
+} from "../../../lib/fechas.js";
+import { TIPOS, eventosIniciales } from "../../../data/calendario.js";
+import { NOTIFICACIONES, ANUNCIOS } from "../../../data/avisos.js";
+import styles from "./dashboard.module.css";
+
+const DIAS_MINI = ["D", "L", "M", "M", "J", "V", "S"];
+
+const TIPOS_MAP = Object.fromEntries(TIPOS.map((t) => [t.id, t]));
+const colorTipo = (id) => TIPOS_MAP[id]?.color ?? "gris";
+const etiquetaTipo = (id) => TIPOS_MAP[id]?.etiqueta ?? "Evento";
+
+function saludoPorHora(hora) {
+  if (hora < 12) return { texto: "Buenos días" };
+  if (hora < 19) return { texto: "Buenas tardes" };
+  return { texto: "Buenas noches" };
+}
+
+export default function Dashboard() {
+  const navigate = useNavigate();
+  const hoy = useMemo(() => ahoraMexico(), []);
+  const claveHoy = aClaveFecha(hoy);
+
+  const eventos = useMemo(() => eventosIniciales(), []);
+  const [mesVisible, setMesVisible] = useState(
+    () => new Date(hoy.getFullYear(), hoy.getMonth(), 1)
+  );
+  const [fechaSeleccionada, setFechaSeleccionada] = useState(null);
+
+  const saludo = saludoPorHora(hoy.getHours());
+
+  const fechaLarga = useMemo(() => {
+    const texto = new Intl.DateTimeFormat("es-MX", {
+      weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: ZONA,
+    }).format(hoy);
+    return texto.charAt(0).toUpperCase() + texto.slice(1);
+  }, [hoy]);
+
+  const ciclo = useMemo(() => {
+    const anio = hoy.getFullYear();
+    return hoy.getMonth() >= 7 ? `${anio}–${anio + 1}` : `${anio - 1}–${anio}`;
+  }, [hoy]);
+
+  const eventosPorFecha = useMemo(() => {
+    const mapa = new Map();
+    for (const evento of eventos) {
+      if (!mapa.has(evento.fecha)) mapa.set(evento.fecha, []);
+      mapa.get(evento.fecha).push(evento);
+    }
+    return mapa;
+  }, [eventos]);
+
+  const eventosDelDia = fechaSeleccionada
+    ? eventosPorFecha.get(fechaSeleccionada) || []
+    : [];
+
+  const manejarClickDia = (celda) => {
+    setFechaSeleccionada(celda.clave);
+    if (!celda.delMes) {
+      const fecha = desdeClaveFecha(celda.clave);
+      setMesVisible(new Date(fecha.getFullYear(), fecha.getMonth(), 1));
+    }
+  };
+
+  const proximosEventos = useMemo(() => {
+    return eventos
+      .filter((evento) => evento.fecha >= claveHoy)
+      .sort((a, b) => a.fecha.localeCompare(b.fecha));
+  }, [eventos, claveHoy]);
+
+  const celdasCalendario = useMemo(() => {
+    const anio = mesVisible.getFullYear();
+    const mes = mesVisible.getMonth();
+    const primerDiaSemana = new Date(anio, mes, 1).getDay();
+    const inicio = new Date(anio, mes, 1 - primerDiaSemana);
+
+    return Array.from({ length: 42 }, (_, i) => {
+      const fecha = new Date(inicio.getFullYear(), inicio.getMonth(), inicio.getDate() + i);
+      const clave = aClaveFecha(fecha);
+      const eventosDia = eventosPorFecha.get(clave) || [];
+      return {
+        clave,
+        dia: fecha.getDate(),
+        delMes: fecha.getMonth() === mes,
+        esHoy: clave === claveHoy,
+        color: eventosDia.length ? colorTipo(eventosDia[0].tipo) : null,
+      };
+    });
+  }, [mesVisible, eventosPorFecha, claveHoy]);
+
+  const notifSinLeer = NOTIFICACIONES.filter((n) => n.sinLeer).length;
+
+  const irMes = (delta) =>
+    setMesVisible((prev) => new Date(prev.getFullYear(), prev.getMonth() + delta, 1));
+
+  const irHoy = () => setMesVisible(new Date(hoy.getFullYear(), hoy.getMonth(), 1));
+
+  return (
+    <section className={styles["rejilla"]}>
+      <div className={styles["columna"]}>
+        <section className={styles["encabezado"]}>
+          <div>
+            <h2 className={styles["encabezado__saludo"]}>{saludo.texto}, José Rubén</h2>
+            <div className={styles["encabezado__subtitulo"]}>
+              <Calendar size={13} />
+              <span>{fechaLarga}</span>
+              <span>·</span>
+              <span>Ciclo {ciclo}</span>
+            </div>
+          </div>
+        </section>
+
+        <section className={styles["indicadores"]}>
+          <article className={styles["indicador"]}>
+            <span className={`${styles["indicador__icono"]} ${styles["indicador__icono--naranja"]}`}>
+              <Users size={21} />
+            </span>
+            <div>
+              <div className={styles["indicador__valor"]}>312</div>
+              <div className={styles["indicador__etiqueta"]}>Usuarios activos</div>
+              <div className={`${styles["indicador__nota"]} ${styles["indicador__nota--positiva"]}`}>
+                <TrendingUp size={12} />
+                18 nuevos esta semana
+              </div>
+            </div>
+          </article>
+
+          <article className={styles["indicador"]}>
+            <span className={`${styles["indicador__icono"]} ${styles["indicador__icono--morado"]}`}>
+              <Bell size={21} />
+            </span>
+            <div>
+              <div className={styles["indicador__valor"]}>{NOTIFICACIONES.length}</div>
+              <div className={styles["indicador__etiqueta"]}>Notificaciones pendientes</div>
+              <div className={`${styles["indicador__nota"]} ${styles["indicador__nota--alerta"]}`}>
+                <AlertCircle size={12} />
+                {notifSinLeer} sin leer
+              </div>
+            </div>
+          </article>
+        </section>
+
+        <article className="tarjeta">
+          <div className="tarjeta__cabecera">
+            <div className="tarjeta__titulo">
+              <Calendar size={16} />
+              Próximos eventos
+            </div>
+            <button type="button" className="tarjeta__enlace" onClick={() => navigate("/calendario")}>
+              Ver todos
+              <ChevronRight size={14} />
+            </button>
+          </div>
+
+          <div className={styles["eventos"]}>
+            {proximosEventos.length === 0 ? (
+              <p className={styles["eventos__vacio"]}>No hay eventos próximos.</p>
+            ) : (
+              proximosEventos.map((evento) => {
+                const fecha = desdeClaveFecha(evento.fecha);
+                return (
+                  <div key={evento.id} className={styles["evento"]}>
+                    <div className={styles["evento__fecha"]}>
+                      <strong>{fecha.getDate()}</strong>
+                      <span>{ABREV_MES[fecha.getMonth()]}</span>
+                    </div>
+                    <div className={styles["evento__copia"]}>
+                      <h3 className={styles["evento__titulo"]}>{evento.titulo}</h3>
+                      <div className={styles["evento__meta"]}>
+                        <span className={`etiqueta etiqueta--${colorTipo(evento.tipo)}`}>
+                          {etiquetaTipo(evento.tipo)}
+                        </span>
+                        {evento.horaInicio && (
+                          <span className={styles["meta"]}>
+                            <Clock size={11} />
+                            {formatoHora(evento.horaInicio)}
+                            {evento.horaFin && ` - ${formatoHora(evento.horaFin)}`}
+                          </span>
+                        )}
+                        {evento.lugar && (
+                          <span className={styles["meta"]}>
+                            <MapPin size={11} />
+                            {evento.lugar}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </article>
+
+        <div className={styles["promo-anuncios"]}>
+          <article className={`tarjeta ${styles["promo"]}`}>
+            <div className={styles["promo__copia"]}>
+              <h3>
+                Transformamos
+                <br />
+                el presente,
+                <br />
+                construimos
+                <br />
+                el futuro.
+              </h3>
+              <p>Colegio de Bachilleres de Chiapas</p>
+            </div>
+            <span className={styles["promo__figura"]} aria-hidden="true">
+              <GraduationCap size={56} />
+            </span>
+          </article>
+
+          <article className="tarjeta">
+            <div className="tarjeta__cabecera">
+              <div className="tarjeta__titulo">
+                <Megaphone size={16} />
+                Anuncios
+              </div>
+            </div>
+            <div className={styles["anuncios"]}>
+              {ANUNCIOS.map(({ id, icono: Icono, color, titulo, descripcion, fecha }) => (
+                <div key={id} className={styles["anuncio"]}>
+                  <span className={`${styles["anuncio__icono"]} ${styles[`anuncio__icono--${color}`]}`}>
+                    <Icono size={14} />
+                  </span>
+                  <div className={styles["anuncio__copia"]}>
+                    <h3 className={styles["anuncio__titulo"]}>{titulo}</h3>
+                    <p className={styles["anuncio__descripcion"]}>{descripcion}</p>
+                  </div>
+                  <span className={styles["anuncio__fecha"]}>{fecha}</span>
+                </div>
+              ))}
+            </div>
+          </article>
+        </div>
+      </div>
+
+      <aside className={styles["lateral-derecho"]}>
+        <article className={`tarjeta ${styles["calendario"]}`}>
+          <div className={styles["calendario__cabecera"]}>
+            <div className="tarjeta__titulo">
+              <Calendar size={16} />
+              Calendario institucional
+            </div>
+            <div className={styles["calendario__controles"]}>
+              <button type="button" className={styles["calendario__nav"]} onClick={() => irMes(-1)} aria-label="Mes anterior">
+                <ChevronLeft size={14} />
+              </button>
+              <button type="button" className={styles["calendario__hoy"]} onClick={irHoy}>
+                Hoy
+              </button>
+              <button type="button" className={styles["calendario__nav"]} onClick={() => irMes(1)} aria-label="Mes siguiente">
+                <ChevronRight size={14} />
+              </button>
+            </div>
+          </div>
+
+          <div className={styles["calendario__cuerpo"]}>
+            <h3 className={styles["calendario__mes"]}>
+              {NOMBRES_MES[mesVisible.getMonth()]} {mesVisible.getFullYear()}
+            </h3>
+
+            <div className={styles["calendario__rejilla"]}>
+              {DIAS_MINI.map((dia, i) => (
+                <span key={i} className={styles["calendario__dia-semana"]}>
+                  {dia}
+                </span>
+              ))}
+
+              {celdasCalendario.map((celda) => (
+                <button
+                  type="button"
+                  key={celda.clave}
+                  onClick={() => manejarClickDia(celda)}
+                  aria-pressed={fechaSeleccionada === celda.clave}
+                  className={`${styles["dia"]} ${
+                    celda.delMes ? "" : styles["dia--apagado"]
+                  } ${celda.esHoy ? styles["dia--hoy"] : ""} ${
+                    celda.color ? styles[`dia--${celda.color}`] : ""
+                  } ${fechaSeleccionada === celda.clave ? styles["dia--seleccionado"] : ""}`}
+                >
+                  {celda.dia}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {fechaSeleccionada && (
+            <div className={styles["dia-eventos"]}>
+              <div className={styles["dia-eventos__cabecera"]}>
+                <span className={styles["dia-eventos__titulo"]}>
+                  {formatoFechaLarga(fechaSeleccionada)}
+                </span>
+                <button
+                  type="button"
+                  className={styles["dia-eventos__limpiar"]}
+                  onClick={() => setFechaSeleccionada(null)}
+                >
+                  Limpiar
+                </button>
+              </div>
+
+              {eventosDelDia.length === 0 ? (
+                <p className={styles["dia-eventos__vacio"]}>No hay eventos para este día.</p>
+              ) : (
+                <ul className={styles["dia-eventos__lista"]}>
+                  {eventosDelDia.map((evento) => (
+                    <li key={evento.id} className={styles["dia-eventos__item"]}>
+                      <span className={`${styles["dia-eventos__marca"]} ${styles[`dia-eventos__marca--${colorTipo(evento.tipo)}`]}`} />
+                      <div className={styles["dia-eventos__copia"]}>
+                        <p className={styles["dia-eventos__nombre"]}>{evento.titulo}</p>
+                        <div className={styles["dia-eventos__meta"]}>
+                          <span className={`etiqueta etiqueta--${colorTipo(evento.tipo)}`}>
+                            {etiquetaTipo(evento.tipo)}
+                          </span>
+                          {evento.horaInicio && (
+                            <span className={styles["meta"]}>
+                              <Clock size={11} />
+                              {formatoHora(evento.horaInicio)}
+                              {evento.horaFin && ` - ${formatoHora(evento.horaFin)}`}
+                            </span>
+                          )}
+                          {evento.lugar && (
+                            <span className={styles["meta"]}>
+                              <MapPin size={11} />
+                              {evento.lugar}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+
+          <div className={styles["calendario__leyenda"]}>
+            {TIPOS.map((t) => (
+              <span key={t.id} className={styles["leyenda"]}>
+                <span className={`${styles["leyenda__punto"]} ${styles[`leyenda__punto--${t.color}`]}`} />
+                {t.etiqueta}
+              </span>
+            ))}
+          </div>
+        </article>
+
+        <article className="tarjeta">
+          <div className="tarjeta__cabecera">
+            <div className="tarjeta__titulo">
+              <Bell size={16} />
+              Notificaciones
+            </div>
+            {notifSinLeer > 0 && (
+              <span className="etiqueta etiqueta--azul">{notifSinLeer} nuevas</span>
+            )}
+          </div>
+
+          <div className={styles["notif-lista"]}>
+            {NOTIFICACIONES.slice(0, 5).map(({ id, icono: Icono, color, titulo, subtitulo, sinLeer }) => (
+              <div
+                key={id}
+                className={`${styles["notif-fila"]} ${sinLeer ? styles["notif-fila--sin-leer"] : ""}`}
+              >
+                <span className={`${styles["notif-fila__icono"]} ${styles[`notif-fila__icono--${color}`]}`}>
+                  <Icono size={15} />
+                </span>
+                <div className={styles["notif-fila__copia"]}>
+                  <p className={styles["notif-fila__titulo"]}>{titulo}</p>
+                  <span className={styles["notif-fila__subtitulo"]}>{subtitulo}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </article>
+      </aside>
+    </section>
+  );
+}

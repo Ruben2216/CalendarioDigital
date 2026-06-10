@@ -1,0 +1,49 @@
+/* Tokens de diseño globales
+   Variables compartidas por todo el panel administrativo (Layout y páginas).
+*/
+
+:root {
+  /* Superficies */
+  --bg: #f4f7fb;
+  --panel: #ffffff;
+  --panel-soft: #f8fbff;
+  --line: #e5ebf4;
+
+  /* Texto */
+  --text: #1f2430;
+  --muted: #667085;
+  --muted-2: #97a3b6;
+
+  /* Marca */
+  --navy: #021138;
+  --navy-2: #0a2060;
+
+  /* Acentos */
+  --blue: #0147d4;
+  --blue-strong: #0040c0;
+  --blue-soft: #e7eefb;
+  --blue-accent: #4a90e2;
+  --green: #2e9d41;
+  --green-soft: #eaf7ec;
+  --teal: #0f9b8e;
+  --teal-soft: #e4f6f3;
+  --orange: #ef7d15;
+  --orange-soft: #fff2e6;
+  --purple: #7b3fe4;
+  --purple-soft: #f0eafe;
+  --red: #e5484d;
+  --red-soft: #feeaeb;
+  --marino: #1f3b8f;
+  --marino-soft: #e8edfb;
+
+  /* Profundidad y radios */
+  --shadow-soft: 0 6px 18px rgba(13, 34, 63, 0.06);
+  --radius-lg: 18px;
+
+  /* Layout */
+  --sidebar-w: 220px;
+
+  /* Tipografía */
+  --font-base: "DM Sans", system-ui, sans-serif;
+  --font-display: "Plus Jakarta Sans", sans-serif;
+}

@@ -1,0 +1,198 @@
+/* Componentes de interfaz reutilizables (sistema de diseño)
+   Clases globales con metodología BEM, compartidas por Layout y páginas nuevas
+*/
+
+/* Boton */
+.boton {
+  height: 38px;
+  padding: 0 16px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: transform 0.12s ease, box-shadow 0.15s ease, background-color 0.15s ease,
+    border-color 0.15s ease, color 0.15s ease;
+}
+
+.boton:active {
+  transform: translateY(1px);
+}
+
+.boton:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.boton--primario {
+  background: var(--blue);
+  color: #fff;
+  box-shadow:
+    inset 0 2px 4px rgba(255, 255, 255, 0.22),
+    inset 0 -6px 14px rgba(0, 0, 0, 0.32),
+    0 8px 20px rgba(1, 71, 212, 0.38);
+}
+
+.boton--primario:hover {
+  background: var(--blue-strong);
+}
+
+.boton--fantasma {
+  background: #fff;
+  color: #344054;
+  border-color: #dbe4f0;
+}
+
+.boton--fantasma:hover {
+  background: #f4f7fb;
+}
+
+.boton--peligro {
+  background: var(--red);
+  color: #fff;
+  box-shadow: 0 8px 20px rgba(229, 72, 77, 0.32);
+}
+
+.boton--peligro:hover {
+  background: #d23b40;
+}
+
+.boton--pequeno {
+  height: 32px;
+  padding: 0 12px;
+  font-size: 12px;
+}
+
+/* Etiqueta */
+.etiqueta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 20px;
+  padding: 0 9px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 800;
+  font-family: var(--font-display);
+  white-space: nowrap;
+}
+
+.etiqueta--azul { background: var(--blue-soft); color: var(--blue); }
+.etiqueta--verde { background: var(--green-soft); color: var(--green); }
+.etiqueta--teal { background: var(--teal-soft); color: var(--teal); }
+.etiqueta--naranja { background: var(--orange-soft); color: var(--orange); }
+.etiqueta--morado { background: var(--purple-soft); color: var(--purple); }
+.etiqueta--rojo { background: var(--red-soft); color: var(--red); }
+.etiqueta--marino { background: var(--marino-soft); color: var(--marino); }
+.etiqueta--gris { background: #f0f3f8; color: var(--muted); }
+
+/* Tarjeta */
+.tarjeta {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-soft);
+  overflow: hidden;
+}
+
+.tarjeta__cabecera {
+  min-height: 52px;
+  padding: 0 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border-bottom: 1px solid #edf1f7;
+}
+
+.tarjeta__titulo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-display);
+  font-size: 13px;
+  line-height: 1;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  color: #101828;
+}
+
+.tarjeta__titulo svg {
+  color: var(--blue);
+}
+
+.tarjeta__enlace {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 0;
+  background: transparent;
+  color: var(--blue);
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.tarjeta__enlace:hover {
+  text-decoration: underline;
+}
+
+/* Campo de formulario */
+.formulario {
+  display: grid;
+  gap: 14px;
+}
+
+.formulario__fila {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.formulario__campo {
+  display: grid;
+  gap: 6px;
+}
+
+.formulario__etiqueta {
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 700;
+  color: #344054;
+}
+
+.formulario__campo input,
+.formulario__campo select,
+.formulario__campo textarea {
+  min-height: 40px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  border: 1px solid #dbe4f0;
+  background: #f8fbff;
+  font: inherit;
+  font-size: 13px;
+  color: var(--text);
+  outline: none;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.formulario__campo input:focus,
+.formulario__campo select:focus,
+.formulario__campo textarea:focus {
+  border-color: var(--blue);
+  background: #fff;
+}
+
+@media (max-width: 640px) {
+  .formulario__fila {
+    grid-template-columns: 1fr;
+  }
+}

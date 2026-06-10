@@ -1,3 +1,6 @@
+@import "./styles/tokens.css";
+@import "./styles/ui.css";
+
 :root {
   font-family: system-ui, "Segoe UI", Roboto, sans-serif;
   line-height: 1.5;

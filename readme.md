@@ -30,3 +30,22 @@ Iniciar frontend
 ```
 npm run dev
 ```
+
+# Explicacion de libreria FullCalendar (calendario.jsx)
+El calendario en sí (la rejilla) lo dibuja la librería FullCalendar:
+- Esta página solo se encarga de:
+     - El diseño de alrededor (encabezado, toolbar, simbología, tipos, filtros,
+       panel de eventos del día y los modales de crear/editar/eliminar).
+     - Pasarle a FullCalendar los datos y reaccionar a sus clics.
+
+FullCalendar y sus plugins:
+   - Cada plugin habilita un "tipo de vista". El nombre técnico de la vista es
+   lo que luego usamos en changeView():
+     - dayGridPlugin   -> "dayGridMonth"   (vista MES)
+     - timeGridPlugin  -> "timeGridWeek"   (vista SEMANA, con horas)
+     - multiMonthPlugin-> "multiMonthYear" (vista ANUAL, los 12 meses)
+     - listPlugin      -> "listMonth"      (vista LISTA / agenda)
+     - interactionPlugin-> habilita los clics en días (dateClick)
+   esLocale traduce la librería al español. */
+
+Se utilizaron 4 vistas (mes, semana, anual y lista)
