@@ -13,12 +13,18 @@ class GoogleAuthView(APIView):
 
 	No se usa base de datos por ahora; la función únicamente valida el token
 	y fuerza la redirección a `FRONTEND_DASHBOARD_URL` cuando el correo pertenece
-	a `@cobach.edu.mx`. En caso contrario no realiza acción (responde 204).
+	a `@cobach.edu.mx` y el rol solicitado es institucional (admin, docente o alumno).
+	El acceso público de Padre/Tutor no utiliza este flujo.
 	"""
 
+	INSTITUTIONAL_ROLES = frozenset({'admin', 'docente', 'alumno'})
 	permission_classes = [permissions.AllowAny]
 
 	def post(self, request):
+		role = request.data.get('role') or request.POST.get('role')
+		if role and role not in self.INSTITUTIONAL_ROLES:
+			return Response(status=status.HTTP_403_FORBIDDEN)
+
 		id_token = request.data.get('token') or request.POST.get('token')
 		if not id_token:
 			return Response(status=status.HTTP_204_NO_CONTENT)
