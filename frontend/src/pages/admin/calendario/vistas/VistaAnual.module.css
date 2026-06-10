@@ -1,0 +1,119 @@
+.anual {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(232px, 1fr));
+  gap: 16px;
+  padding: 16px;
+  align-items: start;
+}
+
+.anual__contenedor {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.anual__semestre {
+  align-self: flex-start;
+  letter-spacing: 0.04em;
+}
+
+/* Mini-mes */
+.mini {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.mini__cabecera {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 8px 12px;
+  color: #fff;
+}
+
+.mini__cabecera--a {
+  background: #a31d46; /* semestre A: crimson */
+}
+
+.mini__cabecera--b {
+  background: #0f8a7e; /* semestre B: teal */
+}
+
+.mini__mes {
+  font-family: var(--font-display);
+  font-size: 12.5px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.mini__anio {
+  font-size: 11px;
+  font-weight: 700;
+  opacity: 0.85;
+}
+
+.mini__rejilla {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+  padding: 8px;
+}
+
+.mini__dia-semana {
+  height: 18px;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-display);
+  font-size: 9.5px;
+  font-weight: 800;
+  color: var(--muted-2);
+}
+
+.mini__dia {
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  color: #334155;
+  cursor: pointer;
+  transition: background-color 0.12s ease, box-shadow 0.12s ease;
+}
+
+.mini__dia:hover {
+  background: #eef2f8;
+}
+
+.mini__dia--fuera {
+  color: #cbd3df;
+}
+
+.mini__dia--sel {
+  box-shadow: inset 0 0 0 2px var(--blue);
+}
+
+.mini__dia--hoy {
+  background: var(--blue) !important;
+  color: #fff;
+}
+
+.mini__dia--azul { background: var(--blue); color: #fff; }
+.mini__dia--naranja { background: var(--orange); color: #fff; }
+.mini__dia--morado { background: var(--purple); color: #fff; }
+.mini__dia--verde { background: var(--green); color: #fff; }
+.mini__dia--teal { background: var(--teal); color: #fff; }
+.mini__dia--marino { background: var(--marino); color: #fff; }
+.mini__dia--rojo { background: var(--red); color: #fff; }
+.mini__dia--gris { background: var(--muted-2); color: #fff; }
+
+@media (max-width: 520px) {
+  .anual {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

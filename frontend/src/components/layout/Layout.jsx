@@ -1,11 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import {
-  LayoutDashboard, Calendar, Clock, Users, Menu, Bell, ChevronDown,
-  Plus, Pencil, AlertTriangle, FileText, LogOut, CheckCheck, Trash2,
-} from "lucide-react";
+import { LayoutDashboard, Calendar, Clock, Users, Menu, Bell, ChevronDown, LogOut, CheckCheck, Trash2 } from "lucide-react";
 import Modal from "../modal/Modal.jsx";
 import logoCobach from "../../assets/img/logo-cobach.png";
+import { NOTIFICACIONES } from "../../data/avisos.js";
+import { ZONA } from "../../lib/fechas.js";
 import styles from "./Layout.module.css";
 
 const NAV = [
@@ -14,16 +13,6 @@ const NAV = [
   { etiqueta: "Eventos", icono: Clock, ruta: "/eventos" },
   { etiqueta: "Usuarios", icono: Users, ruta: "/usuarios" },
 ];
-
-const NOTIFICACIONES_INICIALES = [
-  { id: 1, icono: Pencil, color: "azul", titulo: "Examen de Física actualizado al 6 jun", subtitulo: "Hace 2 horas · Prof. García", sinLeer: true },
-  { id: 2, icono: Plus, color: "verde", titulo: "Nuevo evento: Torneo deportivo interplantel", subtitulo: "Hace 5 horas · Administración", sinLeer: true },
-  { id: 3, icono: Users, color: "gris", titulo: "3 nuevos usuarios registrados", subtitulo: "Ayer · Sistema", sinLeer: true },
-  { id: 4, icono: AlertTriangle, color: "naranja", titulo: "Recordatorio: Periodo de inscripciones cierra el 10 jun", subtitulo: "Hace 2 días · Dirección", sinLeer: false },
-  { id: 5, icono: FileText, color: "azul", titulo: "Calendario mayo exportado por 12 usuarios", subtitulo: "Hace 3 días", sinLeer: false },
-];
-
-const ZONA = "America/Mexico_City";
 
 export default function Layout() {
   const navigate = useNavigate();
@@ -35,7 +24,7 @@ export default function Layout() {
     () => !window.matchMedia("(max-width: 920px)").matches
   );
   const [notifAbierto, setNotifAbierto] = useState(false);
-  const [notificaciones, setNotificaciones] = useState(NOTIFICACIONES_INICIALES);
+  const [notificaciones, setNotificaciones] = useState(NOTIFICACIONES);
   const [cerrarSesionAbierto, setCerrarSesionAbierto] = useState(false);
 
   const notifRef = useRef(null);

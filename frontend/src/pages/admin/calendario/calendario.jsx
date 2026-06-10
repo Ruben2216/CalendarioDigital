@@ -1,186 +1,90 @@
 import { useMemo, useRef, useState, useEffect } from "react";
+
+import FullCalendar from "@fullcalendar/react";
+import dayGridPlugin from "@fullcalendar/daygrid";
+import timeGridPlugin from "@fullcalendar/timegrid";
+import listPlugin from "@fullcalendar/list";
+import multiMonthPlugin from "@fullcalendar/multimonth";
+import interactionPlugin from "@fullcalendar/interaction";
+import esLocale from "@fullcalendar/core/locales/es";
+
 import {
   CalendarDays, CalendarRange, LayoutGrid, List, ChevronLeft, ChevronRight,
   ChevronDown, Plus, Download, Pencil, Copy, Trash2, Settings2, Filter, Tag,
 } from "lucide-react";
 import Modal from "../../../components/modal/Modal.jsx";
+import {
+  NOMBRES_MES, aClaveFecha, desdeClaveFecha, sumarDias, formatoHora,
+  formatoFechaLarga, calcularSemestre, ahoraMexico,
+} from "../../../lib/fechas.js";
+import { TIPOS, AREAS, COLORES_TIPO, eventosIniciales } from "../../../data/calendario.js";
+import VistaAnual from "./vistas/VistaAnual.jsx";   
+import VistaLista from "./vistas/VistaLista.jsx";   
 import styles from "./calendario.module.css";
+import "./fullcalendar.css";
 
-const ZONA = "America/Mexico_City";
-
-const NOMBRES_MES = [
-  "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
-  "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre",
-];
-
-const DIAS_SEMANA = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
-
-const COLORES_TIPO = [
-  { valor: "azul", etiqueta: "Azul" },
-  { valor: "naranja", etiqueta: "Naranja" },
-  { valor: "morado", etiqueta: "Morado" },
-  { valor: "verde", etiqueta: "Verde" },
-  { valor: "teal", etiqueta: "Verde azulado" },
-  { valor: "marino", etiqueta: "Azul marino" },
-  { valor: "rojo", etiqueta: "Rojo" },
-];
-
-const TIPOS_INICIALES = [
-  { id: "academico", etiqueta: "Académico", color: "azul" },
-  { id: "administrativo", etiqueta: "Administrativo", color: "naranja" },
-  { id: "cultural", etiqueta: "Cultural", color: "morado" },
-  { id: "deportivo", etiqueta: "Deportivo", color: "verde" },
-  { id: "institucional", etiqueta: "Institucional", color: "marino" },
-  { id: "formacion", etiqueta: "Formación", color: "teal" },
-  { id: "urgente", etiqueta: "Urgente", color: "rojo" },
-];
-
-const AREAS = [
-  "Académica", "Administrativa", "Deportiva",
-  "Cultural", "Formación", "Institucional",
-];
-
-// Simbología del calendario oficial
-const SIMBOLOGIA = [
-  { etiqueta: "Inicio de curso", color: "verde", forma: "punto" },
-  { etiqueta: "Fin de curso", color: "negro", forma: "punto" },
-  { etiqueta: "Día inhábil", color: "rojo", forma: "punto" },
-  { etiqueta: "Receso intersemestral", color: "marron", forma: "rango" },
-  { etiqueta: "Vacaciones", color: "naranja", forma: "rango" },
-  { etiqueta: "Semana de planeación del ciclo escolar", color: "verde", forma: "rango" },
-  { etiqueta: "Cierre de primera evaluación sumativa", color: "rosa", forma: "anillo" },
-  { etiqueta: "Cierre de segunda evaluación sumativa", color: "azul", forma: "anillo" },
-  { etiqueta: "Primera evaluación de recuperación", color: "celeste", forma: "punto" },
-  { etiqueta: "Entrega de calificaciones", color: "amarillo", forma: "punto" },
-  { etiqueta: "Curso propedéutico alumnos 1.er semestre", color: "morado", forma: "punto" },
-  { etiqueta: "Segunda evaluación de recuperación", color: "naranja", forma: "punto" },
-  { etiqueta: "Reunión de trabajo colegiado", color: "marron", forma: "punto" },
-];
-
-// Utilidades de fecha
-function ahoraMexico() {
-  return new Date(new Date().toLocaleString("en-US", { timeZone: ZONA }));
-}
-
-function aClaveFecha(fecha) {
-  const anio = fecha.getFullYear();
-  const mes = String(fecha.getMonth() + 1).padStart(2, "0");
-  const dia = String(fecha.getDate()).padStart(2, "0");
-  return `${anio}-${mes}-${dia}`;
-}
-
-function desdeClaveFecha(clave) {
-  const [anio, mes, dia] = clave.split("-").map(Number);
-  return new Date(anio, mes - 1, dia);
-}
-
-function formatoHora(hora) {
-  if (!hora) return "";
-  const [h, m] = hora.split(":").map(Number);
-  const periodo = h >= 12 ? "PM" : "AM";
-  const h12 = h % 12 === 0 ? 12 : h % 12;
-  return `${h12}:${String(m).padStart(2, "0")} ${periodo}`;
-}
-
-// Un evento se dibuja como barra con nombre si es un periodo
-// o si abarca dos o más días; en otro caso, como punto.
-function esBarra(ev) {
-  return ev.formato === "rango" || (ev.fechaFin && ev.fechaFin !== ev.fecha);
-}
-
-function formatoFechaLarga(clave) {
-  const texto = new Intl.DateTimeFormat("es-MX", {
-    weekday: "long", day: "numeric", month: "long", year: "numeric",
-  }).format(desdeClaveFecha(clave));
-  return texto.charAt(0).toUpperCase() + texto.slice(1);
-}
-
-// Semestre A: agosto–enero - Semestre B: febrero–julio
-function calcularSemestre(fecha) {
-  const mes = fecha.getMonth();
-  const anio = fecha.getFullYear();
-  if (mes >= 7) return { letra: "A", ciclo: anio };
-  if (mes === 0) return { letra: "A", ciclo: anio - 1 };
-  return { letra: "B", ciclo: anio };
-}
-
-function eventosIniciales() {
-  return [
-    { id: 1, titulo: "Curso propedéutico alumnos 1.er semestre", tipo: "cultural", area: "Cultural", fecha: "2026-06-02", fechaFin: "2026-06-04", horaInicio: "", horaFin: "", lugar: "Auditorio", formato: "rango" },
-    { id: 2, titulo: "Examen parcial de Matemáticas", tipo: "academico", area: "Académica", fecha: "2026-06-10", horaInicio: "08:00", horaFin: "10:00", lugar: "Aula 12-B", formato: "punto" },
-    { id: 3, titulo: "Reunión de trabajo colegiado", tipo: "administrativo", area: "Administrativa", fecha: "2026-06-10", horaInicio: "10:00", horaFin: "12:00", lugar: "Sala de juntas", formato: "punto" },
-    { id: 4, titulo: "Torneo deportivo interplantel", tipo: "deportivo", area: "Deportiva", fecha: "2026-06-10", horaInicio: "13:00", horaFin: "17:00", lugar: "Plantel 01 – Tuxtla", formato: "punto" },
-    { id: 5, titulo: "Capacitación docente", tipo: "formacion", area: "Formación", fecha: "2026-06-10", horaInicio: "16:00", horaFin: "18:00", lugar: "Aula 5", formato: "punto" },
-    { id: 6, titulo: "Entrega de calificaciones", tipo: "academico", area: "Académica", fecha: "2026-06-12", horaInicio: "09:00", horaFin: "14:00", lugar: "Control escolar", formato: "punto" },
-    { id: 7, titulo: "Ceremonia cívica", tipo: "institucional", area: "Institucional", fecha: "2026-06-22", horaInicio: "08:00", horaFin: "09:00", lugar: "Explanada", formato: "punto" },
-    { id: 8, titulo: "Receso intersemestral", tipo: "institucional", area: "Institucional", fecha: "2026-06-28", horaInicio: "", horaFin: "", lugar: "Toda la comunidad", formato: "rango" },
-    { id: 9, titulo: "Periodo vacacional", tipo: "urgente", area: "Institucional", fecha: "2026-06-30", horaInicio: "", horaFin: "", lugar: "Toda la comunidad", formato: "rango" },
-  ];
-}
-
-const VISTAS = [
-  { id: "mes", etiqueta: "Mes", icono: CalendarDays, disponible: true },
-  { id: "semana", etiqueta: "Semana", icono: CalendarRange, disponible: false },
-  { id: "anual", etiqueta: "Anual", icono: LayoutGrid, disponible: false },
-  { id: "lista", etiqueta: "Lista", icono: List, disponible: false },
-];
-
-const FORM_EVENTO_VACIO = {
-  titulo: "",
-  tipo: "academico",
-  area: "Académica",
-  fecha: "",
-  fechaFin: "",
-  horaInicio: "",
-  horaFin: "",
-  lugar: "",
-  formato: "punto",
+const COLOR_HEX = {
+  azul: "#0147d4", naranja: "#ef7d15", morado: "#7b3fe4", verde: "#2e9d41",
+  teal: "#0f9b8e", marino: "#1f3b8f", rojo: "#e5484d", gris: "#97a3b6",
 };
 
+const VISTAS = [
+  { id: "mes", etiqueta: "Mes", icono: CalendarDays, fc: "dayGridMonth" },
+  { id: "semana", etiqueta: "Semana", icono: CalendarRange, fc: "timeGridWeek" },
+  { id: "anual", etiqueta: "Anual", icono: LayoutGrid, fc: "multiMonthYear" },
+  { id: "lista", etiqueta: "Lista", icono: List, fc: "listMonth" },
+];
+
+/* Valores iniciales de los formularios (evento nuevo y tipo nuevo). */
+const FORM_EVENTO_VACIO = {
+  titulo: "", tipo: "academico", area: "Académica", fecha: "", fechaFin: "",
+  horaInicio: "", horaFin: "", lugar: "", formato: "punto",
+};
 const FORM_TIPO_VACIO = { id: null, etiqueta: "", color: "azul" };
 
 export default function Calendario() {
-  const hoy = useMemo(() => ahoraMexico(), []);
-  const claveHoy = aClaveFecha(hoy);
 
-  const [tipos, setTipos] = useState(TIPOS_INICIALES);
-  const [eventos, setEventos] = useState(() => eventosIniciales());
-  const [mesVisible, setMesVisible] = useState(
-    () => new Date(hoy.getFullYear(), hoy.getMonth(), 1)
-  );
-  const [vista, setVista] = useState("mes");
-  const [fechaSeleccionada, setFechaSeleccionada] = useState(claveHoy);
+  const hoy = useMemo(() => ahoraMexico(), []); // fecha/hora real en zona MX
+  const claveHoy = aClaveFecha(hoy);            // "YYYY-MM-DD" de hoy
+
+  const [tipos, setTipos] = useState(TIPOS);                          // tipos de evento (CRUD)
+  const [eventos, setEventos] = useState(() => eventosIniciales());   // eventos (CRUD)
+  const [vista, setVista] = useState("mes");                          // vista activa
+  const [fechaActual, setFechaActual] = useState(hoy);                // mes/fecha que muestra FC
+  const [tituloVista, setTituloVista] = useState("");                 // título que da FC (semana/anual/lista)
+  const [fechaSeleccionada, setFechaSeleccionada] = useState(claveHoy); // día resaltado
   const [filtroTipo, setFiltroTipo] = useState("todos");
   const [filtroArea, setFiltroArea] = useState("todas");
-  const [pickerAbierto, setPickerAbierto] = useState(false);
-  const [anioPicker, setAnioPicker] = useState(() => mesVisible.getFullYear());
-  const [vistaMenu, setVistaMenu] = useState(false);
+  const [pickerAbierto, setPickerAbierto] = useState(false);            // selector de mes
+  const [anioPicker, setAnioPicker] = useState(() => hoy.getFullYear());
+  const [vistaMenu, setVistaMenu] = useState(false);                    // menú desplegable de vista
 
+  // Estado de los 3 modales
   const [modalEvento, setModalEvento] = useState(false);
   const [formEvento, setFormEvento] = useState(FORM_EVENTO_VACIO);
   const [eventoEditando, setEventoEditando] = useState(null);
-
   const [modalEliminar, setModalEliminar] = useState(null);
-
   const [modalTipo, setModalTipo] = useState(false);
   const [formTipo, setFormTipo] = useState(FORM_TIPO_VACIO);
 
+  // Referencias: a FullCalendar (para controlarlo) y a los desplegables.
+  const calendarRef = useRef(null);
   const pickerRef = useRef(null);
   const vistaRef = useRef(null);
 
+  // Acceso corto a la API de FullCalendar (prev, next, today, changeView...).
+  const api = () => calendarRef.current?.getApi();
+
   useEffect(() => {
     const alClicar = (e) => {
-      if (pickerRef.current && !pickerRef.current.contains(e.target)) {
-        setPickerAbierto(false);
-      }
-      if (vistaRef.current && !vistaRef.current.contains(e.target)) {
-        setVistaMenu(false);
-      }
+      if (pickerRef.current && !pickerRef.current.contains(e.target)) setPickerAbierto(false);
+      if (vistaRef.current && !vistaRef.current.contains(e.target)) setVistaMenu(false);
     };
     document.addEventListener("mousedown", alClicar);
     return () => document.removeEventListener("mousedown", alClicar);
   }, []);
 
+  // Mapa id -> tipo, para buscar color/etiqueta de un evento rápidamente.
   const tiposPorId = useMemo(() => {
     const mapa = new Map();
     for (const t of tipos) mapa.set(t.id, t);
@@ -190,8 +94,10 @@ export default function Calendario() {
   const colorTipo = (id) => tiposPorId.get(id)?.color ?? "gris";
   const etiquetaTipo = (id) => tiposPorId.get(id)?.etiqueta ?? "Sin tipo";
 
-  const semestre = calcularSemestre(mesVisible);
+  // Semestre (A/B) según el mes que se está viendo (insignia del encabezado).
+  const semestre = calcularSemestre(fechaActual);
 
+  // Eventos visibles tras aplicar los filtros de tipo y área.
   const eventosFiltrados = useMemo(() => {
     return eventos.filter((ev) => {
       if (filtroTipo !== "todos" && ev.tipo !== filtroTipo) return false;
@@ -200,18 +106,45 @@ export default function Calendario() {
     });
   }, [eventos, filtroTipo, filtroArea]);
 
+  const eventosFC = useMemo(() => {
+    return eventosFiltrados.map((ev) => {
+      const color = COLOR_HEX[colorTipo(ev.tipo)] || COLOR_HEX.gris;
+      const base = {
+        id: String(ev.id),
+        title: ev.titulo,
+        backgroundColor: color,
+        borderColor: color,
+        extendedProps: { original: ev },
+      };
+      if (ev.horaInicio) {
+        return {
+          ...base,
+          start: `${ev.fecha}T${ev.horaInicio}`,
+          end: ev.horaFin ? `${ev.fecha}T${ev.horaFin}` : undefined,
+        };
+      }
+      const finBase = ev.fechaFin || ev.fecha;
+      return {
+        ...base,
+        allDay: true,
+        start: ev.fecha,
+        end: aClaveFecha(sumarDias(desdeClaveFecha(finBase), 1)),
+      };
+    });
+  }, [eventosFiltrados, tiposPorId]);
+
+  /* Mapa "YYYY-MM-DD" -> eventos de ese día (para el panel inferior). Incluye
+     cada día que abarca un evento de varios días */
   const eventosPorDia = useMemo(() => {
     const mapa = new Map();
-    const agregar = (clave, ev) => {
-      if (!mapa.has(clave)) mapa.set(clave, []);
-      mapa.get(clave).push(ev);
-    };
     for (const ev of eventosFiltrados) {
       const inicio = desdeClaveFecha(ev.fecha);
       const fin = ev.fechaFin ? desdeClaveFecha(ev.fechaFin) : inicio;
       const cursor = new Date(inicio);
       while (cursor <= fin) {
-        agregar(aClaveFecha(cursor), ev);
+        const clave = aClaveFecha(cursor);
+        if (!mapa.has(clave)) mapa.set(clave, []);
+        mapa.get(clave).push(ev);
         cursor.setDate(cursor.getDate() + 1);
       }
     }
@@ -221,45 +154,79 @@ export default function Calendario() {
     return mapa;
   }, [eventosFiltrados]);
 
-  const celdas = useMemo(() => {
-    const anio = mesVisible.getFullYear();
-    const mes = mesVisible.getMonth();
-    const primerDiaSemana = new Date(anio, mes, 1).getDay();
-    const inicio = new Date(anio, mes, 1 - primerDiaSemana);
+  // Eventos del día seleccionado (lo que muestra la tabla de abajo)
+  const eventosDelDia = fechaSeleccionada ? eventosPorDia.get(fechaSeleccionada) || [] : [];
 
-    return Array.from({ length: 42 }, (_, i) => {
-      const fecha = new Date(inicio.getFullYear(), inicio.getMonth(), inicio.getDate() + i);
-      const clave = aClaveFecha(fecha);
-      return {
-        clave,
-        dia: fecha.getDate(),
-        diaSemana: fecha.getDay(),
-        delMes: fecha.getMonth() === mes,
-        esHoy: clave === claveHoy,
-        eventos: eventosPorDia.get(clave) || [],
-      };
-    });
-  }, [mesVisible, eventosPorDia, claveHoy]);
+  const esVistaFC = vista === "mes" || vista === "semana";
+  const usaPicker = vista === "mes" || vista === "lista";
 
-  const eventosDelDia = fechaSeleccionada
-    ? (eventosPorDia.get(fechaSeleccionada) || [])
-    : [];
-
-  // Navegación
-  const irMes = (delta) =>
-    setMesVisible((prev) => new Date(prev.getFullYear(), prev.getMonth() + delta, 1));
+  // Texto que se muestra en la toolbar según la vista.
+  const tituloBarra = useMemo(() => {
+    if (vista === "semana") return tituloVista.charAt(0).toUpperCase() + tituloVista.slice(1);
+    if (vista === "anual") {
+      const ciclo = fechaActual.getMonth() >= 7 ? fechaActual.getFullYear() : fechaActual.getFullYear() - 1;
+      return `Ciclo ${ciclo} – ${ciclo + 1}`;
+    }
+    return `${NOMBRES_MES[fechaActual.getMonth()]} ${fechaActual.getFullYear()}`; // mes y lista
+  }, [vista, fechaActual, tituloVista]);
 
   const irHoy = () => {
-    setMesVisible(new Date(hoy.getFullYear(), hoy.getMonth(), 1));
     setFechaSeleccionada(claveHoy);
+    setFechaActual(hoy);
+    if (esVistaFC) api()?.today();
   };
 
+  const mover = (delta) => {
+    if (vista === "anual") {
+      setFechaActual((x) => new Date(x.getFullYear() + delta, x.getMonth(), 1));
+    } else if (vista === "lista") {
+      setFechaActual((x) => new Date(x.getFullYear(), x.getMonth() + delta, 1));
+    } else {
+      api()?.[delta < 0 ? "prev" : "next"]();
+    }
+  };
+  const irAnterior = () => mover(-1);
+  const irSiguiente = () => mover(1);
+
+  // Cambiar de vista (Mes / Semana / Anual / Lista)
+  const cambiarVista = (v) => {
+    const nuevaFC = v.id === "mes" || v.id === "semana";
+    if (esVistaFC && nuevaFC) api()?.changeView(v.fc);
+    setVista(v.id);
+    setVistaMenu(false);
+  };
+
+  // Saltar a un mes desde el selector
   const elegirMes = (mes) => {
-    setMesVisible(new Date(anioPicker, mes, 1));
     setPickerAbierto(false);
+    if (esVistaFC) api()?.gotoDate(new Date(anioPicker, mes, 1));
+    else setFechaActual(new Date(anioPicker, mes, 1));
   };
 
-  // CRUD de eventos
+  const alCambiarFechas = (arg) => {
+    setFechaActual(arg.view.calendar.getDate());
+    setTituloVista(arg.view.title);
+  };
+
+  // Clic en un día, se marca como seleccionado (resalta la celda + panel)
+  const alClicarFecha = (arg) => setFechaSeleccionada(arg.dateStr.slice(0, 10));
+
+  // Clic en un evento, abrir el modal de edición con ese evento 
+  const alClicarEvento = (arg) => {
+    arg.jsEvent.preventDefault();
+    document.querySelectorAll(".fc-popover").forEach((el) => el.remove());
+    const original = arg.event.extendedProps.original;
+    if (original) {
+      setFechaSeleccionada(original.fecha);
+      abrirEditarEvento(original);
+    }
+  };
+
+  // Devuelve la clase del día seleccionado para que FullCalendar la pinte (sea el dia actual o el seleccionado) */
+  const claseDiaSeleccionado = (arg) =>
+    aClaveFecha(arg.date) === fechaSeleccionada ? "cal-fc-sel" : "";
+
+  // CRUD DE EVENTOS (crear, editar, duplicar, eliminar) */
   const abrirNuevoEvento = () => {
     setEventoEditando(null);
     setFormEvento({ ...FORM_EVENTO_VACIO, fecha: fechaSeleccionada || claveHoy });
@@ -269,24 +236,15 @@ export default function Calendario() {
   const abrirEditarEvento = (ev) => {
     setEventoEditando(ev.id);
     setFormEvento({
-      titulo: ev.titulo,
-      tipo: ev.tipo,
-      area: ev.area,
-      fecha: ev.fecha,
-      fechaFin: ev.fechaFin || "",
-      horaInicio: ev.horaInicio || "",
-      horaFin: ev.horaFin || "",
-      lugar: ev.lugar || "",
-      formato: ev.formato || "punto",
+      titulo: ev.titulo, tipo: ev.tipo, area: ev.area, fecha: ev.fecha,
+      fechaFin: ev.fechaFin || "", horaInicio: ev.horaInicio || "",
+      horaFin: ev.horaFin || "", lugar: ev.lugar || "", formato: ev.formato || "punto",
     });
     setModalEvento(true);
   };
 
   const duplicarEvento = (ev) => {
-    setEventos((prev) => [
-      ...prev,
-      { ...ev, id: Date.now(), titulo: `${ev.titulo} (copia)` },
-    ]);
+    setEventos((prev) => [...prev, { ...ev, id: Date.now(), titulo: `${ev.titulo} (copia)` }]);
   };
 
   const actualizarCampoEvento = (campo) => (e) =>
@@ -301,15 +259,12 @@ export default function Calendario() {
       fechaFin: formEvento.fechaFin || null,
     };
     if (eventoEditando) {
-      setEventos((prev) =>
-        prev.map((ev) => (ev.id === eventoEditando ? { ...ev, ...datos } : ev))
-      );
+      setEventos((prev) => prev.map((ev) => (ev.id === eventoEditando ? { ...ev, ...datos } : ev)));
     } else {
       setEventos((prev) => [...prev, { ...datos, id: Date.now() }]);
     }
     setFechaSeleccionada(datos.fecha);
-    const fecha = desdeClaveFecha(datos.fecha);
-    setMesVisible(new Date(fecha.getFullYear(), fecha.getMonth(), 1));
+    api()?.gotoDate(datos.fecha);
     setModalEvento(false);
   };
 
@@ -318,7 +273,13 @@ export default function Calendario() {
     setModalEliminar(null);
   };
 
-  // CRUD de tipos */
+  const eliminarDesdeEdicion = () => {
+    const ev = eventos.find((e) => e.id === eventoEditando);
+    setModalEvento(false);
+    if (ev) setModalEliminar(ev);
+  };
+
+  // CRUD DE TIPOS DE EVENTO (la simbología y los filtros salen de aquí)
   const abrirNuevoTipo = () => {
     setFormTipo(FORM_TIPO_VACIO);
     setModalTipo(true);
@@ -354,51 +315,11 @@ export default function Calendario() {
     setTipos((prev) => prev.filter((t) => t.id !== tipo.id));
   };
 
-  // Exportar (.ics) */
-  const exportarMes = () => {
-    const anio = mesVisible.getFullYear();
-    const mes = mesVisible.getMonth();
-    const delMes = eventosFiltrados.filter((ev) => {
-      const f = desdeClaveFecha(ev.fecha);
-      return f.getFullYear() === anio && f.getMonth() === mes;
-    });
-
-    const lineas = [
-      "BEGIN:VCALENDAR",
-      "VERSION:2.0",
-      "PRODID:-//COBACH//Agenda Escolar Digital//ES",
-    ];
-    for (const ev of delMes) {
-      const dtIni = ev.fecha.replaceAll("-", "");
-      const dtFin = (ev.fechaFin || ev.fecha).replaceAll("-", "");
-      lineas.push("BEGIN:VEVENT");
-      lineas.push(`UID:${ev.id}@cobach`);
-      if (ev.horaInicio) {
-        lineas.push(`DTSTART:${dtIni}T${ev.horaInicio.replace(":", "")}00`);
-        if (ev.horaFin) lineas.push(`DTEND:${dtIni}T${ev.horaFin.replace(":", "")}00`);
-      } else {
-        lineas.push(`DTSTART;VALUE=DATE:${dtIni}`);
-        lineas.push(`DTEND;VALUE=DATE:${dtFin}`);
-      }
-      lineas.push(`SUMMARY:${ev.titulo}`);
-      if (ev.lugar) lineas.push(`LOCATION:${ev.lugar}`);
-      lineas.push("END:VEVENT");
-    }
-    lineas.push("END:VCALENDAR");
-
-    const blob = new Blob([lineas.join("\r\n")], { type: "text/calendar" });
-    const url = URL.createObjectURL(blob);
-    const enlace = document.createElement("a");
-    enlace.href = url;
-    enlace.download = `calendario-${anio}-${String(mes + 1).padStart(2, "0")}.ics`;
-    enlace.click();
-    URL.revokeObjectURL(url);
-  };
-
   const tipoEnUso = (id) => eventos.some((ev) => ev.tipo === id);
 
   return (
     <div className={styles["calendario"]}>
+      {/* ENCABEZADO: título + insignia del semestre */}
       <header className={styles["calendario__encabezado"]}>
         <div>
           <h2 className={styles["calendario__titulo"]}>Calendario institucional</h2>
@@ -408,219 +329,190 @@ export default function Calendario() {
         </div>
       </header>
 
+      {/* CUERPO: columna principal (toolbar + calendario + panel) y aside derecho */}
       <div className={styles["calendario__cuerpo"]}>
         <div className={styles["calendario__principal"]}>
+          {/* TOOLBAR (controla a FullCalendar por su API) */}
           <div className={styles["barra"]}>
             <div className={styles["barra__navegacion"]}>
-          <button type="button" className="boton boton--fantasma boton--pequeno" onClick={irHoy}>
-            Hoy
-          </button>
-          <button
-            type="button"
-            className={styles["barra__flecha"]}
-            onClick={() => irMes(-1)}
-            aria-label="Mes anterior"
-          >
-            <ChevronLeft size={18} />
-          </button>
-          <button
-            type="button"
-            className={styles["barra__flecha"]}
-            onClick={() => irMes(1)}
-            aria-label="Mes siguiente"
-          >
-            <ChevronRight size={18} />
-          </button>
+              <button type="button" className="boton boton--fantasma boton--pequeno" onClick={irHoy}>
+                Hoy
+              </button>
+              <button type="button" className={styles["barra__flecha"]} onClick={irAnterior} aria-label="Anterior">
+                <ChevronLeft size={18} />
+              </button>
+              <button type="button" className={styles["barra__flecha"]} onClick={irSiguiente} aria-label="Siguiente">
+                <ChevronRight size={18} />
+              </button>
 
-          <div className={styles["barra__mes"]} ref={pickerRef}>
-            <button
-              type="button"
-              className={styles["barra__mes-boton"]}
-              onClick={() => {
-                setAnioPicker(mesVisible.getFullYear());
-                setPickerAbierto((v) => !v);
-              }}
-            >
-              {NOMBRES_MES[mesVisible.getMonth()]} {mesVisible.getFullYear()}
-              <ChevronDown size={16} />
-            </button>
-
-            {pickerAbierto && (
-              <div className={styles["picker"]}>
-                <div className={styles["picker__anios"]}>
-                  <button type="button" onClick={() => setAnioPicker((a) => a - 1)} aria-label="Año anterior">
-                    <ChevronLeft size={16} />
-                  </button>
-                  <span>{anioPicker}</span>
-                  <button type="button" onClick={() => setAnioPicker((a) => a + 1)} aria-label="Año siguiente">
-                    <ChevronRight size={16} />
-                  </button>
-                </div>
-                <div className={styles["picker__meses"]}>
-                  {NOMBRES_MES.map((nombre, i) => {
-                    const activo =
-                      i === mesVisible.getMonth() && anioPicker === mesVisible.getFullYear();
-                    return (
-                      <button
-                        type="button"
-                        key={nombre}
-                        className={`${styles["picker__mes"]} ${activo ? styles["picker__mes--activo"] : ""}`}
-                        onClick={() => elegirMes(i)}
-                      >
-                        {nombre.slice(0, 3)}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className={styles["barra__derecha"]}>
-          <div className={styles["vista"]} ref={vistaRef}>
-            <button
-              type="button"
-              className={styles["vista__boton"]}
-              aria-haspopup="listbox"
-              aria-expanded={vistaMenu}
-              onClick={() => setVistaMenu((v) => !v)}
-            >
-              {(() => {
-                const actual = VISTAS.find((v) => v.id === vista) || VISTAS[0];
-                const Icono = actual.icono;
-                return (
-                  <>
-                    <Icono size={16} />
-                    {actual.etiqueta}
-                  </>
-                );
-              })()}
-              <ChevronDown size={16} />
-            </button>
-
-            {vistaMenu && (
-              <div className={styles["vista__menu"]} role="listbox">
-                {VISTAS.map(({ id, etiqueta, icono: Icono, disponible }) => (
+              {/* Mes y Lista: selector de mes/año. Semana y Anual: solo el título. */}
+              {usaPicker ? (
+                <div className={styles["barra__mes"]} ref={pickerRef}>
                   <button
-                    key={id}
                     type="button"
-                    role="option"
-                    aria-selected={vista === id}
-                    disabled={!disponible}
-                    className={`${styles["vista__item"]} ${vista === id ? styles["vista__item--activa"] : ""}`}
+                    className={styles["barra__mes-boton"]}
                     onClick={() => {
-                      if (!disponible) return;
-                      setVista(id);
-                      setVistaMenu(false);
+                      setAnioPicker(fechaActual.getFullYear());
+                      setPickerAbierto((v) => !v);
                     }}
                   >
-                    <Icono size={16} />
-                    <span className={styles["vista__item-texto"]}>{etiqueta}</span>
+                    {tituloBarra}
+                    <ChevronDown size={16} />
                   </button>
-                ))}
-              </div>
-            )}
-          </div>
 
-          <button type="button" className="boton boton--fantasma" onClick={exportarMes}>
-            <Download size={16} />
-            Exportar
-          </button>
-          <button type="button" className="boton boton--primario" onClick={abrirNuevoEvento}>
-            <Plus size={16} />
-            Nuevo evento
-          </button>
+                  {pickerAbierto && (
+                    <div className={styles["picker"]}>
+                      <div className={styles["picker__anios"]}>
+                        <button type="button" onClick={() => setAnioPicker((a) => a - 1)} aria-label="Año anterior">
+                          <ChevronLeft size={16} />
+                        </button>
+                        <span>{anioPicker}</span>
+                        <button type="button" onClick={() => setAnioPicker((a) => a + 1)} aria-label="Año siguiente">
+                          <ChevronRight size={16} />
+                        </button>
+                      </div>
+                      <div className={styles["picker__meses"]}>
+                        {NOMBRES_MES.map((nombre, i) => {
+                          const activo = i === fechaActual.getMonth() && anioPicker === fechaActual.getFullYear();
+                          return (
+                            <button
+                              type="button"
+                              key={nombre}
+                              className={`${styles["picker__mes"]} ${activo ? styles["picker__mes--activo"] : ""}`}
+                              onClick={() => elegirMes(i)}
+                            >
+                              {nombre.slice(0, 3)}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <span className={styles["barra__rango"]}>{tituloBarra}</span>
+              )}
+            </div>
+
+            <div className={styles["barra__derecha"]}>
+              {/* Desplegable para elegir la vista (Mes/Semana/Anual/Lista) */}
+              <div className={styles["vista"]} ref={vistaRef}>
+                <button
+                  type="button"
+                  className={styles["vista__boton"]}
+                  aria-haspopup="listbox"
+                  aria-expanded={vistaMenu}
+                  onClick={() => setVistaMenu((v) => !v)}
+                >
+                  {(() => {
+                    const actual = VISTAS.find((v) => v.id === vista) || VISTAS[0];
+                    const Icono = actual.icono;
+                    return (
+                      <>
+                        <Icono size={16} />
+                        {actual.etiqueta}
+                      </>
+                    );
+                  })()}
+                  <ChevronDown size={16} />
+                </button>
+
+                {vistaMenu && (
+                  <div className={styles["vista__menu"]} role="listbox">
+                    {VISTAS.map((v) => {
+                      const Icono = v.icono;
+                      return (
+                        <button
+                          key={v.id}
+                          type="button"
+                          role="option"
+                          aria-selected={vista === v.id}
+                          className={`${styles["vista__item"]} ${vista === v.id ? styles["vista__item--activa"] : ""}`}
+                          onClick={() => cambiarVista(v)}
+                        >
+                          <Icono size={16} />
+                          <span className={styles["vista__item-texto"]}>{v.etiqueta}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Exportar: deshabilitado por ahora */}
+              <button type="button" className="boton boton--fantasma" disabled title="Disponible próximamente">
+                <Download size={16} />
+                Exportar
+              </button>
+              <button type="button" className="boton boton--primario" onClick={abrirNuevoEvento}>
+                <Plus size={16} />
+                Nuevo evento
+              </button>
             </div>
           </div>
 
-          <div className="tarjeta">
-            <div className={styles["mes"]}>
-              <div className={styles["mes__cabecera"]}>
-                {DIAS_SEMANA.map((dia) => (
-                  <span key={dia} className={styles["mes__dia-semana"]}>
-                    {dia}
-                  </span>
-                ))}
-              </div>
-
-              <div className={styles["mes__rejilla"]}>
-                {celdas.map((celda) => {
-                  const seleccionada = celda.clave === fechaSeleccionada;
-                  const barras = celda.eventos
-                    .filter(esBarra)
-                    .sort((a, b) => a.fecha.localeCompare(b.fecha) || a.id - b.id);
-                  const puntos = celda.eventos.filter((e) => !esBarra(e));
-                  return (
-                    <button
-                      type="button"
-                      key={celda.clave}
-                      onClick={() => setFechaSeleccionada(celda.clave)}
-                      aria-pressed={seleccionada}
-                      className={`${styles["mes__celda"]} ${
-                        celda.delMes ? "" : styles["mes__celda--fuera"]
-                      } ${seleccionada ? styles["mes__celda--sel"] : ""}`}
-                    >
-                      <span
-                        className={`${styles["mes__numero"]} ${
-                          celda.esHoy ? styles["mes__numero--hoy"] : ""
-                        } ${celda.diaSemana === 0 ? styles["mes__numero--domingo"] : ""}`}
-                      >
-                        {celda.dia}
-                      </span>
-
-                      <span className={styles["mes__eventos"]}>
-                        <span className={styles["mes__bandas"]}>
-                          {barras.map((ev) => {
-                            const fin = ev.fechaFin || ev.fecha;
-                            const esInicio = celda.clave === ev.fecha;
-                            const esFin = celda.clave === fin;
-                            const abreSemana = celda.diaSemana === 0;
-                            const cierraSemana = celda.diaSemana === 6;
-                            const nombre = esInicio || abreSemana;
-                            return (
-                              <span
-                                key={ev.id}
-                                title={ev.titulo}
-                                className={`${styles["mes__banda"]} ${styles[`mes__banda--${colorTipo(ev.tipo)}`]} ${
-                                  esInicio || abreSemana ? styles["mes__banda--inicio"] : ""
-                                } ${esFin || cierraSemana ? styles["mes__banda--fin"] : ""}`}
-                              >
-                                <span className={styles["mes__banda-texto"]}>
-                                  {nombre ? ev.titulo : " "}
-                                </span>
-                              </span>
-                            );
-                          })}
-                        </span>
-
-                        {puntos.length > 0 && (
-                          <span className={styles["mes__puntos"]}>
-                            {puntos.map((ev) => (
-                              <span
-                                key={ev.id}
-                                className={`${styles["mes__punto"]} ${styles[`mes__punto--${colorTipo(ev.tipo)}`]}`}
-                                title={ev.titulo}
-                              />
-                            ))}
-                          </span>
-                        )}
-                      </span>
-                    </button>
-                  );
-                })}
+          {/* ---- EL CALENDARIO ----
+               Mes y Semana las dibuja FullCalendar; Anual y Lista son
+               componentes propios */}
+          {esVistaFC ? (
+            <div className={`tarjeta ${styles["lienzo"]}`}>
+              <div className="cal-fc">
+                <FullCalendar
+                  ref={calendarRef}
+                  plugins={[dayGridPlugin, timeGridPlugin, multiMonthPlugin, listPlugin, interactionPlugin]}
+                  initialView={vista === "semana" ? "timeGridWeek" : "dayGridMonth"}
+                  initialDate={aClaveFecha(fechaActual)}
+                  headerToolbar={false}
+                  locale={esLocale}
+                  firstDay={0}
+                  height={vista === "semana" ? 640 : 720}
+                  expandRows
+                  dayMaxEvents
+                  nowIndicator
+                  fixedWeekCount={false}
+                  slotMinTime="06:00:00"
+                  slotMaxTime="22:00:00"
+                  scrollTime="07:00:00"
+                  allDayText="Todo el día"
+                  eventTimeFormat={{ hour: "numeric", minute: "2-digit", meridiem: "short" }}
+                  events={eventosFC}
+                  dayCellClassNames={claseDiaSeleccionado}
+                  datesSet={alCambiarFechas}
+                  dateClick={alClicarFecha}
+                  eventClick={alClicarEvento}
+                />
               </div>
             </div>
-          </div>
+          ) : vista === "anual" ? (
+            <VistaAnual
+              fechaActual={fechaActual}
+              eventosPorDia={eventosPorDia}
+              colorTipo={colorTipo}
+              claveHoy={claveHoy}
+              fechaSeleccionada={fechaSeleccionada}
+              onSeleccionarDia={setFechaSeleccionada}
+            />
+          ) : (
+            <VistaLista
+              eventos={eventosFiltrados}
+              fechaActual={fechaActual}
+              colorTipo={colorTipo}
+              etiquetaTipo={etiquetaTipo}
+              onSeleccionarDia={setFechaSeleccionada}
+              onEditar={abrirEditarEvento}
+              onDuplicar={duplicarEvento}
+              onEliminar={(ev) => setModalEliminar(ev)}
+            />
+          )}
 
+          {/* PANEL DE EVENTOS DEL DÍA SELECCIONADO */}
           <div className={`tarjeta ${styles["panel-dia"]}`}>
             <div className={styles["panel-dia__cabecera"]}>
               <h3 className={styles["panel-dia__titulo"]}>
                 {fechaSeleccionada ? formatoFechaLarga(fechaSeleccionada) : "Selecciona un día"}
               </h3>
               <span className={styles["panel-dia__conteo"]}>
-                {eventosDelDia.length}{" "}
-                {eventosDelDia.length === 1 ? "evento" : "eventos"}
+                {eventosDelDia.length} {eventosDelDia.length === 1 ? "evento" : "eventos"}
               </span>
             </div>
 
@@ -686,7 +578,9 @@ export default function Calendario() {
           </div>
         </div>
 
+        {/* ---- ASIDE DERECHO: simbología, tipos de evento y filtros ---- */}
         <aside className={styles["calendario__aside"]}>
+          {/* Simbología: leyenda de colores (sale de los tipos de evento) */}
           <article className="tarjeta">
             <div className="tarjeta__cabecera">
               <div className="tarjeta__titulo">
@@ -695,15 +589,16 @@ export default function Calendario() {
               </div>
             </div>
             <ul className={styles["simbologia"]}>
-              {SIMBOLOGIA.map((s) => (
-                <li key={s.etiqueta} className={styles["simbologia__item"]}>
-                  <span className={`${styles["simbologia__marca"]} ${styles[`simbologia__marca--${s.forma}`]} ${styles[`simbologia__color--${s.color}`]}`} />
-                  <span className={styles["simbologia__texto"]}>{s.etiqueta}</span>
+              {tipos.map((t) => (
+                <li key={t.id} className={styles["simbologia__item"]}>
+                  <span className={`${styles["simbologia__punto"]} ${styles[`simbologia__punto--${t.color}`]}`} />
+                  <span className={styles["simbologia__texto"]}>{t.etiqueta}</span>
                 </li>
               ))}
             </ul>
           </article>
 
+          {/* Tipos de evento: lista con crear, editar y eliminar */}
           <article className="tarjeta">
             <div className="tarjeta__cabecera">
               <div className="tarjeta__titulo">
@@ -738,6 +633,7 @@ export default function Calendario() {
             </ul>
           </article>
 
+          {/* Filtros rápidos */}
           <article className="tarjeta">
             <div className="tarjeta__cabecera">
               <div className="tarjeta__titulo">
@@ -781,13 +677,24 @@ export default function Calendario() {
         </aside>
       </div>
 
-      {/* Modal: crear / editar evento */}
+      {/* Modal: crear y editar evento */}
       <Modal
         abierto={modalEvento}
         titulo={eventoEditando ? "Editar evento" : "Nuevo evento"}
         onCerrar={() => setModalEvento(false)}
         pie={
           <>
+            {eventoEditando && (
+              <button
+                type="button"
+                className="boton boton--peligro"
+                style={{ marginRight: "auto" }}
+                onClick={eliminarDesdeEdicion}
+              >
+                <Trash2 size={16} />
+                Eliminar
+              </button>
+            )}
             <button type="button" className="boton boton--fantasma" onClick={() => setModalEvento(false)}>
               Cancelar
             </button>
@@ -852,8 +759,8 @@ export default function Calendario() {
           <label className="formulario__campo">
             <span className="formulario__etiqueta">Representación en el calendario</span>
             <select value={formEvento.formato} onChange={actualizarCampoEvento("formato")}>
-              <option value="punto">Punto (evento puntual)</option>
-              <option value="rango">Barra (periodo / todo el día)</option>
+              <option value="punto">Puntual (con hora)</option>
+              <option value="rango">Todo el día / periodo (abarca días)</option>
             </select>
           </label>
         </form>
@@ -882,7 +789,7 @@ export default function Calendario() {
         </p>
       </Modal>
 
-      {/* Modal: crear / editar tipo */}
+      {/* Modal: crear y editar tipo de evento */}
       <Modal
         abierto={modalTipo}
         titulo={formTipo.id ? "Editar tipo de evento" : "Nuevo tipo de evento"}

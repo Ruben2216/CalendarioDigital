@@ -1,3 +1,8 @@
+/* 
+   Calendario institucional - estilos de página (toolbar, aside, panel del día).
+   Los estilos propios de cada vista están en vistas/VistaMes y vistas/VistaSemana.
+*/
+
 .calendario {
   display: grid;
   gap: 16px;
@@ -41,6 +46,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-wrap: wrap;
 }
 
 .barra__flecha {
@@ -84,6 +90,14 @@
 
 .barra__mes-boton:hover {
   background: #eef2f8;
+}
+
+.barra__rango {
+  padding: 0 6px;
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--navy);
 }
 
 /* Selector de mes */
@@ -166,7 +180,7 @@
   flex-wrap: wrap;
 }
 
-/* Vista (botón + menú) */
+/* Conmutador de vista (botón + menú) */
 .vista {
   position: relative;
 }
@@ -249,6 +263,17 @@
   flex: 1;
 }
 
+.vista__pronto {
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--muted-2);
+  background: #f0f3f8;
+  border-radius: 999px;
+  padding: 2px 7px;
+}
+
 /* Cuerpo (calendario + aside) */
 .calendario__cuerpo {
   display: grid;
@@ -268,170 +293,10 @@
   gap: 16px;
 }
 
-/* Rejilla del mes */
-.mes__cabecera {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  background: linear-gradient(180deg, #0a2060 0%, #021138 100%);
-  color: #fff;
+/* Lienzo que contiene FullCalendar */
+.lienzo {
+  padding: 0;
 }
-
-.mes__dia-semana {
-  padding: 11px 8px;
-  text-align: center;
-  font-family: var(--font-display);
-  font-size: 11.5px;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-}
-
-.mes__rejilla {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  grid-auto-rows: 112px;
-}
-
-.mes__celda {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 5px;
-  height: 112px;
-  padding: 7px 6px;
-  border-right: 1px solid #eef1f6;
-  border-bottom: 1px solid #eef1f6;
-  background: #fff;
-  text-align: center;
-  font: inherit;
-  cursor: pointer;
-  overflow: hidden;
-  transition: background-color 0.15s ease;
-}
-
-.mes__celda:nth-child(7n) {
-  border-right: 0;
-}
-
-.mes__celda:hover {
-  background: var(--panel-soft);
-}
-
-.mes__celda--fuera {
-  background: #fafbfd;
-}
-
-.mes__celda--fuera .mes__numero {
-  color: #c0c8d5;
-}
-
-.mes__celda--sel {
-  box-shadow: inset 0 0 0 2px var(--blue);
-  background: var(--blue-soft);
-}
-
-.mes__numero {
-  display: inline-grid;
-  place-items: center;
-  min-width: 26px;
-  height: 26px;
-  padding: 0 6px;
-  border-radius: 999px;
-  font-family: var(--font-display);
-  font-size: 13px;
-  font-weight: 700;
-  color: #334155;
-}
-
-.mes__numero--domingo {
-  color: var(--red);
-}
-
-.mes__numero--hoy {
-  background: var(--blue);
-  color: #fff;
-}
-
-.mes__eventos {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  width: 100%;
-  min-width: 0;
-}
-
-/* Bandas (eventos de periodo / 2+ días) */
-.mes__bandas {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  width: calc(100% + 12px);
-  margin: 0 -6px;
-}
-
-.mes__banda {
-  display: block;
-  height: 17px;
-  padding: 0 6px;
-  color: #fff;
-  font-family: var(--font-display);
-  font-size: 10px;
-  font-weight: 700;
-  line-height: 17px;
-}
-
-.mes__banda-texto {
-  display: block;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.mes__banda--inicio {
-  border-top-left-radius: 5px;
-  border-bottom-left-radius: 5px;
-  padding-left: 8px;
-}
-
-.mes__banda--fin {
-  border-top-right-radius: 5px;
-  border-bottom-right-radius: 5px;
-}
-
-.mes__puntos {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  flex-wrap: wrap;
-}
-
-.mes__punto {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  flex: none;
-}
-
-/* Colores de tipo (puntos y bandas) */
-.mes__punto--azul { background: var(--blue); }
-.mes__punto--naranja { background: var(--orange); }
-.mes__punto--morado { background: var(--purple); }
-.mes__punto--verde { background: var(--green); }
-.mes__punto--teal { background: var(--teal); }
-.mes__punto--marino { background: var(--marino); }
-.mes__punto--rojo { background: var(--red); }
-.mes__punto--gris { background: var(--muted-2); }
-
-.mes__banda--azul { background: var(--blue); }
-.mes__banda--naranja { background: var(--orange); }
-.mes__banda--morado { background: var(--purple); }
-.mes__banda--verde { background: var(--green); }
-.mes__banda--teal { background: var(--teal); }
-.mes__banda--marino { background: var(--marino); }
-.mes__banda--rojo { background: var(--red); }
-.mes__banda--gris { background: var(--muted-2); }
 
 /* Panel de eventos del día */
 .panel-dia {
@@ -579,7 +444,7 @@
   color: var(--red) !important;
 }
 
-/* Simbología */
+/* Simbología (leyenda derivada de los tipos de evento) */
 .simbologia {
   list-style: none;
   margin: 0;
@@ -591,45 +456,28 @@
 .simbologia__item {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 11px;
 }
 
-.simbologia__marca {
-  width: 14px;
-  height: 14px;
+.simbologia__punto {
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
   flex: none;
 }
 
-.simbologia__marca--punto {
-  border-radius: 50%;
-  background: currentColor;
-}
-
-.simbologia__marca--anillo {
-  border-radius: 50%;
-  border: 2px solid currentColor;
-}
-
-.simbologia__marca--rango {
-  border-radius: 4px;
-  border: 1.5px dashed currentColor;
-}
-
-.simbologia__color--verde { color: var(--green); }
-.simbologia__color--negro { color: #1f2430; }
-.simbologia__color--rojo { color: var(--red); }
-.simbologia__color--marron { color: #8a5a2b; }
-.simbologia__color--naranja { color: var(--orange); }
-.simbologia__color--rosa { color: #e84393; }
-.simbologia__color--azul { color: var(--blue); }
-.simbologia__color--celeste { color: var(--blue-accent); }
-.simbologia__color--amarillo { color: #e0a800; }
-.simbologia__color--morado { color: var(--purple); }
+.simbologia__punto--azul { background: var(--blue); }
+.simbologia__punto--naranja { background: var(--orange); }
+.simbologia__punto--morado { background: var(--purple); }
+.simbologia__punto--verde { background: var(--green); }
+.simbologia__punto--teal { background: var(--teal); }
+.simbologia__punto--marino { background: var(--marino); }
+.simbologia__punto--rojo { background: var(--red); }
+.simbologia__punto--gris { background: var(--muted-2); }
 
 .simbologia__texto {
-  font-size: 12px;
+  font-size: 12.5px;
   color: #475467;
-  line-height: 1.3;
 }
 
 /* Tipos de eventos */
@@ -682,7 +530,7 @@
   cursor: not-allowed;
 }
 
-/*  Filtros  */
+/* Filtros */
 .filtros {
   padding: 14px 16px 16px;
   display: grid;
@@ -720,47 +568,16 @@
 }
 
 @media (max-width: 760px) {
-  .barra {
-    align-items: stretch;
-  }
-
   .barra__derecha {
     justify-content: space-between;
   }
 
+  .barra__rango {
+    font-size: 15px;
+  }
+
   .calendario__aside {
     grid-template-columns: minmax(0, 1fr);
-  }
-
-  .mes__rejilla {
-    grid-auto-rows: 84px;
-  }
-
-  .mes__celda {
-    height: 84px;
-    padding: 6px 4px;
-    gap: 4px;
-  }
-
-  .mes__numero {
-    min-width: 22px;
-    height: 22px;
-    font-size: 12px;
-  }
-
-  /* En móvil las bandas se muestran como líneas de color (no texto) */
-  .mes__banda {
-    height: 6px;
-    line-height: 6px;
-    padding: 0;
-  }
-
-  .mes__banda--inicio {
-    padding-left: 0;
-  }
-
-  .mes__banda-texto {
-    display: none;
   }
 
   .tabla thead {
@@ -788,20 +605,5 @@
   .tabla__acciones-col,
   .tabla__acciones {
     justify-content: flex-start;
-  }
-}
-
-@media (max-width: 420px) {
-  .mes__dia-semana {
-    font-size: 10px;
-    padding: 9px 2px;
-  }
-
-  .mes__rejilla {
-    grid-auto-rows: 70px;
-  }
-
-  .mes__celda {
-    height: 70px;
   }
 }

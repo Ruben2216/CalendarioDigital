@@ -1,9 +1,19 @@
+import { lazy, Suspense } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Login from "./pages/login/login.jsx";
 import Layout from "./components/layout/Layout.jsx";
-import Dashboard from "./pages/admin/dashboard/dashboard.jsx";
-import Calendario from "./pages/admin/calendario/calendario.jsx";
 import EnConstruccion from "./pages/admin/EnConstruccion.jsx";
+
+const Dashboard = lazy(() => import("./pages/admin/dashboard/dashboard.jsx"));
+const Calendario = lazy(() => import("./pages/admin/calendario/calendario.jsx"));
+
+function Cargando() {
+  return (
+    <div style={{ padding: 40, textAlign: "center", color: "var(--muted)" }}>
+      Cargando…
+    </div>
+  );
+}
 
 function App() {
   return (
@@ -13,8 +23,22 @@ function App() {
         <Route path="/login" element={<Login />} />
 
         <Route element={<Layout />}>
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/calendario" element={<Calendario />} />
+          <Route
+            path="/dashboard"
+            element={
+              <Suspense fallback={<Cargando />}>
+                <Dashboard />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/calendario"
+            element={
+              <Suspense fallback={<Cargando />}>
+                <Calendario />
+              </Suspense>
+            }
+          />
           <Route path="/eventos" element={<EnConstruccion titulo="Eventos" />} />
           <Route path="/usuarios" element={<EnConstruccion titulo="Usuarios" />} />
         </Route>
