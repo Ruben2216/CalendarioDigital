@@ -17,7 +17,6 @@ from dotenv import load_dotenv
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Load environment variables from backend/.env for local development
 load_dotenv(os.path.join(BASE_DIR, '.env'))
 
 
@@ -30,7 +29,8 @@ SECRET_KEY = 'django-insecure-_^%*5*p!t&&!0e-nuuv!qj6(6m8s7#t02xso6_+-v*0xd5@85e
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+_allowed_hosts = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1')
+ALLOWED_HOSTS = [h.strip() for h in _allowed_hosts.split(',') if h.strip()]
 
 
 # Application definition
@@ -131,10 +131,8 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 
-# Google OAuth2 Client ID 
 GOOGLE_OAUTH2_CLIENT_ID = os.environ.get('GOOGLE_OAUTH2_CLIENT_ID', '')
 
-# URL where frontend dashboard is served during development
 FRONTEND_DASHBOARD_URL = os.environ.get('FRONTEND_DASHBOARD_URL', 'http://localhost:5173/dashboard.html')
 
 REST_FRAMEWORK = {
@@ -143,7 +141,6 @@ REST_FRAMEWORK = {
     ),
 }
 
-# CORS (allow local frontend during development)
 CORS_ALLOWED_ORIGINS = [
-    'http://localhost:5173',
+    h.strip() for h in os.environ.get('CORS_ALLOWED_ORIGINS', 'http://localhost:5173').split(',') if h.strip()
 ]

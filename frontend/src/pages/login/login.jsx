@@ -149,7 +149,13 @@ export default function Login() {
                     return;
                   }
                   try {
-                    const resp = await fetch('http://localhost:8000/api/auth/google/callback/', {
+                    const backendBase = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
+                    const callbackUrl = `${backendBase.replace(/\/$/, '')}/api/auth/google/callback/`;
+                    console.log('Google callback URL:', callbackUrl);
+                    if (!import.meta.env.VITE_BACKEND_URL) {
+                      alert('VITE_BACKEND_URL no está definida. Usando fallback a localhost. Reinicia el servidor de frontend para cargar .env');
+                    }
+                    const resp = await fetch(callbackUrl, {
                       method: 'POST',
                       headers: {
                         'Content-Type': 'application/json',

@@ -48,7 +48,39 @@ class GoogleAuthView(APIView):
 		if not correo.endswith('@cobach.edu.mx'):
 			return Response(status=status.HTTP_204_NO_CONTENT)
 
-		redirect_url = getattr(settings, 'FRONTEND_DASHBOARD_URL', 'http://localhost:5173/dashboard.html')
+		# Preferir origen dinámico cuando la petición proviene de un frontend autorizado
+		origin = request.headers.get('origin') or request.META.get('HTTP_ORIGIN')
+
+		# lista de orígenes permitidos desde settings
+		allowed = getattr(settings, 'CORS_ALLOWED_ORIGINS', [])
+		# incluir FRONTEND_DASHBOARD_URL como respaldo
+		fallback = getattr(settings, 'FRONTEND_DASHBOARD_URL', 'http://localhost:5173/dashboard.html')
+
+		def origin_allowed(o: str) -> bool:
+			if not o:
+				return False
+			# comparar exactamente
+			if o in allowed:
+				return True
+			# permitir coincidencias por sufijo (ej. .ngrok-free.app)
+			for a in allowed:
+				if a.startswith('.') and o.endswith(a):
+					return True
+				if a.startswith('http') and o == a:
+					return True
+				# también comparar sin esquema
+				try:
+					host = o.split('://', 1)[1]
+				except Exception:
+					host = o
+				if a == host or (a.startswith('.') and host.endswith(a.lstrip('.'))):
+					return True
+			return False
+
+		if origin and origin_allowed(origin):
+			redirect_url = origin.rstrip('/') + '/dashboard.html'
+		else:
+			redirect_url = fallback
 
 		# Si la petición proviene de XHR/Fetch, devolver la URL en JSON; si es navegación normal, redirigir
 		is_xhr = request.headers.get('x-requested-with') == 'XMLHttpRequest' or 'application/json' in request.headers.get('accept', '')
