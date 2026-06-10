@@ -17,6 +17,9 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 
+from agenda.views import GoogleAuthView
+
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('api/auth/google/callback/', GoogleAuthView.as_view(), name='google-callback'),
 ]

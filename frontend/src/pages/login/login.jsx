@@ -3,6 +3,7 @@ import {Mail, Lock, Eye, EyeOff, CheckCircle2, ShieldCheck, Monitor, User, Home,
 import logoCobach from "../../assets/img/logo-cobach.png";
 import calendarImg from "../../assets/img/imagen-login.jpg";
 import "./login.css";
+import { GoogleLogin } from '@react-oauth/google';
 
 const ROLES = [
   { id: "admin", label: "Administrador", icon: ShieldCheck },
@@ -139,15 +140,47 @@ export default function Login() {
               <LogIn />
               Iniciar sesión
             </button>
-            <button type="button" className="google-btn" aria-label="Iniciar sesión con Google">
-      <svg className="google-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-        <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
-        <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
-        <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
-        <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
-      </svg>
-      <span className="google-text">Iniciar sesión con Google</span>
-    </button>
+            <div className="google-btn">
+              <GoogleLogin
+                onSuccess={async (credentialResponse) => {
+                  const id_token = credentialResponse?.credential;
+                  if (!id_token) {
+                    console.error('No credential returned from Google');
+                    return;
+                  }
+                  try {
+                    const resp = await fetch('http://localhost:8000/api/auth/google/callback/', {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json',
+                      },
+                      body: JSON.stringify({ token: id_token }),
+                    });
+                    if (!resp.ok) {
+                      const errData = await resp.json().catch(() => ({}));
+                      console.error('Backend error', errData);
+                      return;
+                    }
+                    const data = await resp.json().catch(() => ({}));
+                    if (data.redirect) {
+                      window.location.href = data.redirect;
+                      return;
+                    }
+                    if (data.token) {
+                      localStorage.setItem('authToken', data.token);
+                      window.location.href = '/dashboard.html';
+                    }
+                  } catch (err) {
+                    console.error(err);
+                  }
+                }}
+                onError={() => {
+                  console.error('Google login failed');
+                }}
+              />
+            </div>
             
 
             <p className="login__forgot">
