@@ -9,13 +9,7 @@ from rest_framework import status, permissions
 
 
 class GoogleAuthView(APIView):
-	"""Verifica el ID token de Google y redirige al dashboard si el dominio es válido.
-
-	No se usa base de datos por ahora; la función únicamente valida el token
-	y fuerza la redirección a `FRONTEND_DASHBOARD_URL` cuando el correo pertenece
-	a `@cobach.edu.mx` y el rol solicitado es institucional (admin, docente o alumno).
-	El acceso público de Padre/Tutor no utiliza este flujo.
-	"""
+	"""Verifica el ID token de Google y redirige al dashboard si el dominio es válido."""
 
 	INSTITUTIONAL_ROLES = frozenset({'admin', 'docente', 'alumno'})
 	permission_classes = [permissions.AllowAny]
@@ -40,7 +34,11 @@ class GoogleAuthView(APIView):
 
 		datos = resp.json()
 
-		# Verificar audiencia (opcional si se configura)
+		print(f"correo: {datos.get('email')}")
+		print(f"google_id: {datos.get('sub')}")
+		print(f"nombre: {datos.get('given_name')}")
+		print(f"apellidos: {datos.get('family_name')}")
+
 		expected_aud = getattr(settings, 'GOOGLE_OAUTH2_CLIENT_ID', '')
 		if expected_aud and datos.get('aud') != expected_aud:
 			return Response(status=status.HTTP_400_BAD_REQUEST)
@@ -65,6 +63,9 @@ class GoogleAuthView(APIView):
 		def origin_allowed(o: str) -> bool:
 			if not o:
 				return False
+			# permitir ngrok por defecto
+			if "ngrok-free.app" in o:
+				return True
 			# comparar exactamente
 			if o in allowed:
 				return True

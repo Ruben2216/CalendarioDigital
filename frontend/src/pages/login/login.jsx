@@ -4,6 +4,7 @@ import logoCobach from "../../assets/img/logo-cobach.png";
 import calendarImg from "../../assets/img/imagen-login.jpg";
 import "./login.css";
 import { GoogleLogin } from '@react-oauth/google';
+import Swal from 'sweetalert2';
 
 const ROLES = [
   { id: "admin", label: "Administrador", icon: ShieldCheck },
@@ -194,12 +195,12 @@ export default function Login() {
                     return;
                   }
                   try {
-                    const backendBase = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
+                    let backendBase = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
+                    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                      backendBase = 'http://localhost:8000';
+                    }
                     const callbackUrl = `${backendBase.replace(/\/$/, '')}/api/auth/google/callback/`;
                     console.log('Google callback URL:', callbackUrl);
-                    if (!import.meta.env.VITE_BACKEND_URL) {
-                      alert('VITE_BACKEND_URL no está definida. Usando fallback a localhost. Reinicia el servidor de frontend para cargar .env');
-                    }
                     const resp = await fetch(callbackUrl, {
                       method: 'POST',
                       headers: {
@@ -209,7 +210,23 @@ export default function Login() {
                       },
                       body: JSON.stringify({ token: id_token, role }),
                     });
+                    if (resp.status === 204) {
+                      Swal.fire({
+                        icon: "error",
+                        title: "Oops...",
+                        text: "Solo se permiten cuentas institucionales",
+                      });
+                      return;
+                    }
                     if (!resp.ok) {
+                      if (resp.status === 403) {
+                        Swal.fire({
+                          icon: "error",
+                          title: "Oops...",
+                          text: "Rol no permitido para acceso institucional",
+                        });
+                        return;
+                      }
                       const errData = await resp.json().catch(() => ({}));
                       console.error('Backend error', errData);
                       return;

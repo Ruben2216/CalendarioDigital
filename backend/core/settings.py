@@ -29,6 +29,8 @@ DEBUG = True
 
 _allowed_hosts = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1')
 ALLOWED_HOSTS = [h.strip() for h in _allowed_hosts.split(',') if h.strip()]
+if '.ngrok-free.app' not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append('.ngrok-free.app')
 
 
 # Application definition
@@ -140,4 +142,8 @@ REST_FRAMEWORK = {
 
 CORS_ALLOWED_ORIGINS = [
     h.strip() for h in os.environ.get('CORS_ALLOWED_ORIGINS', 'http://localhost:5173').split(',') if h.strip()
+]
+
+CORS_ALLOWED_ORIGIN_REGEXES = [
+    r"^https://.*\.ngrok-free\.app$",
 ]
