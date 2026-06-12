@@ -21,8 +21,8 @@ export default function SelectorFecha({ value, onChange, min, placeholder = "Sel
     const fuera = (e) => {
       if (ref.current && !ref.current.contains(e.target)) setAbierto(false);
     };
-    document.addEventListener("mousedown", fuera);
-    return () => document.removeEventListener("mousedown", fuera);
+    document.addEventListener("mousedown", fuera, true);
+    return () => document.removeEventListener("mousedown", fuera, true);
   }, [abierto]);
 
   const abrir = () => {

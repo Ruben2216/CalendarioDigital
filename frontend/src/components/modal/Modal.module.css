@@ -1,10 +1,10 @@
 .modal {
   position: fixed;
   inset: 0;
-  z-index: 60;
+  z-index: 200;
   display: grid;
   place-items: center;
-  padding: 20px;
+  padding: 16px;
   background: rgba(9, 22, 48, 0.45);
   backdrop-filter: blur(3px);
   animation: modal-fundido 0.16s ease;
@@ -12,7 +12,8 @@
 
 .modal__dialogo {
   width: min(100%, 460px);
-  max-height: calc(100vh - 40px);
+  max-height: calc(100vh - 32px);
+  max-height: calc(100dvh - 32px);
   display: flex;
   flex-direction: column;
   background: #ffffff;

@@ -3,7 +3,7 @@ import { Clock } from "lucide-react";
 import styles from "./campos.module.css";
 
 const HORAS12 = Array.from({ length: 12 }, (_, i) => i + 1); // 1..12
-const MINUTOS = ["00", "15", "30", "45"];
+const MINUTOS = Array.from({ length: 60 }, (_, i) => String(i).padStart(2, "0"));
 
 function a12(valor) {
   if (!valor) return null;
@@ -32,8 +32,8 @@ export default function SelectorHora({ value, onChange, placeholder = "Hora" }) 
     const fuera = (e) => {
       if (ref.current && !ref.current.contains(e.target)) setAbierto(false);
     };
-    document.addEventListener("mousedown", fuera);
-    return () => document.removeEventListener("mousedown", fuera);
+    document.addEventListener("mousedown", fuera, true);
+    return () => document.removeEventListener("mousedown", fuera, true);
   }, [abierto]);
 
   const actual = a12(value);

@@ -286,6 +286,7 @@
   flex: 1;
   min-width: 0;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 16px;
 }
 
@@ -847,56 +848,57 @@
   /* En pantallas medianas/chicas el panel se abre como CAJÓN que se DESLIZA
      desde la derecha (mismo efecto que la barra lateral), sin encoger el
      calendario. */
+  .calendario__cuerpo {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
   .calendario__aside {
-    position: fixed;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    width: min(88vw, 360px);
+    position: static;
+    width: 100%;
     margin-left: 0;
-    z-index: 70;
-    padding: 14px;
-    overflow-y: auto;
-    overscroll-behavior: contain;
-    background: var(--bg);
-    box-shadow: -12px 0 32px rgba(2, 17, 56, 0.22);
-    transform: translateX(100%);
-    transition: transform 0.26s ease;
+    margin-top: 16px;
+    overflow: visible;
+    transform: none;
+    transition: none;
+    box-shadow: none;
+  }
+
+  .calendario__aside:not(.calendario__aside--abierto) {
+    display: none;
   }
 
   .calendario__aside--abierto {
-    width: min(88vw, 360px);
+    width: 100%;
     margin-left: 0;
-    transform: translateX(0);
   }
 
   .panel-respaldo {
-    display: block;
-    position: fixed;
-    inset: 0;
-    z-index: 65;
-    background: rgba(2, 17, 56, 0.45);
-    backdrop-filter: blur(2px);
-    opacity: 0;
-    visibility: hidden;
-    pointer-events: none;
-    transition: opacity 0.26s ease, visibility 0.26s ease;
-  }
-
-  .panel-respaldo--visible {
-    opacity: 1;
-    visibility: visible;
-    pointer-events: auto;
+    display: none;
   }
 }
 
 @media (max-width: 760px) {
+  .barra {
+    gap: 10px;
+  }
+
+  .barra__navegacion,
   .barra__derecha {
-    justify-content: space-between;
+    width: 100%;
+  }
+
+  .barra__derecha {
+    justify-content: flex-start;
   }
 
   .barra__rango {
     font-size: 15px;
+  }
+
+  .vista__menu {
+    left: 0;
+    right: auto;
   }
 
   .calendario__aside {
@@ -916,17 +918,38 @@
   }
 
   .tabla tbody tr {
-    padding: 10px 4px;
+    padding: 10px 12px;
     border-bottom: 1px solid #f0f3f8;
   }
 
   .tabla tbody td {
-    padding: 3px 4px;
+    padding: 3px 0;
     border: 0;
+  }
+
+  .tabla__evento {
+    font-size: 14px;
   }
 
   .tabla__acciones-col,
   .tabla__acciones {
     justify-content: flex-start;
+  }
+}
+
+@media (max-width: 520px) {
+  .calendario__titulo {
+    font-size: 19px;
+  }
+
+  .barra__mes-boton,
+  .barra__rango {
+    font-size: 15px;
+    padding: 0 8px;
+  }
+
+  .barra__derecha :global(.boton) {
+    flex: 1 1 auto;
+    justify-content: center;
   }
 }

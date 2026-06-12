@@ -1,9 +1,9 @@
 import { useMemo } from "react";
-import { Pencil, Copy, Trash2 } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
 import { formatoHora, formatoFechaLarga } from "../../../../lib/fechas.js";
 import styles from "./VistaLista.module.css";
 
-export default function VistaLista({ eventos, fechaActual, colorTipo, etiquetaTipo, onSeleccionarDia, onEditar, onDuplicar, onEliminar,}) 
+export default function VistaLista({ eventos, fechaActual, colorTipo, etiquetaTipo, onSeleccionarDia, onEditar, onEliminar,})
 {
   // Eventos del mes visible, agrupados por su día de inicio */
   const grupos = useMemo(() => {
@@ -71,14 +71,6 @@ export default function VistaLista({ eventos, fechaActual, colorTipo, etiquetaTi
                     title="Editar"
                   >
                     <Pencil size={15} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={(e) => { e.stopPropagation(); onDuplicar(ev); }}
-                    aria-label="Duplicar"
-                    title="Duplicar"
-                  >
-                    <Copy size={15} />
                   </button>
                   <button
                     type="button"

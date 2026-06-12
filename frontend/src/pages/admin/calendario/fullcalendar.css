@@ -113,8 +113,6 @@
 
 .cal-fc .fc-event.cal-fc-ev-sel {
   box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--blue);
-  position: relative;
-  z-index: 5;
 }
 
 /* "+N más" */

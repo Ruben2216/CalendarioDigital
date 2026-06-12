@@ -10,7 +10,7 @@ import esLocale from "@fullcalendar/core/locales/es";
 
 import {
   CalendarDays, CalendarRange, LayoutGrid, List, ChevronLeft, ChevronRight,
-  ChevronDown, Plus, Download, Pencil, Copy, Trash2, Settings2, Filter, Tag,
+  ChevronDown, Plus, Download, Pencil, Trash2, Settings2, Filter, Tag,
   PanelRight, X, Clock, MapPin, Hourglass,
 } from "lucide-react";
 import Modal from "../../../components/modal/Modal.jsx";
@@ -94,8 +94,15 @@ export default function Calendario() {
   const pickerRef = useRef(null);
   const vistaRef = useRef(null);
   const popoverRef = useRef(null);
-  const clicTimer = useRef(null);        
+  const asideRef = useRef(null);
+  const clicTimer = useRef(null);
   const cierreHoverTimer = useRef(null);
+
+  useEffect(() => {
+    if (panelAbierto && window.matchMedia("(max-width: 1100px)").matches) {
+      asideRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [panelAbierto]);
 
   // Acceso corto a la API de FullCalendar (prev, next, today, changeView...).
   const api = () => calendarRef.current?.getApi();
@@ -117,10 +124,15 @@ export default function Calendario() {
     return () => document.removeEventListener("mousedown", alClicar);
   }, []);
 
-  const cerrarPopover = () => {
+  const cerrarPopover = useCallback(() => {
     setPopover(null);
     setEventoSelId(null);
-  };
+  }, []);
+
+  const fijoRef = useRef(false);
+  useEffect(() => {
+    fijoRef.current = Boolean(popover?.fijo);
+  }, [popover]);
 
   useEffect(() => {
     if (!popover) return undefined;
@@ -136,7 +148,7 @@ export default function Calendario() {
       document.removeEventListener("mousedown", alClicar);
       document.removeEventListener("keydown", alTecla);
     };
-  }, [popover]);
+  }, [popover, cerrarPopover]);
 
   // Mapa id -> tipo, para buscar color/etiqueta de un evento rápidamente.
   const tiposPorId = useMemo(() => {
@@ -332,29 +344,32 @@ export default function Calendario() {
     }, 200);
   };
 
-  const alEntrarEvento = (arg) => {
-    if (popover?.fijo) return;
+  const alEntrarEvento = useCallback((arg) => {
+    if (fijoRef.current) return;
     clearTimeout(cierreHoverTimer.current);
     const original = arg.event.extendedProps.original;
     if (!original) return;
     const rect = arg.el.getBoundingClientRect();
     setPopover({ ev: original, x: rect.right, y: rect.top, fijo: false });
-  };
+  }, []);
 
-  const alSalirEvento = () => {
-    if (popover?.fijo) return;
+  const alSalirEvento = useCallback(() => {
+    if (fijoRef.current) return;
     clearTimeout(cierreHoverTimer.current);
-    cierreHoverTimer.current = setTimeout(cerrarPopover, 160);
-  };
+    cierreHoverTimer.current = setTimeout(cerrarPopover, 280);
+  }, [cerrarPopover]);
 
-  // Devuelve la clase del día seleccionado para que FullCalendar la pinte (sea el dia actual o el seleccionado) */
-  const claseDiaSeleccionado = (arg) =>
-    aClaveFecha(arg.date) === fechaSeleccionada ? "cal-fc-sel" : "";
+  const claseDiaSeleccionado = useCallback(
+    (arg) => (aClaveFecha(arg.date) === fechaSeleccionada ? "cal-fc-sel" : ""),
+    [fechaSeleccionada]
+  );
 
-  const claseEventoSeleccionado = (arg) =>
-    arg.event.id === eventoSelId ? "cal-fc-ev-sel" : "";
+  const claseEventoSeleccionado = useCallback(
+    (arg) => (arg.event.id === eventoSelId ? "cal-fc-ev-sel" : ""),
+    [eventoSelId]
+  );
 
-  // CRUD DE EVENTOS (crear, editar, duplicar, eliminar) */
+  // CRUD
   const abrirNuevoEvento = () => {
     setEventoEditando(null);
     setFormEvento({ ...FORM_EVENTO_VACIO, fecha: fechaSeleccionada || claveHoy });
@@ -372,9 +387,6 @@ export default function Calendario() {
     setModalEvento(true);
   };
 
-  const duplicarEvento = (ev) => {
-    setEventos((prev) => [...prev, { ...ev, id: Date.now(), titulo: `${ev.titulo} (copia)` }]);
-  };
 
   const actualizarCampoEvento = (campo) => (e) =>
     setFormEvento((prev) => ({ ...prev, [campo]: e.target.value }));
@@ -664,7 +676,6 @@ export default function Calendario() {
               etiquetaTipo={etiquetaTipo}
               onSeleccionarDia={setFechaSeleccionada}
               onEditar={abrirEditarEvento}
-              onDuplicar={duplicarEvento}
               onEliminar={pedirEliminar}
             />
           )}
@@ -726,9 +737,6 @@ export default function Calendario() {
                             <button type="button" onClick={() => abrirEditarEvento(ev)} aria-label="Editar" title="Editar">
                               <Pencil size={15} />
                             </button>
-                            <button type="button" onClick={() => duplicarEvento(ev)} aria-label="Duplicar" title="Duplicar">
-                              <Copy size={15} />
-                            </button>
                             <button
                               type="button"
                               className={styles["tabla__borrar"]}
@@ -758,6 +766,7 @@ export default function Calendario() {
 
         {/* ---- PANEL LATERAL: simbología, tipos de evento y filtros ---- */}
         <aside
+          ref={asideRef}
           className={`${styles["calendario__aside"]} ${panelAbierto ? styles["calendario__aside--abierto"] : ""}`}
           aria-hidden={!panelAbierto}
         >
@@ -880,14 +889,14 @@ export default function Calendario() {
           ref={popoverRef}
           className={styles["pop-evento"]}
           style={{
-            left: Math.min(popover.x + 8, window.innerWidth - 286),
+            left: Math.min(popover.x + 4, window.innerWidth - 282),
             top: Math.max(8, Math.min(popover.y, window.innerHeight - 190)),
           }}
           onMouseEnter={() => clearTimeout(cierreHoverTimer.current)}
           onMouseLeave={() => {
             if (!popover.fijo) {
               clearTimeout(cierreHoverTimer.current);
-              cierreHoverTimer.current = setTimeout(cerrarPopover, 160);
+              cierreHoverTimer.current = setTimeout(cerrarPopover, 280);
             }
           }}
         >
