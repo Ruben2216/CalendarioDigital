@@ -16,6 +16,7 @@ import {
 import Modal from "../../../components/modal/Modal.jsx";
 import SelectorFecha from "../../../components/campos/SelectorFecha.jsx";
 import SelectorHora from "../../../components/campos/SelectorHora.jsx";
+import { avisoExito, confirmarEliminacion } from "../../../lib/alertas.js";
 import {
   NOMBRES_MES, ABREV_MES, aClaveFecha, desdeClaveFecha, sumarDias, minutosDe, formatoHora,
   formatoFechaLarga, calcularSemestre, ahoraMexico,
@@ -84,7 +85,6 @@ export default function Calendario() {
   const [modalEvento, setModalEvento] = useState(false);
   const [formEvento, setFormEvento] = useState(FORM_EVENTO_VACIO);
   const [eventoEditando, setEventoEditando] = useState(null);
-  const [modalEliminar, setModalEliminar] = useState(null);
   const [modalTipo, setModalTipo] = useState(false);
   const [formTipo, setFormTipo] = useState(FORM_TIPO_VACIO);
 
@@ -403,17 +403,21 @@ export default function Calendario() {
     setFechaSeleccionada(datos.fecha);
     api()?.gotoDate(datos.fecha);
     setModalEvento(false);
+    avisoExito(eventoEditando ? "Evento actualizado" : "Evento creado");
   };
 
-  const confirmarEliminar = () => {
-    setEventos((prev) => prev.filter((ev) => ev.id !== modalEliminar.id));
-    setModalEliminar(null);
+  const pedirEliminar = async (ev) => {
+    cerrarPopover();
+    const { isConfirmed } = await confirmarEliminacion(ev.titulo);
+    if (!isConfirmed) return;
+    setEventos((prev) => prev.filter((e) => e.id !== ev.id));
+    avisoExito("Evento eliminado");
   };
 
   const eliminarDesdeEdicion = () => {
     const ev = eventos.find((e) => e.id === eventoEditando);
     setModalEvento(false);
-    if (ev) setModalEliminar(ev);
+    if (ev) pedirEliminar(ev);
   };
 
   // CRUD DE TIPOS DE EVENTO (la simbología y los filtros salen de aquí)
@@ -661,7 +665,7 @@ export default function Calendario() {
               onSeleccionarDia={setFechaSeleccionada}
               onEditar={abrirEditarEvento}
               onDuplicar={duplicarEvento}
-              onEliminar={(ev) => setModalEliminar(ev)}
+              onEliminar={pedirEliminar}
             />
           )}
 
@@ -728,7 +732,7 @@ export default function Calendario() {
                             <button
                               type="button"
                               className={styles["tabla__borrar"]}
-                              onClick={() => setModalEliminar(ev)}
+                              onClick={() => pedirEliminar(ev)}
                               aria-label="Eliminar"
                               title="Eliminar"
                             >
@@ -902,7 +906,7 @@ export default function Calendario() {
                 type="button"
                 className={styles["pop-evento__borrar"]}
                 title="Eliminar"
-                onClick={() => { const ev = popover.ev; cerrarPopover(); setModalEliminar(ev); }}
+                onClick={() => pedirEliminar(popover.ev)}
               >
                 <Trash2 size={15} />
               </button>
@@ -1052,29 +1056,6 @@ export default function Calendario() {
             <input type="text" placeholder="Aula, auditorio, explanada..." value={formEvento.lugar} onChange={actualizarCampoEvento("lugar")} />
           </label>
         </form>
-      </Modal>
-
-      {/* Modal: eliminar evento */}
-      <Modal
-        abierto={Boolean(modalEliminar)}
-        titulo="Eliminar evento"
-        onCerrar={() => setModalEliminar(null)}
-        pie={
-          <>
-            <button type="button" className="boton boton--fantasma" onClick={() => setModalEliminar(null)}>
-              Cancelar
-            </button>
-            <button type="button" className="boton boton--peligro" onClick={confirmarEliminar}>
-              <Trash2 size={16} />
-              Eliminar
-            </button>
-          </>
-        }
-      >
-        <p className={styles["confirmacion"]}>
-          ¿Seguro que deseas eliminar <strong>{modalEliminar?.titulo}</strong>? Esta
-          acción no se puede deshacer.
-        </p>
       </Modal>
 
       {/* Modal: crear y editar tipo de evento */}

@@ -25,3 +25,17 @@ body,
 #root {
   width: 100%;
 }
+
+/* SweetAlert2 */
+.swal2-popup {
+  font-family: var(--font-base);
+  border-radius: 16px;
+}
+
+.swal2-title {
+  font-family: var(--font-display);
+}
+
+.swal-acciones {
+  gap: 10px;
+}
