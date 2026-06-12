@@ -132,7 +132,7 @@ STATIC_URL = 'static/'
 
 GOOGLE_OAUTH2_CLIENT_ID = os.environ.get('GOOGLE_OAUTH2_CLIENT_ID', '')
 
-FRONTEND_DASHBOARD_URL = os.environ.get('FRONTEND_DASHBOARD_URL', 'http://localhost:5173/dashboard.html')
+FRONTEND_DASHBOARD_URL = os.environ.get('FRONTEND_DASHBOARD_URL', 'http://localhost:5173/dashboard')
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (

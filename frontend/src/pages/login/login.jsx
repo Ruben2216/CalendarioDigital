@@ -1,5 +1,6 @@
 import { useState } from "react";
 import {Mail, Lock, Eye, EyeOff, CheckCircle2, ShieldCheck, Monitor, User, Home, Users, Clock, GraduationCap, LogIn,} from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import logoCobach from "../../assets/img/logo-cobach.png";
 import calendarImg from "../../assets/img/imagen-login.jpg";
 import "./login.css";
@@ -27,6 +28,7 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [role, setRole] = useState("admin");
+  const navigate = useNavigate();
 
   const isInstitutionalAccess = INSTITUTIONAL_ROLES.has(role);
   const isPublicAccess = role === "tutor";
@@ -37,12 +39,23 @@ export default function Login() {
     e.preventDefault();
 
     if (isPublicAccess) {
-      window.location.href = "/dashboard.html";
+      // Simulamos un token para acceso público para que ProtectedRoute lo permita
+      localStorage.setItem("authToken", "tutor-public-token");
+      navigate("/dashboard");
       return;
     }
 
-    // conectar con la API de autenticacion o con google auth
-    console.log({ email, password, role });
+    if (emailValid) {
+      // Simulamos un token para el login manual (solo para pruebas)
+      localStorage.setItem("authToken", `dummy-token-${email}`);
+      navigate("/dashboard");
+    } else {
+      Swal.fire({
+        icon: "error",
+        title: "Oops...",
+        text: "Solo se permiten cuentas institucionales @cobach.edu.mx",
+      });
+    }
   };
 
   return (
@@ -232,13 +245,31 @@ export default function Login() {
                       return;
                     }
                     const data = await resp.json().catch(() => ({}));
-                    if (data.redirect) {
-                      window.location.href = data.redirect;
-                      return;
-                    }
                     if (data.token) {
                       localStorage.setItem('authToken', data.token);
-                      window.location.href = '/dashboard.html';
+                      
+                      // Role-based routing
+                      switch (role) {
+                        case 'admin':
+                          navigate('/dashboard');
+                          break;
+                        case 'docente':
+                          // navigate('/docente/dashboard'); // Futuro
+                          navigate('/dashboard');
+                          break;
+                        case 'alumno':
+                          // navigate('/alumno/dashboard'); // Futuro
+                          navigate('/dashboard');
+                          break;
+                        default:
+                          navigate('/dashboard');
+                      }
+                      return;
+                    }
+                    if (data.redirect) {
+                      // Fallback por si el backend forza una redirección (se debe actualizar el backend para evitar html)
+                      window.location.href = data.redirect.replace('.html', '');
+                      return;
                     }
                   } catch (err) {
                     console.error(err);

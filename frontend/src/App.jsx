@@ -1,5 +1,5 @@
 import { lazy, Suspense } from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom";
 import Login from "./pages/login/login.jsx";
 import Layout from "./components/layout/Layout.jsx";
 import EnConstruccion from "./pages/admin/EnConstruccion.jsx";
@@ -15,6 +15,14 @@ function Cargando() {
   );
 }
 
+function ProtectedRoute() {
+  const token = localStorage.getItem('authToken');
+  if (!token) {
+    return <Navigate to="/login" replace />;
+  }
+  return <Outlet />;
+}
+
 function App() {
   return (
     <BrowserRouter>
@@ -22,25 +30,27 @@ function App() {
         <Route path="/" element={<Login />} />
         <Route path="/login" element={<Login />} />
 
-        <Route element={<Layout />}>
-          <Route
-            path="/dashboard"
-            element={
-              <Suspense fallback={<Cargando />}>
-                <Dashboard />
-              </Suspense>
-            }
-          />
-          <Route
-            path="/calendario"
-            element={
-              <Suspense fallback={<Cargando />}>
-                <Calendario />
-              </Suspense>
-            }
-          />
-          <Route path="/eventos" element={<EnConstruccion titulo="Eventos" />} />
-          <Route path="/usuarios" element={<EnConstruccion titulo="Usuarios" />} />
+        <Route element={<ProtectedRoute />}>
+          <Route element={<Layout />}>
+            <Route
+              path="/dashboard"
+              element={
+                <Suspense fallback={<Cargando />}>
+                  <Dashboard />
+                </Suspense>
+              }
+            />
+            <Route
+              path="/calendario"
+              element={
+                <Suspense fallback={<Cargando />}>
+                  <Calendario />
+                </Suspense>
+              }
+            />
+            <Route path="/eventos" element={<EnConstruccion titulo="Eventos" />} />
+            <Route path="/usuarios" element={<EnConstruccion titulo="Usuarios" />} />
+          </Route>
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />

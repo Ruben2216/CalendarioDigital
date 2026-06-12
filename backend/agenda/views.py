@@ -57,8 +57,7 @@ class GoogleAuthView(APIView):
 
 		# lista de orígenes permitidos desde settings
 		allowed = getattr(settings, 'CORS_ALLOWED_ORIGINS', [])
-		# incluir FRONTEND_DASHBOARD_URL como respaldo
-		fallback = getattr(settings, 'FRONTEND_DASHBOARD_URL', 'http://localhost:5173/dashboard.html')
+		fallback = getattr(settings, 'FRONTEND_DASHBOARD_URL', 'http://localhost:5173/dashboard')
 
 		def origin_allowed(o: str) -> bool:
 			if not o:
@@ -66,7 +65,6 @@ class GoogleAuthView(APIView):
 			# permitir ngrok por defecto
 			if "ngrok-free.app" in o:
 				return True
-			# comparar exactamente
 			if o in allowed:
 				return True
 			# permitir coincidencias por sufijo (ej. .ngrok-free.app)
@@ -75,7 +73,6 @@ class GoogleAuthView(APIView):
 					return True
 				if a.startswith('http') and o == a:
 					return True
-				# también comparar sin esquema
 				try:
 					host = o.split('://', 1)[1]
 				except Exception:
@@ -85,13 +82,16 @@ class GoogleAuthView(APIView):
 			return False
 
 		if origin and origin_allowed(origin):
-			redirect_url = origin.rstrip('/') + '/dashboard.html'
+			redirect_url = origin.rstrip('/') + '/dashboard'
 		else:
-			redirect_url = fallback
+			redirect_url = fallback.replace('.html', '')
+
+		# Dummy token por ahora (se reemplazará cuando haya BD)
+		dummy_token = f"dummy-token-{correo}"
 
 		# Si la petición proviene de XHR/Fetch, devolver la URL en JSON; si es navegación normal, redirigir
 		is_xhr = request.headers.get('x-requested-with') == 'XMLHttpRequest' or 'application/json' in request.headers.get('accept', '')
 		if is_xhr:
-			return Response({'redirect': redirect_url}, status=status.HTTP_200_OK)
+			return Response({'redirect': redirect_url, 'token': dummy_token}, status=status.HTTP_200_OK)
 
 		return redirect(redirect_url)
