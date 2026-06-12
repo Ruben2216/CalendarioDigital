@@ -1,0 +1,195 @@
+/* Estilos SelectorFecha y SelectorHora */
+.campo {
+  position: relative;
+}
+
+.campo__control {
+  width: 100%;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  border: 1px solid #dbe4f0;
+  background: #f8fbff;
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.campo__control:hover {
+  border-color: #b9c8e0;
+}
+
+.campo__control svg {
+  color: var(--muted-2);
+  flex: none;
+}
+
+.campo__valor {
+  color: var(--text);
+}
+
+.campo__placeholder {
+  color: var(--muted-2);
+}
+
+/* Popup (posicionado con position: fixed desde el componente) */
+.pop {
+  position: fixed;
+  z-index: 90;
+  padding: 12px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: 0 22px 44px rgba(9, 22, 48, 0.2);
+  animation: campo-pop 0.14s ease;
+}
+
+/* --- Calendario --- */
+.pop__cab {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.pop__cab span {
+  font-family: var(--font-display);
+  font-size: 13.5px;
+  font-weight: 800;
+  color: #15233d;
+  text-transform: capitalize;
+}
+
+.pop__cab button {
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 8px;
+  background: #f2f5f9;
+  color: var(--muted);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+.pop__cab button:hover {
+  background: #e6ebf3;
+}
+
+.pop__semana {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+  margin-bottom: 4px;
+}
+
+.pop__semana span {
+  height: 22px;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--muted-2);
+  text-transform: uppercase;
+}
+
+.pop__dias {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+  width: 224px;
+}
+
+.dia {
+  aspect-ratio: 1;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  font-family: var(--font-display);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #334155;
+  cursor: pointer;
+  transition: background-color 0.12s ease, color 0.12s ease;
+}
+
+.dia:hover:not(:disabled) {
+  background: var(--blue-soft);
+  color: var(--blue);
+}
+
+.dia:disabled {
+  color: #cbd5e1;
+  cursor: not-allowed;
+}
+
+.dia--fuera {
+  color: #c0c8d5;
+}
+
+.dia--sel {
+  background: var(--blue);
+  color: #fff;
+}
+
+/* --- Hora --- */
+.pop--hora {
+  padding: 8px;
+}
+
+.hora {
+  display: flex;
+  gap: 8px;
+}
+
+.hora__col {
+  width: 52px;
+  max-height: 188px;
+  overflow-y: auto;
+  display: grid;
+  gap: 2px;
+  overscroll-behavior: contain;
+}
+
+.hora__ampm {
+  display: grid;
+  gap: 2px;
+  align-content: start;
+}
+
+.hora__op {
+  height: 34px;
+  min-width: 44px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 8px;
+  background: #f6f8fc;
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  color: #344054;
+  cursor: pointer;
+  transition: background-color 0.12s ease, color 0.12s ease;
+}
+
+.hora__op:hover {
+  background: var(--blue-soft);
+  color: var(--blue);
+}
+
+.hora__op--sel {
+  background: var(--blue);
+  color: #fff;
+}
+
+@keyframes campo-pop {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: none; }
+}

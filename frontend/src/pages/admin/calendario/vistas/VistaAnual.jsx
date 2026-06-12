@@ -20,6 +20,7 @@ function construirMes(anio, mes, eventosPorDia, claveHoy, colorTipo) {
       dia: fecha.getDate(),
       delMes: fecha.getMonth() === mes,
       esHoy: clave === claveHoy,
+      finde: fecha.getDay() === 0 || fecha.getDay() === 6, 
       color: evs.length ? colorTipo(evs[0].tipo) : null,
     };
   });
@@ -31,7 +32,9 @@ export default function VistaAnual({
   colorTipo,
   claveHoy,
   fechaSeleccionada,
+  mesSeleccionado,
   onSeleccionarDia,
+  onSeleccionarMes,
 }) {
   // Ciclo escolar: si estamos en agosto o después, el ciclo arranca este año, si no, arrancó el año pasado. */
   const anioCiclo = fechaActual.getMonth() >= 7
@@ -49,7 +52,7 @@ export default function VistaAnual({
         celdas: construirMes(anio, mes, eventosPorDia, claveHoy, colorTipo),
       };
     });
-  }, [anioCiclo, eventosPorDia, claveHoy]);
+  }, [anioCiclo, eventosPorDia, claveHoy, colorTipo]);
 
   return (
     <div className={`tarjeta ${styles["anual"]}`}>
@@ -57,21 +60,32 @@ export default function VistaAnual({
         <div key={`${m.anio}-${m.mes}`} className={styles["anual__contenedor"]}>
           {/* Insignia de semestre antes de Agosto (A) y de Febrero (B) */}
           {k === 0 && (
-            <span className={`etiqueta etiqueta--rojo ${styles["anual__semestre"]}`}>
+            <span className={`etiqueta etiqueta--marino ${styles["anual__semestre"]}`}>
               SEMESTRE {anioCiclo}-A
             </span>
           )}
           {k === 6 && (
-            <span className={`etiqueta etiqueta--teal ${styles["anual__semestre"]}`}>
+            <span className={`etiqueta etiqueta--azul ${styles["anual__semestre"]}`}>
               SEMESTRE {anioCiclo + 1}-B
             </span>
           )}
 
           <article className={styles["mini"]}>
-            <header className={`${styles["mini__cabecera"]} ${m.semestreA ? styles["mini__cabecera--a"] : styles["mini__cabecera--b"]}`}>
+            {/* Clic en el encabezado del mes (ver los eventos de TODO ese mes) */}
+            <button
+              type="button"
+              onClick={() => onSeleccionarMes(`${m.anio}-${String(m.mes + 1).padStart(2, "0")}`)}
+              className={`${styles["mini__cabecera"]} ${
+                m.semestreA ? styles["mini__cabecera--a"] : styles["mini__cabecera--b"]
+              } ${
+                mesSeleccionado === `${m.anio}-${String(m.mes + 1).padStart(2, "0")}`
+                  ? styles["mini__cabecera--activo"]
+                  : ""
+              }`}
+            >
               <span className={styles["mini__mes"]}>{NOMBRES_MES[m.mes].toUpperCase()}</span>
               <span className={styles["mini__anio"]}>{m.anio}</span>
-            </header>
+            </button>
 
             <div className={styles["mini__rejilla"]}>
               {DIAS_MINI.map((d, i) => (
@@ -85,10 +99,10 @@ export default function VistaAnual({
                   onClick={() => onSeleccionarDia(celda.clave)}
                   aria-pressed={celda.clave === fechaSeleccionada}
                   className={`${styles["mini__dia"]} ${celda.delMes ? "" : styles["mini__dia--fuera"]} ${
-                    celda.esHoy ? styles["mini__dia--hoy"] : ""
-                  } ${celda.clave === fechaSeleccionada ? styles["mini__dia--sel"] : ""} ${
-                    celda.color ? styles[`mini__dia--${celda.color}`] : ""
-                  }`}
+                    celda.delMes && celda.finde ? styles["mini__dia--finde"] : ""
+                  } ${celda.esHoy ? styles["mini__dia--hoy"] : ""} ${
+                    celda.clave === fechaSeleccionada ? styles["mini__dia--sel"] : ""
+                  } ${celda.color ? styles[`mini__dia--${celda.color}`] : ""}`}
                 >
                   {celda.dia}
                 </button>

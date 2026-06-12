@@ -7,13 +7,15 @@
 }
 
 .anual__contenedor {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+  position: relative;
+  padding-top: 26px;
 }
 
 .anual__semestre {
-  align-self: flex-start;
+  position: absolute;
+  top: 0;
+  left: 0;
+  margin: 0;
   letter-spacing: 0.04em;
 }
 
@@ -29,16 +31,31 @@
   display: flex;
   align-items: baseline;
   justify-content: space-between;
+  width: 100%;
   padding: 8px 12px;
+  border: 0;
   color: #fff;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: filter 0.15s ease;
 }
 
+.mini__cabecera:hover {
+  filter: brightness(1.12);
+}
+
+.mini__cabecera--activo {
+  box-shadow: inset 0 0 0 2px #fff, inset 0 0 0 4px rgba(255, 255, 255, 0.45);
+}
+
+/* Semestre A: azul (oscuro) - Semestre B: azul más claro */
 .mini__cabecera--a {
-  background: #a31d46; /* semestre A: crimson */
+  background: linear-gradient(180deg, #0a2060 0%, #021138 100%);
 }
 
 .mini__cabecera--b {
-  background: #0f8a7e; /* semestre B: teal */
+  background: #0a3a9e;
 }
 
 .mini__mes {
@@ -92,6 +109,10 @@
 
 .mini__dia--fuera {
   color: #cbd3df;
+}
+
+.mini__dia--finde {
+  color: var(--red);
 }
 
 .mini__dia--sel {

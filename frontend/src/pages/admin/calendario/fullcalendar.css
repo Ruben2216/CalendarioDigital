@@ -72,6 +72,16 @@
   color: #fff;
 }
 
+.cal-fc .fc-day-sat .fc-daygrid-day-number,
+.cal-fc .fc-day-sun .fc-daygrid-day-number {
+  color: var(--red);
+}
+
+.cal-fc .fc-day-sat .fc-col-header-cell-cushion,
+.cal-fc .fc-day-sun .fc-col-header-cell-cushion {
+  color: #ff9b9b;
+}
+
 /* Eventos */
 .cal-fc .fc-event {
   border: 0;
@@ -99,6 +109,12 @@
 
 .cal-fc .fc-event:hover {
   filter: brightness(0.95);
+}
+
+.cal-fc .fc-event.cal-fc-ev-sel {
+  box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--blue);
+  position: relative;
+  z-index: 5;
 }
 
 /* "+N más" */

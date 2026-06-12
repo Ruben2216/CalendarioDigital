@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, useEffect } from "react";
+import { useCallback, useMemo, useRef, useState, useEffect } from "react";
 
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
@@ -11,11 +11,13 @@ import esLocale from "@fullcalendar/core/locales/es";
 import {
   CalendarDays, CalendarRange, LayoutGrid, List, ChevronLeft, ChevronRight,
   ChevronDown, Plus, Download, Pencil, Copy, Trash2, Settings2, Filter, Tag,
-  PanelRight, X,
+  PanelRight, X, Clock, MapPin, Hourglass,
 } from "lucide-react";
 import Modal from "../../../components/modal/Modal.jsx";
+import SelectorFecha from "../../../components/campos/SelectorFecha.jsx";
+import SelectorHora from "../../../components/campos/SelectorHora.jsx";
 import {
-  NOMBRES_MES, aClaveFecha, desdeClaveFecha, sumarDias, formatoHora,
+  NOMBRES_MES, ABREV_MES, aClaveFecha, desdeClaveFecha, sumarDias, minutosDe, formatoHora,
   formatoFechaLarga, calcularSemestre, ahoraMexico,
 } from "../../../lib/fechas.js";
 import { TIPOS, AREAS, COLORES_TIPO, eventosIniciales } from "../../../data/calendario.js";
@@ -39,9 +41,20 @@ const VISTAS = [
 /* Valores iniciales de los formularios (evento nuevo y tipo nuevo). */
 const FORM_EVENTO_VACIO = {
   titulo: "", tipo: "academico", area: "Académica", fecha: "", fechaFin: "",
-  horaInicio: "", horaFin: "", lugar: "", formato: "punto",
+  horaInicio: "", horaFin: "", lugar: "", formato: "punto", todoElDia: false,
 };
 const FORM_TIPO_VACIO = { id: null, etiqueta: "", color: "azul" };
+
+function duracionTexto(ev) {
+  if (!ev.horaInicio || !ev.horaFin) return null;
+  const min = minutosDe(ev.horaFin) - minutosDe(ev.horaInicio);
+  if (min <= 0) return null;
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  if (h && m) return `${h} h ${m} min`;
+  if (h) return `${h} ${h === 1 ? "hora" : "horas"}`;
+  return `${m} min`;
+}
 
 export default function Calendario() {
 
@@ -54,13 +67,18 @@ export default function Calendario() {
   const [fechaActual, setFechaActual] = useState(hoy);                // mes/fecha que muestra FC
   const [tituloVista, setTituloVista] = useState("");                 // título que da FC (semana/anual/lista)
   const [fechaSeleccionada, setFechaSeleccionada] = useState(claveHoy); // día resaltado
-  const [filtroTipo, setFiltroTipo] = useState("todos");
+  const [mesSeleccionado, setMesSeleccionado] = useState(null);         // mes elegido en la vista anual
+  const [tiposOcultos, setTiposOcultos] = useState(() => new Set());
   const [filtroArea, setFiltroArea] = useState("todas");
   const [pickerAbierto, setPickerAbierto] = useState(false);            // selector de mes
   const [anioPicker, setAnioPicker] = useState(() => hoy.getFullYear());
   const [vistaMenu, setVistaMenu] = useState(false);                    // menú desplegable de vista
   
   const [panelAbierto, setPanelAbierto] = useState(false);
+
+  // Info rápida
+  const [popover, setPopover] = useState(null);         
+  const [eventoSelId, setEventoSelId] = useState(null); 
 
   // Estado de los 3 modales
   const [modalEvento, setModalEvento] = useState(false);
@@ -75,12 +93,15 @@ export default function Calendario() {
   const lienzoRef = useRef(null);
   const pickerRef = useRef(null);
   const vistaRef = useRef(null);
+  const popoverRef = useRef(null);
+  const clicTimer = useRef(null);        
+  const cierreHoverTimer = useRef(null);
 
   // Acceso corto a la API de FullCalendar (prev, next, today, changeView...).
   const api = () => calendarRef.current?.getApi();
 
   useEffect(() => {
-    const el = lienzoRef.current;
+    const el = lienzoRef.current; 
     if (!el || typeof ResizeObserver === "undefined") return undefined;
     const observador = new ResizeObserver(() => api()?.updateSize());
     observador.observe(el);
@@ -96,6 +117,27 @@ export default function Calendario() {
     return () => document.removeEventListener("mousedown", alClicar);
   }, []);
 
+  const cerrarPopover = () => {
+    setPopover(null);
+    setEventoSelId(null);
+  };
+
+  useEffect(() => {
+    if (!popover) return undefined;
+    const alClicar = (e) => {
+      if (popoverRef.current && !popoverRef.current.contains(e.target)) cerrarPopover();
+    };
+    const alTecla = (e) => {
+      if (e.key === "Escape") cerrarPopover();
+    };
+    document.addEventListener("mousedown", alClicar);
+    document.addEventListener("keydown", alTecla);
+    return () => {
+      document.removeEventListener("mousedown", alClicar);
+      document.removeEventListener("keydown", alTecla);
+    };
+  }, [popover]);
+
   // Mapa id -> tipo, para buscar color/etiqueta de un evento rápidamente.
   const tiposPorId = useMemo(() => {
     const mapa = new Map();
@@ -103,8 +145,8 @@ export default function Calendario() {
     return mapa;
   }, [tipos]);
 
-  const colorTipo = (id) => tiposPorId.get(id)?.color ?? "gris";
-  const etiquetaTipo = (id) => tiposPorId.get(id)?.etiqueta ?? "Sin tipo";
+  const colorTipo = useCallback((id) => tiposPorId.get(id)?.color ?? "gris", [tiposPorId]);
+  const etiquetaTipo = useCallback((id) => tiposPorId.get(id)?.etiqueta ?? "Sin tipo", [tiposPorId]);
 
   // Semestre (A/B) según el mes que se está viendo (insignia del encabezado).
   const semestre = calcularSemestre(fechaActual);
@@ -112,11 +154,11 @@ export default function Calendario() {
   // Eventos visibles tras aplicar los filtros de tipo y área.
   const eventosFiltrados = useMemo(() => {
     return eventos.filter((ev) => {
-      if (filtroTipo !== "todos" && ev.tipo !== filtroTipo) return false;
+      if (tiposOcultos.has(ev.tipo)) return false;
       if (filtroArea !== "todas" && ev.area !== filtroArea) return false;
       return true;
     });
-  }, [eventos, filtroTipo, filtroArea]);
+  }, [eventos, tiposOcultos, filtroArea]);
 
   const eventosFC = useMemo(() => {
     return eventosFiltrados.map((ev) => {
@@ -143,7 +185,7 @@ export default function Calendario() {
         end: aClaveFecha(sumarDias(desdeClaveFecha(finBase), 1)),
       };
     });
-  }, [eventosFiltrados, tiposPorId]);
+  }, [eventosFiltrados, colorTipo]);
 
   /* Mapa "YYYY-MM-DD" -> eventos de ese día (para el panel inferior). Incluye
      cada día que abarca un evento de varios días */
@@ -169,9 +211,45 @@ export default function Calendario() {
   // Eventos del día seleccionado (lo que muestra la tabla de abajo)
   const eventosDelDia = fechaSeleccionada ? eventosPorDia.get(fechaSeleccionada) || [] : [];
 
+  const eventosDelMes = useMemo(() => {
+    if (!mesSeleccionado) return [];
+    return eventosFiltrados
+      .filter((ev) => ev.fecha.slice(0, 7) === mesSeleccionado)
+      .sort(
+        (a, b) =>
+          a.fecha.localeCompare(b.fecha) || (a.horaInicio || "").localeCompare(b.horaInicio || "")
+      );
+  }, [eventosFiltrados, mesSeleccionado]);
+
   const esVistaFC = vista === "mes" || vista === "semana";
   const usaPicker = vista === "mes" || vista === "lista";
-  const hayFiltros = filtroTipo !== "todos" || filtroArea !== "todas";
+  const enAnual = vista === "anual";
+  const mostrarMes = enAnual && Boolean(mesSeleccionado);
+  const eventosPanel = mostrarMes ? eventosDelMes : eventosDelDia;
+  const tituloPanel = mostrarMes
+    ? `${NOMBRES_MES[Number(mesSeleccionado.slice(5, 7)) - 1]} ${mesSeleccionado.slice(0, 4)}`
+    : fechaSeleccionada
+      ? formatoFechaLarga(fechaSeleccionada)
+      : "Selecciona un día";
+  const hayFiltros = tiposOcultos.size > 0 || filtroArea !== "todas";
+
+  const seleccionarDiaAnual = (clave) => {
+    setFechaSeleccionada(clave);
+    setMesSeleccionado(null);
+  };
+
+  const alternarTipo = (id) =>
+    setTiposOcultos((prev) => {
+      const nuevo = new Set(prev);
+      if (nuevo.has(id)) nuevo.delete(id);
+      else nuevo.add(id);
+      return nuevo;
+    });
+
+  const limpiarFiltros = () => {
+    setTiposOcultos(new Set());
+    setFiltroArea("todas");
+  };
 
   // Texto que se muestra en la toolbar según la vista.
   const tituloBarra = useMemo(() => {
@@ -186,10 +264,12 @@ export default function Calendario() {
   const irHoy = () => {
     setFechaSeleccionada(claveHoy);
     setFechaActual(hoy);
+    setMesSeleccionado(null);
     if (esVistaFC) api()?.today();
   };
 
   const mover = (delta) => {
+    setMesSeleccionado(null);
     if (vista === "anual") {
       setFechaActual((x) => new Date(x.getFullYear() + delta, x.getMonth(), 1));
     } else if (vista === "lista") {
@@ -207,6 +287,7 @@ export default function Calendario() {
     if (esVistaFC && nuevaFC) api()?.changeView(v.fc);
     setVista(v.id);
     setVistaMenu(false);
+    setMesSeleccionado(null);
   };
 
   // Saltar a un mes desde el selector
@@ -219,25 +300,59 @@ export default function Calendario() {
   const alCambiarFechas = (arg) => {
     setFechaActual(arg.view.calendar.getDate());
     setTituloVista(arg.view.title);
+    cerrarPopover();
   };
 
   // Clic en un día, se marca como seleccionado (resalta la celda + panel)
   const alClicarFecha = (arg) => setFechaSeleccionada(arg.dateStr.slice(0, 10));
 
-  // Clic en un evento, abrir el modal de edición con ese evento 
+  /* Clic en un evento:
+       - 1 clic - seleccionarlo y mostrar la info rápida (popover).
+       - 2 clics - abrir el modal de edición */
   const alClicarEvento = (arg) => {
     arg.jsEvent.preventDefault();
-    document.querySelectorAll(".fc-popover").forEach((el) => el.remove());
+    const rect = arg.el.getBoundingClientRect();
     const original = arg.event.extendedProps.original;
-    if (original) {
+    document.querySelectorAll(".fc-popover").forEach((el) => el.remove());
+    if (!original) return;
+
+    if (arg.jsEvent.detail >= 2) {
+      clearTimeout(clicTimer.current);
+      cerrarPopover();
       setFechaSeleccionada(original.fecha);
       abrirEditarEvento(original);
+      return;
     }
+    clearTimeout(clicTimer.current);
+    clearTimeout(cierreHoverTimer.current);
+    clicTimer.current = setTimeout(() => {
+      setFechaSeleccionada(original.fecha);
+      setEventoSelId(arg.event.id);
+      setPopover({ ev: original, x: rect.right, y: rect.top, fijo: true });
+    }, 200);
+  };
+
+  const alEntrarEvento = (arg) => {
+    if (popover?.fijo) return;
+    clearTimeout(cierreHoverTimer.current);
+    const original = arg.event.extendedProps.original;
+    if (!original) return;
+    const rect = arg.el.getBoundingClientRect();
+    setPopover({ ev: original, x: rect.right, y: rect.top, fijo: false });
+  };
+
+  const alSalirEvento = () => {
+    if (popover?.fijo) return;
+    clearTimeout(cierreHoverTimer.current);
+    cierreHoverTimer.current = setTimeout(cerrarPopover, 160);
   };
 
   // Devuelve la clase del día seleccionado para que FullCalendar la pinte (sea el dia actual o el seleccionado) */
   const claseDiaSeleccionado = (arg) =>
     aClaveFecha(arg.date) === fechaSeleccionada ? "cal-fc-sel" : "";
+
+  const claseEventoSeleccionado = (arg) =>
+    arg.event.id === eventoSelId ? "cal-fc-ev-sel" : "";
 
   // CRUD DE EVENTOS (crear, editar, duplicar, eliminar) */
   const abrirNuevoEvento = () => {
@@ -252,6 +367,7 @@ export default function Calendario() {
       titulo: ev.titulo, tipo: ev.tipo, area: ev.area, fecha: ev.fecha,
       fechaFin: ev.fechaFin || "", horaInicio: ev.horaInicio || "",
       horaFin: ev.horaFin || "", lugar: ev.lugar || "", formato: ev.formato || "punto",
+      todoElDia: !ev.horaInicio,
     });
     setModalEvento(true);
   };
@@ -263,13 +379,21 @@ export default function Calendario() {
   const actualizarCampoEvento = (campo) => (e) =>
     setFormEvento((prev) => ({ ...prev, [campo]: e.target.value }));
 
+  const fijarCampoEvento = (campo, valor) =>
+    setFormEvento((prev) => ({ ...prev, [campo]: valor }));
+
   const guardarEvento = (e) => {
     e.preventDefault();
+    if (!formEvento.fecha) return;
+    const { todoElDia, ...resto } = formEvento;
     const datos = {
-      ...formEvento,
+      ...resto,
       titulo: formEvento.titulo.trim(),
       lugar: formEvento.lugar.trim(),
       fechaFin: formEvento.fechaFin || null,
+      horaInicio: todoElDia ? "" : formEvento.horaInicio,
+      horaFin: todoElDia ? "" : formEvento.horaFin,
+      formato: todoElDia ? "rango" : "punto",
     };
     if (eventoEditando) {
       setEventos((prev) => prev.map((ev) => (ev.id === eventoEditando ? { ...ev, ...datos } : ev)));
@@ -324,7 +448,12 @@ export default function Calendario() {
     setEventos((prev) =>
       prev.map((ev) => (ev.tipo === tipo.id ? { ...ev, tipo: reemplazo.id } : ev))
     );
-    if (filtroTipo === tipo.id) setFiltroTipo("todos");
+    setTiposOcultos((prev) => {
+      if (!prev.has(tipo.id)) return prev;
+      const nuevo = new Set(prev);
+      nuevo.delete(tipo.id);
+      return nuevo;
+    });
     setTipos((prev) => prev.filter((t) => t.id !== tipo.id));
   };
 
@@ -503,9 +632,12 @@ export default function Calendario() {
                   eventTimeFormat={{ hour: "numeric", minute: "2-digit", meridiem: "short" }}
                   events={eventosFC}
                   dayCellClassNames={claseDiaSeleccionado}
+                  eventClassNames={claseEventoSeleccionado}
                   datesSet={alCambiarFechas}
                   dateClick={alClicarFecha}
                   eventClick={alClicarEvento}
+                  eventMouseEnter={alEntrarEvento}
+                  eventMouseLeave={alSalirEvento}
                 />
               </div>
             </div>
@@ -516,7 +648,9 @@ export default function Calendario() {
               colorTipo={colorTipo}
               claveHoy={claveHoy}
               fechaSeleccionada={fechaSeleccionada}
-              onSeleccionarDia={setFechaSeleccionada}
+              mesSeleccionado={mesSeleccionado}
+              onSeleccionarDia={seleccionarDiaAnual}
+              onSeleccionarMes={setMesSeleccionado}
             />
           ) : (
             <VistaLista
@@ -531,20 +665,20 @@ export default function Calendario() {
             />
           )}
 
-          {/* PANEL DE EVENTOS DEL DÍA SELECCIONADO */}
+          {/* PANEL DE EVENTOS DEL DÍA SELECCIONADO.
+              En la vista Lista no se muestra: la lista ya detalla los eventos. */}
+          {vista !== "lista" && (
           <div className={`tarjeta ${styles["panel-dia"]}`}>
             <div className={styles["panel-dia__cabecera"]}>
-              <h3 className={styles["panel-dia__titulo"]}>
-                {fechaSeleccionada ? formatoFechaLarga(fechaSeleccionada) : "Selecciona un día"}
-              </h3>
+              <h3 className={styles["panel-dia__titulo"]}>{tituloPanel}</h3>
               <span className={styles["panel-dia__conteo"]}>
-                {eventosDelDia.length} {eventosDelDia.length === 1 ? "evento" : "eventos"}
+                {eventosPanel.length} {eventosPanel.length === 1 ? "evento" : "eventos"}
               </span>
             </div>
 
-            {eventosDelDia.length === 0 ? (
+            {eventosPanel.length === 0 ? (
               <p className={styles["panel-dia__vacio"]}>
-                No hay eventos programados para este día.
+                {mostrarMes ? "No hay eventos en este mes." : "No hay eventos programados para este día."}
               </p>
             ) : (
               <div className={styles["tabla-envoltura"]}>
@@ -560,12 +694,19 @@ export default function Calendario() {
                     </tr>
                   </thead>
                   <tbody>
-                    {eventosDelDia.map((ev) => (
+                    {eventosPanel.map((ev) => (
                       <tr key={ev.id}>
                         <td>
                           <span className={styles["tabla__hora"]}>
                             <span className={`${styles["tabla__bolita"]} ${styles[`tabla__bolita--${colorTipo(ev.tipo)}`]}`} />
-                            {ev.horaInicio ? formatoHora(ev.horaInicio) : "Todo el día"}
+                            <span>
+                              {ev.horaInicio ? formatoHora(ev.horaInicio) : "Todo el día"}
+                              {mostrarMes && (
+                                <small className={styles["tabla__dia"]}>
+                                  {Number(ev.fecha.slice(8, 10))} {ABREV_MES[Number(ev.fecha.slice(5, 7)) - 1].toLowerCase()}
+                                </small>
+                              )}
+                            </span>
                           </span>
                         </td>
                         <td className={styles["tabla__evento"]}>{ev.titulo}</td>
@@ -602,6 +743,7 @@ export default function Calendario() {
               </div>
             )}
           </div>
+          )}
         </div>
 
         <div
@@ -688,29 +830,32 @@ export default function Calendario() {
                 <Filter size={16} />
                 Filtros rápidos
               </div>
-              {(filtroTipo !== "todos" || filtroArea !== "todas") && (
-                <button
-                  type="button"
-                  className="tarjeta__enlace"
-                  onClick={() => {
-                    setFiltroTipo("todos");
-                    setFiltroArea("todas");
-                  }}
-                >
+              {hayFiltros && (
+                <button type="button" className="tarjeta__enlace" onClick={limpiarFiltros}>
                   Limpiar filtros
                 </button>
               )}
             </div>
             <div className={styles["filtros"]}>
-              <label className="formulario__campo">
-                <span className="formulario__etiqueta">Tipo de evento</span>
-                <select value={filtroTipo} onChange={(e) => setFiltroTipo(e.target.value)}>
-                  <option value="todos">Todos</option>
+              <div>
+                <span className="formulario__etiqueta">Tipos de evento</span>
+                <ul className={styles["checks"]}>
                   {tipos.map((t) => (
-                    <option key={t.id} value={t.id}>{t.etiqueta}</option>
+                    <li key={t.id}>
+                      <label className={styles["check"]}>
+                        <input
+                          type="checkbox"
+                          checked={!tiposOcultos.has(t.id)}
+                          onChange={() => alternarTipo(t.id)}
+                        />
+                        <span className={`${styles["check__punto"]} ${styles[`check__punto--${t.color}`]}`} />
+                        <span className={styles["check__texto"]}>{t.etiqueta}</span>
+                      </label>
+                    </li>
                   ))}
-                </select>
-              </label>
+                </ul>
+              </div>
+
               <label className="formulario__campo">
                 <span className="formulario__etiqueta">Área</span>
                 <select value={filtroArea} onChange={(e) => setFiltroArea(e.target.value)}>
@@ -724,6 +869,77 @@ export default function Calendario() {
           </article>
         </aside>
       </div>
+
+      {/* Info rápida del evento */}
+      {popover && (
+        <div
+          ref={popoverRef}
+          className={styles["pop-evento"]}
+          style={{
+            left: Math.min(popover.x + 8, window.innerWidth - 286),
+            top: Math.max(8, Math.min(popover.y, window.innerHeight - 190)),
+          }}
+          onMouseEnter={() => clearTimeout(cierreHoverTimer.current)}
+          onMouseLeave={() => {
+            if (!popover.fijo) {
+              clearTimeout(cierreHoverTimer.current);
+              cierreHoverTimer.current = setTimeout(cerrarPopover, 160);
+            }
+          }}
+        >
+          <div className={styles["pop-evento__cab"]}>
+            <span className={`${styles["pop-evento__punto"]} ${styles[`pop-evento__punto--${colorTipo(popover.ev.tipo)}`]}`} />
+            <span className={styles["pop-evento__titulo"]}>{popover.ev.titulo}</span>
+            <div className={styles["pop-evento__acciones"]}>
+              <button
+                type="button"
+                title="Editar"
+                onClick={() => { const ev = popover.ev; cerrarPopover(); abrirEditarEvento(ev); }}
+              >
+                <Pencil size={15} />
+              </button>
+              <button
+                type="button"
+                className={styles["pop-evento__borrar"]}
+                title="Eliminar"
+                onClick={() => { const ev = popover.ev; cerrarPopover(); setModalEliminar(ev); }}
+              >
+                <Trash2 size={15} />
+              </button>
+              <button type="button" title="Cerrar" onClick={cerrarPopover}>
+                <X size={15} />
+              </button>
+            </div>
+          </div>
+
+          <ul className={styles["pop-evento__datos"]}>
+            <li>
+              <Clock size={14} />
+              {popover.ev.horaInicio
+                ? `${formatoHora(popover.ev.horaInicio)}${popover.ev.horaFin ? ` – ${formatoHora(popover.ev.horaFin)}` : ""}`
+                : "Todo el día"}
+            </li>
+            {duracionTexto(popover.ev) && (
+              <li>
+                <Hourglass size={14} />
+                {duracionTexto(popover.ev)}
+              </li>
+            )}
+            {popover.ev.lugar && (
+              <li>
+                <MapPin size={14} />
+                {popover.ev.lugar}
+              </li>
+            )}
+            <li>
+              <Tag size={14} />
+              <span className={`etiqueta etiqueta--${colorTipo(popover.ev.tipo)}`}>
+                {etiquetaTipo(popover.ev.tipo)}
+              </span>
+            </li>
+          </ul>
+        </div>
+      )}
 
       {/* Modal: crear y editar evento */}
       <Modal
@@ -778,38 +994,62 @@ export default function Calendario() {
           </div>
 
           <div className="formulario__fila">
-            <label className="formulario__campo">
+            <div className="formulario__campo">
               <span className="formulario__etiqueta">Fecha inicio</span>
-              <input type="date" required value={formEvento.fecha} onChange={actualizarCampoEvento("fecha")} />
-            </label>
-            <label className="formulario__campo">
+              <SelectorFecha
+                value={formEvento.fecha}
+                onChange={(v) => fijarCampoEvento("fecha", v)}
+              />
+            </div>
+            <div className="formulario__campo">
               <span className="formulario__etiqueta">Fecha fin (opcional)</span>
-              <input type="date" value={formEvento.fechaFin} min={formEvento.fecha} onChange={actualizarCampoEvento("fechaFin")} />
-            </label>
+              <SelectorFecha
+                value={formEvento.fechaFin}
+                min={formEvento.fecha}
+                placeholder="Mismo día"
+                onChange={(v) => fijarCampoEvento("fechaFin", v)}
+              />
+            </div>
           </div>
 
-          <div className="formulario__fila">
-            <label className="formulario__campo">
-              <span className="formulario__etiqueta">Hora inicio</span>
-              <input type="time" value={formEvento.horaInicio} onChange={actualizarCampoEvento("horaInicio")} />
-            </label>
-            <label className="formulario__campo">
-              <span className="formulario__etiqueta">Hora fin</span>
-              <input type="time" value={formEvento.horaFin} onChange={actualizarCampoEvento("horaFin")} />
-            </label>
+          <div className={styles["interruptor"]}>
+            <div>
+              <span className="formulario__etiqueta">Todo el día</span>
+              <p className={styles["interruptor__nota"]}>Sin hora de inicio ni fin.</p>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={formEvento.todoElDia}
+              className={`${styles["switch"]} ${formEvento.todoElDia ? styles["switch--on"] : ""}`}
+              onClick={() => setFormEvento((p) => ({ ...p, todoElDia: !p.todoElDia }))}
+            >
+              <span className={styles["switch__bolita"]} />
+            </button>
           </div>
+
+          {!formEvento.todoElDia && (
+            <div className="formulario__fila">
+              <div className="formulario__campo">
+                <span className="formulario__etiqueta">Hora inicio</span>
+                <SelectorHora
+                  value={formEvento.horaInicio}
+                  onChange={(v) => fijarCampoEvento("horaInicio", v)}
+                />
+              </div>
+              <div className="formulario__campo">
+                <span className="formulario__etiqueta">Hora fin</span>
+                <SelectorHora
+                  value={formEvento.horaFin}
+                  onChange={(v) => fijarCampoEvento("horaFin", v)}
+                />
+              </div>
+            </div>
+          )}
 
           <label className="formulario__campo">
             <span className="formulario__etiqueta">Lugar / Grupo</span>
             <input type="text" placeholder="Aula, auditorio, explanada..." value={formEvento.lugar} onChange={actualizarCampoEvento("lugar")} />
-          </label>
-
-          <label className="formulario__campo">
-            <span className="formulario__etiqueta">Representación en el calendario</span>
-            <select value={formEvento.formato} onChange={actualizarCampoEvento("formato")}>
-              <option value="punto">Puntual (con hora)</option>
-              <option value="rango">Todo el día / periodo (abarca días)</option>
-            </select>
           </label>
         </form>
       </Modal>
