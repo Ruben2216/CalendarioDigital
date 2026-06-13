@@ -3,7 +3,7 @@ import { Pencil, Trash2 } from "lucide-react";
 import { formatoHora, formatoFechaLarga } from "../../../../lib/fechas.js";
 import styles from "./VistaLista.module.css";
 
-export default function VistaLista({ eventos, fechaActual, colorTipo, etiquetaTipo, onSeleccionarDia, onEditar, onEliminar,})
+export default function VistaLista({ eventos, fechaActual, colorTipo, etiquetaTipo, onSeleccionarDia, onEditar, onEliminar, soloLectura = false, })
 {
   // Eventos del mes visible, agrupados por su día de inicio */
   const grupos = useMemo(() => {
@@ -63,25 +63,27 @@ export default function VistaLista({ eventos, fechaActual, colorTipo, etiquetaTi
                   {etiquetaTipo(ev.tipo)}
                 </span>
 
-                <div className={styles["lista__acciones"]}>
-                  <button
-                    type="button"
-                    onClick={(e) => { e.stopPropagation(); onEditar(ev); }}
-                    aria-label="Editar"
-                    title="Editar"
-                  >
-                    <Pencil size={15} />
-                  </button>
-                  <button
-                    type="button"
-                    className={styles["lista__borrar"]}
-                    onClick={(e) => { e.stopPropagation(); onEliminar(ev); }}
-                    aria-label="Eliminar"
-                    title="Eliminar"
-                  >
-                    <Trash2 size={15} />
-                  </button>
-                </div>
+                {!soloLectura && (
+                  <div className={styles["lista__acciones"]}>
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); onEditar(ev); }}
+                      aria-label="Editar"
+                      title="Editar"
+                    >
+                      <Pencil size={15} />
+                    </button>
+                    <button
+                      type="button"
+                      className={styles["lista__borrar"]}
+                      onClick={(e) => { e.stopPropagation(); onEliminar(ev); }}
+                      aria-label="Eliminar"
+                      title="Eliminar"
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  </div>
+                )}
               </div>
             ))}
           </div>

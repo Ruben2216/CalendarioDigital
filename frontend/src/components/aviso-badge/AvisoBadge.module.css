@@ -1,0 +1,29 @@
+.aviso {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 14px;
+  border-radius: 10px;
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 700;
+  border: 1px solid transparent;
+}
+
+.aviso--naranja {
+  background: var(--orange-soft);
+  color: var(--orange);
+  border-color: rgba(239, 125, 21, 0.2);
+}
+
+.aviso--azul {
+  background: var(--blue-soft);
+  color: var(--blue);
+  border-color: rgba(1, 71, 212, 0.15);
+}
+
+.aviso--verde {
+  background: var(--green-soft);
+  color: var(--green);
+  border-color: rgba(46, 157, 65, 0.15);
+}

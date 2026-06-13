@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import { LayoutDashboard, Calendar, Clock, Users, Menu, Bell, ChevronDown, LogOut, CheckCheck, Trash2 } from "lucide-react";
+import { Calendar, MessageSquare, Menu, Bell, ChevronDown, LogOut, CheckCheck, Trash2 } from "lucide-react";
 import Modal from "../modal/Modal.jsx";
 import logoCobach from "../../assets/img/logo-cobach.png";
 import { NOTIFICACIONES } from "../../data/avisos.js";
@@ -15,14 +15,12 @@ const ROL_ETIQUETA = {
   alumno: 'Alumno',
 };
 
-const NAV = [
-  { etiqueta: "Dashboard", icono: LayoutDashboard, ruta: "/dashboard" },
-  { etiqueta: "Calendario", icono: Calendar, ruta: "/calendario" },
-  { etiqueta: "Eventos", icono: Clock, ruta: "/eventos" },
-  { etiqueta: "Usuarios", icono: Users, ruta: "/usuarios" },
+const NAV_DOCENTE = [
+  { etiqueta: 'Calendario', icono: Calendar, ruta: '/docente/calendario', badge: 0 },
+  { etiqueta: 'Foro', icono: MessageSquare, ruta: '/docente/foro', badge: 2 },
 ];
 
-export default function Layout() {
+export default function LayoutDocente() {
   const navigate = useNavigate();
   const { nombre, iniciales, rol } = useSesion();
 
@@ -103,7 +101,7 @@ export default function Layout() {
         </div>
 
         <nav className={styles["navegacion"]} aria-label="Navegación principal">
-          {NAV.map(({ etiqueta, icono: Icono, ruta }) => (
+          {NAV_DOCENTE.map(({ etiqueta, icono: Icono, ruta, badge }) => (
             <NavLink
               key={ruta}
               to={ruta}
@@ -116,6 +114,9 @@ export default function Layout() {
             >
               <Icono size={18} />
               {etiqueta}
+              {badge > 0 && (
+                <span className={styles["navegacion__badge"]}>{badge}</span>
+              )}
             </NavLink>
           ))}
         </nav>
@@ -257,9 +258,9 @@ export default function Layout() {
             </div>
 
             <div className={styles["usuario"]}>
-              <span className={styles["usuario__avatar"]}>{iniciales || 'US'}</span>
+              <span className={styles["usuario__avatar"]}>{iniciales || 'DC'}</span>
               <div className={styles["usuario__info"]}>
-                <strong>{nombre || 'Usuario'}</strong>
+                <strong>{nombre || 'Docente'}</strong>
                 <span>{ROL_ETIQUETA[rol] ?? 'Usuario'}</span>
               </div>
               <ChevronDown size={14} />

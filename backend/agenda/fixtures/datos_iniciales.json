@@ -1,0 +1,19 @@
+[
+  { "model": "agenda.rol", "pk": 1, "fields": { "nombre_rol": "superusuario" } },
+  { "model": "agenda.rol", "pk": 2, "fields": { "nombre_rol": "admin" } },
+  { "model": "agenda.rol", "pk": 3, "fields": { "nombre_rol": "docente" } },
+  { "model": "agenda.rol", "pk": 4, "fields": { "nombre_rol": "alumno" } },
+
+  { "model": "agenda.plantel", "pk": 1, "fields": { "clave": "COBACH01", "nombre": "Plantel 01 - Tuxtla", "activo": true } },
+
+  { "model": "agenda.turno", "pk": 1, "fields": { "plantel": 1, "nombre_turno": "Matutino" } },
+  { "model": "agenda.turno", "pk": 2, "fields": { "plantel": 1, "nombre_turno": "Vespertino" } },
+
+  { "model": "agenda.usuario", "pk": 1, "fields": { "rol": 1, "plantel": null, "turno": null, "correo": "ruben.super@cobach.edu.mx", "nombre": "José Rubén Clemente Corzo", "google_id": null, "id_empleado": 999, "matricula": null, "password_mock": "123456", "activo": true } },
+  { "model": "agenda.usuario", "pk": 2, "fields": { "rol": 2, "plantel": 1, "turno": 1, "correo": "ruben.admin@cobach.edu.mx", "nombre": "José Rubén Clemente Corzo", "google_id": null, "id_empleado": 1001, "matricula": null, "password_mock": "123456", "activo": true } },
+  { "model": "agenda.usuario", "pk": 3, "fields": { "rol": 2, "plantel": 1, "turno": 2, "correo": "fernando.admin@cobach.edu.mx", "nombre": "Luis Fernando Vargas Ocaña", "google_id": null, "id_empleado": 1002, "matricula": null, "password_mock": "123456", "activo": true } },
+  { "model": "agenda.usuario", "pk": 4, "fields": { "rol": 3, "plantel": 1, "turno": 1, "correo": "ruben.docente@cobach.edu.mx", "nombre": "José Rubén Clemente Corzo", "google_id": null, "id_empleado": 2001, "matricula": null, "password_mock": "123456", "activo": true } },
+  { "model": "agenda.usuario", "pk": 5, "fields": { "rol": 3, "plantel": 1, "turno": 2, "correo": "fernando.docente@cobach.edu.mx", "nombre": "Luis Fernando Vargas Ocaña", "google_id": null, "id_empleado": 2002, "matricula": null, "password_mock": "123456", "activo": true } },
+  { "model": "agenda.usuario", "pk": 6, "fields": { "rol": 4, "plantel": 1, "turno": 1, "correo": "A2024001@cobach.edu.mx", "nombre": "Rubén Alejandro Pérez García", "google_id": null, "id_empleado": null, "matricula": "A2024001", "password_mock": "123456", "activo": true } },
+  { "model": "agenda.usuario", "pk": 7, "fields": { "rol": 4, "plantel": 1, "turno": 2, "correo": "A2024002@cobach.edu.mx", "nombre": "Fernando José Ruiz Morales", "google_id": null, "id_empleado": null, "matricula": "A2024002", "password_mock": "123456", "activo": true } }
+]

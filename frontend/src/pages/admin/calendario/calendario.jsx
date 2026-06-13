@@ -14,6 +14,7 @@ import {
   PanelRight, X, Clock, MapPin, Hourglass,
 } from "lucide-react";
 import Modal from "../../../components/modal/Modal.jsx";
+import AvisoBadge from "../../../components/aviso-badge/AvisoBadge.jsx";
 import SelectorFecha from "../../../components/campos/SelectorFecha.jsx";
 import SelectorHora from "../../../components/campos/SelectorHora.jsx";
 import { avisoExito, confirmarEliminacion } from "../../../lib/alertas.js";
@@ -57,7 +58,7 @@ function duracionTexto(ev) {
   return `${m} min`;
 }
 
-export default function Calendario() {
+export default function Calendario({ soloLectura = false }) {
 
   const hoy = useMemo(() => ahoraMexico(), []); // fecha/hora real en zona MX
   const claveHoy = aClaveFecha(hoy);            // "YYYY-MM-DD" de hoy
@@ -328,7 +329,7 @@ export default function Calendario() {
     document.querySelectorAll(".fc-popover").forEach((el) => el.remove());
     if (!original) return;
 
-    if (arg.jsEvent.detail >= 2) {
+    if (!soloLectura && arg.jsEvent.detail >= 2) {
       clearTimeout(clicTimer.current);
       cerrarPopover();
       setFechaSeleccionada(original.fecha);
@@ -484,6 +485,9 @@ export default function Calendario() {
           <span className={`etiqueta etiqueta--rojo ${styles["calendario__semestre"]}`}>
             SEMESTRE {semestre.ciclo}-{semestre.letra}
           </span>
+          {soloLectura && (
+            <AvisoBadge texto="lectura" />
+          )}
         </div>
       </header>
 
@@ -597,15 +601,18 @@ export default function Calendario() {
                 )}
               </div>
 
-              {/* Exportar: deshabilitado por ahora */}
-              <button type="button" className="boton boton--fantasma" disabled title="Disponible próximamente">
-                <Download size={16} />
-                Exportar
-              </button>
-              <button type="button" className="boton boton--primario" onClick={abrirNuevoEvento}>
-                <Plus size={16} />
-                Nuevo evento
-              </button>
+              {!soloLectura && (
+                <>
+                  <button type="button" className="boton boton--fantasma" disabled title="Disponible próximamente">
+                    <Download size={16} />
+                    Exportar
+                  </button>
+                  <button type="button" className="boton boton--primario" onClick={abrirNuevoEvento}>
+                    <Plus size={16} />
+                    Nuevo evento
+                  </button>
+                </>
+              )}
 
               {/* Mostrar/ocultar el panel lateral (simbología, tipos, filtros) */}
               <button
@@ -677,6 +684,7 @@ export default function Calendario() {
               onSeleccionarDia={setFechaSeleccionada}
               onEditar={abrirEditarEvento}
               onEliminar={pedirEliminar}
+              soloLectura={soloLectura}
             />
           )}
 
@@ -705,7 +713,7 @@ export default function Calendario() {
                       <th>Área</th>
                       <th>Lugar / Grupo</th>
                       <th>Tipo</th>
-                      <th className={styles["tabla__acciones-col"]}>Acciones</th>
+                      {!soloLectura && <th className={styles["tabla__acciones-col"]}>Acciones</th>}
                     </tr>
                   </thead>
                   <tbody>
@@ -732,22 +740,24 @@ export default function Calendario() {
                             {etiquetaTipo(ev.tipo)}
                           </span>
                         </td>
-                        <td>
-                          <div className={styles["tabla__acciones"]}>
-                            <button type="button" onClick={() => abrirEditarEvento(ev)} aria-label="Editar" title="Editar">
-                              <Pencil size={15} />
-                            </button>
-                            <button
-                              type="button"
-                              className={styles["tabla__borrar"]}
-                              onClick={() => pedirEliminar(ev)}
-                              aria-label="Eliminar"
-                              title="Eliminar"
-                            >
-                              <Trash2 size={15} />
-                            </button>
-                          </div>
-                        </td>
+                        {!soloLectura && (
+                          <td>
+                            <div className={styles["tabla__acciones"]}>
+                              <button type="button" onClick={() => abrirEditarEvento(ev)} aria-label="Editar" title="Editar">
+                                <Pencil size={15} />
+                              </button>
+                              <button
+                                type="button"
+                                className={styles["tabla__borrar"]}
+                                onClick={() => pedirEliminar(ev)}
+                                aria-label="Eliminar"
+                                title="Eliminar"
+                              >
+                                <Trash2 size={15} />
+                              </button>
+                            </div>
+                          </td>
+                        )}
                       </tr>
                     ))}
                   </tbody>
@@ -801,40 +811,42 @@ export default function Calendario() {
             </ul>
           </article>
 
-          {/* Tipos de evento: lista con crear, editar y eliminar */}
-          <article className="tarjeta">
-            <div className="tarjeta__cabecera">
-              <div className="tarjeta__titulo">
-                <Settings2 size={16} />
-                Tipos de eventos
+          {/* Tipos de evento: lista con crear, editar y eliminar — solo admin */}
+          {!soloLectura && (
+            <article className="tarjeta">
+              <div className="tarjeta__cabecera">
+                <div className="tarjeta__titulo">
+                  <Settings2 size={16} />
+                  Tipos de eventos
+                </div>
+                <button type="button" className="tarjeta__enlace" onClick={abrirNuevoTipo}>
+                  <Plus size={14} />
+                  Nuevo tipo
+                </button>
               </div>
-              <button type="button" className="tarjeta__enlace" onClick={abrirNuevoTipo}>
-                <Plus size={14} />
-                Nuevo tipo
-              </button>
-            </div>
-            <ul className={styles["tipos"]}>
-              {tipos.map((tipo) => (
-                <li key={tipo.id} className={styles["tipos__item"]}>
-                  <span className={`etiqueta etiqueta--${tipo.color}`}>{tipo.etiqueta}</span>
-                  <div className={styles["tipos__acciones"]}>
-                    <button type="button" onClick={() => abrirEditarTipo(tipo)} aria-label={`Editar ${tipo.etiqueta}`} title="Editar">
-                      <Pencil size={14} />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => eliminarTipo(tipo)}
-                      disabled={tipos.length <= 1}
-                      aria-label={`Eliminar ${tipo.etiqueta}`}
-                      title={tipoEnUso(tipo.id) ? "Los eventos se reasignarán a otro tipo" : "Eliminar"}
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </article>
+              <ul className={styles["tipos"]}>
+                {tipos.map((tipo) => (
+                  <li key={tipo.id} className={styles["tipos__item"]}>
+                    <span className={`etiqueta etiqueta--${tipo.color}`}>{tipo.etiqueta}</span>
+                    <div className={styles["tipos__acciones"]}>
+                      <button type="button" onClick={() => abrirEditarTipo(tipo)} aria-label={`Editar ${tipo.etiqueta}`} title="Editar">
+                        <Pencil size={14} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => eliminarTipo(tipo)}
+                        disabled={tipos.length <= 1}
+                        aria-label={`Eliminar ${tipo.etiqueta}`}
+                        title={tipoEnUso(tipo.id) ? "Los eventos se reasignarán a otro tipo" : "Eliminar"}
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </article>
+          )}
 
           {/* Filtros rápidos */}
           <article className="tarjeta">
@@ -904,21 +916,25 @@ export default function Calendario() {
             <span className={`${styles["pop-evento__punto"]} ${styles[`pop-evento__punto--${colorTipo(popover.ev.tipo)}`]}`} />
             <span className={styles["pop-evento__titulo"]}>{popover.ev.titulo}</span>
             <div className={styles["pop-evento__acciones"]}>
-              <button
-                type="button"
-                title="Editar"
-                onClick={() => { const ev = popover.ev; cerrarPopover(); abrirEditarEvento(ev); }}
-              >
-                <Pencil size={15} />
-              </button>
-              <button
-                type="button"
-                className={styles["pop-evento__borrar"]}
-                title="Eliminar"
-                onClick={() => pedirEliminar(popover.ev)}
-              >
-                <Trash2 size={15} />
-              </button>
+              {!soloLectura && (
+                <>
+                  <button
+                    type="button"
+                    title="Editar"
+                    onClick={() => { const ev = popover.ev; cerrarPopover(); abrirEditarEvento(ev); }}
+                  >
+                    <Pencil size={15} />
+                  </button>
+                  <button
+                    type="button"
+                    className={styles["pop-evento__borrar"]}
+                    title="Eliminar"
+                    onClick={() => pedirEliminar(popover.ev)}
+                  >
+                    <Trash2 size={15} />
+                  </button>
+                </>
+              )}
               <button type="button" title="Cerrar" onClick={cerrarPopover}>
                 <X size={15} />
               </button>

@@ -1,0 +1,30 @@
+.recursos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.recursos__item {
+  padding: 6px 14px;
+  border-radius: 20px;
+  border: 1.5px solid var(--borde, #e5ebf4);
+  background: transparent;
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+
+.recursos__item:hover {
+  border-color: var(--blue);
+  color: var(--blue);
+}
+
+.recursos__item--activo {
+  background: var(--blue-soft);
+  border-color: var(--blue);
+  color: var(--blue);
+}

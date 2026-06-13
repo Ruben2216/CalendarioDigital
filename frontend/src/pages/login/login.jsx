@@ -1,11 +1,12 @@
 import { useState } from "react";
-import {Mail, Lock, Eye, EyeOff, CheckCircle2, ShieldCheck, Monitor, User, Home, Users, Clock, GraduationCap, LogIn,} from "lucide-react";
+import {Lock, Eye, EyeOff, CheckCircle2, ShieldCheck, Monitor, User, Home, Users, Clock, GraduationCap, LogIn,} from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import logoCobach from "../../assets/img/logo-cobach.png";
 import calendarImg from "../../assets/img/imagen-login.jpg";
 import "./login.css";
 import { GoogleLogin } from '@react-oauth/google';
 import Swal from 'sweetalert2';
+import { loginInstitucional, guardarSesion } from '../../services/authService';
 
 const ROLES = [
   { id: "admin", label: "Administrador", icon: ShieldCheck },
@@ -24,7 +25,7 @@ const FEATURES = [
 ];
 
 export default function Login() {
-  const [email, setEmail] = useState("");
+  const [userName, setUserName] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [role, setRole] = useState("admin");
@@ -32,29 +33,36 @@ export default function Login() {
 
   const isInstitutionalAccess = INSTITUTIONAL_ROLES.has(role);
   const isPublicAccess = role === "tutor";
-  const emailValid =
-    isInstitutionalAccess && /^[^\s@]+@cobach\.edu\.mx$/.test(email);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (isPublicAccess) {
-      // Simulamos un token para acceso público para que ProtectedRoute lo permita
       localStorage.setItem("authToken", "tutor-public-token");
       navigate("/dashboard");
       return;
     }
 
-    if (emailValid) {
-      // Simulamos un token para el login manual (solo para pruebas)
-      localStorage.setItem("authToken", `dummy-token-${email}`);
-      navigate("/dashboard");
-    } else {
+    const resultado = await loginInstitucional(userName, password, role);
+
+    if (!resultado.exito) {
       Swal.fire({
         icon: "error",
-        title: "Oops...",
-        text: "Solo se permiten cuentas institucionales @cobach.edu.mx",
+        title: "Acceso denegado",
+        text: resultado.error,
       });
+      return;
+    }
+
+    const { token, nombre, sesion } = resultado.datos;
+    guardarSesion(token, { ...sesion, nombre });
+
+    switch (sesion?.rol ?? role) {
+      case 'docente':
+        navigate('/docente/calendario');
+        break;
+      default:
+        navigate('/dashboard');
     }
   };
 
@@ -103,21 +111,20 @@ export default function Login() {
 
             {isInstitutionalAccess && (
               <>
-                {/* Correo */}
-                <label className="login__label" htmlFor="email">
-                  Correo institucional
+                <label className="login__label" htmlFor="userName">
+                  {role === "alumno" ? "Matrícula" : "Usuario/correo institucional"}
                 </label>
                 <div className="login__field">
-                  <Mail className="login__field-icon" />
+                  <User className="login__field-icon" />
                   <input
-                    id="email"
-                    type="email"
-                    placeholder="usuario@cobach.edu.mx"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    id="userName"
+                    type="text"
+                    placeholder={role === "alumno" ? "A123456" : "usuario o correo@cobach.edu.mx"}
+                    value={userName}
+                    onChange={(e) => setUserName(e.target.value)}
                     required
                   />
-                  {emailValid && (
+                  {userName.length >= 4 && (
                     <CheckCircle2 className="login__field-check" />
                   )}
                 </div>
@@ -220,6 +227,7 @@ export default function Login() {
                         'Content-Type': 'application/json',
                         'X-Requested-With': 'XMLHttpRequest',
                         'Accept': 'application/json',
+                        'ngrok-skip-browser-warning': '1',
                       },
                       body: JSON.stringify({ token: id_token, role }),
                     });
@@ -254,8 +262,7 @@ export default function Login() {
                           navigate('/dashboard');
                           break;
                         case 'docente':
-                          // navigate('/docente/dashboard'); // Futuro
-                          navigate('/dashboard');
+                          navigate('/docente/calendario');
                           break;
                         case 'alumno':
                           // navigate('/alumno/dashboard'); // Futuro
