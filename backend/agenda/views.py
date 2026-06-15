@@ -15,7 +15,11 @@ from .services.mock_institucional import (
     mock_login_empleado,
     mock_login_alumno,
 )
+<<<<<<< HEAD
 from .models import Usuario, Rol, Conversacion, Mensaje, LecturaMensaje, SolicitudAdmin
+=======
+from .models import Rol, Usuario, Conversacion, Mensaje, LecturaMensaje
+>>>>>>> SalvarMigraciones
 
 
 ROLES_EMPLEADO = {'superusuario', 'admin', 'docente'}
@@ -42,10 +46,20 @@ class LoginInstitucionalView(APIView):
             id_externo = respuesta_institucional.get('matricula')
             campo_busqueda = 'matricula'
         else:
-            respuesta_institucional = mock_login_empleado(user_name, password)
-            credenciales_validas = respuesta_institucional.get('exito') is True
-            id_externo = respuesta_institucional.get('idEmpleado')
-            campo_busqueda = 'id_empleado'
+            try:
+                usuario_local = Usuario.objects.get(correo=user_name, activo=True)
+            except Usuario.DoesNotExist:
+                usuario_local = None
+
+            if usuario_local and usuario_local.password_mock and usuario_local.password_mock == password:
+                credenciales_validas = True
+                id_externo = usuario_local.correo
+                respuesta_institucional = {'token': '', 'foto': '', 'qr': ''}
+            else:
+                respuesta_institucional = mock_login_empleado(user_name, password)
+                credenciales_validas = respuesta_institucional.get('statusLogueo') is True
+                id_externo = respuesta_institucional.get('correoInstitucional', '')
+            campo_busqueda = 'correo'
 
         if not credenciales_validas:
             return Response(
@@ -54,13 +68,33 @@ class LoginInstitucionalView(APIView):
             )
 
         try:
-            filtro = {campo_busqueda: id_externo, 'activo': True}
-            usuario = (
-                Usuario.objects
-                .select_related('rol', 'plantel', 'turno')
-                .prefetch_related('permisos_especiales__turno_objetivo')
-                .get(**filtro)
-            )
+            if rol_solicitado == 'alumno':
+                usuario = (
+                    Usuario.objects
+                    .select_related('rol', 'plantel', 'turno')
+                    .prefetch_related('permisos_especiales__turno_objetivo')
+                    .get(matricula=id_externo, activo=True)
+                )
+            else:
+                rol_obj, _ = Rol.objects.get_or_create(nombre_rol='docente')
+                usuario, creado = Usuario.objects.get_or_create(
+                    correo=id_externo,
+                    defaults={
+                        'rol': rol_obj,
+                        'nombre': respuesta_institucional.get('empleado') or '',
+                        'activo': True,
+                    },
+                )
+                if not creado:
+                    nombre_api = respuesta_institucional.get('empleado') or ''
+                    if nombre_api and usuario.nombre != nombre_api:
+                        Usuario.objects.filter(pk=usuario.pk).update(nombre=nombre_api)
+                usuario = (
+                    Usuario.objects
+                    .select_related('rol', 'plantel', 'turno')
+                    .prefetch_related('permisos_especiales__turno_objetivo')
+                    .get(pk=usuario.pk, activo=True)
+                )
         except Usuario.DoesNotExist:
             return Response(
                 {'error': 'Usuario no registrado en el sistema.'},
@@ -80,7 +114,7 @@ class LoginInstitucionalView(APIView):
 
         permisos_extra = [
             {
-                'id_turno': pe.turno_objetivo.id,
+                'id_turno': pe.turno_objetivo.id_turno,
                 'nombre_turno': pe.turno_objetivo.nombre_turno,
             }
             for pe in usuario.permisos_especiales.filter(activo=True)
@@ -88,19 +122,19 @@ class LoginInstitucionalView(APIView):
 
         return Response({
             'token': respuesta_institucional.get('token', ''),
-            'nombre': respuesta_institucional.get('nombre', ''),
+            'nombre': usuario.nombre or '',
             'foto': respuesta_institucional.get('foto', ''),
             'qr': respuesta_institucional.get('qr', ''),
             'sesion': {
-                'id_usuario': usuario.id,
+                'id_usuario': usuario.id_usuario,
                 'rol': usuario.rol.nombre_rol,
                 'plantel': {
-                    'id': usuario.plantel.id if usuario.plantel else None,
+                    'id': usuario.plantel.id_plantel if usuario.plantel else None,
                     'nombre': usuario.plantel.nombre if usuario.plantel else None,
                     'clave': usuario.plantel.clave if usuario.plantel else None,
                 },
                 'turno': {
-                    'id': usuario.turno.id if usuario.turno else None,
+                    'id': usuario.turno.id_turno if usuario.turno else None,
                     'nombre': usuario.turno.nombre_turno if usuario.turno else None,
                 },
                 'permisos_especiales': permisos_extra,
@@ -114,7 +148,7 @@ def _usuario_sesion(request):
     try:
         return (
             Usuario.objects
-            .select_related('rol', 'plantel')
+            .select_related('rol', 'plantel', 'turno')
             .get(pk=int(id_usuario), activo=True)
         )
     except (TypeError, ValueError, Usuario.DoesNotExist):
@@ -138,7 +172,7 @@ class DocentesListView(APIView):
 
         docentes = docentes.select_related('rol', 'plantel', 'turno')
         return Response([{
-            'id': d.id,
+            'id': d.id_usuario,
             'nombre': d.nombre or d.correo,
             'correo': d.correo,
             'turno': d.turno.nombre_turno if d.turno else None,
@@ -173,14 +207,14 @@ class ConversacionListView(APIView):
             lectura = conv.lecturas.filter(usuario=usuario).first()
             sin_leer = conv.mensajes.filter(
                 eliminado=False,
-                id__gt=lectura.ultimo_leido_id if lectura and lectura.ultimo_leido_id else 0,
+                pk__gt=lectura.ultimo_leido_id if lectura and lectura.ultimo_leido_id else 0,
             ).exclude(remitente=usuario).count()
 
             otro = conv.participante_b if conv.participante_a == usuario else conv.participante_a
             resultado.append({
-                'id': conv.id,
+                'id': conv.id_conversacion,
                 'otro_usuario': {
-                    'id': otro.id,
+                    'id': otro.id_usuario,
                     'nombre': otro.nombre or otro.correo,
                     'rol': otro.rol.nombre_rol,
                 },
@@ -212,14 +246,14 @@ class ConversacionListView(APIView):
                     status=status.HTTP_403_FORBIDDEN,
                 )
 
-        id_a, id_b = Conversacion.par_ordenado(usuario.id, otro.id)
+        id_a, id_b = Conversacion.par_ordenado(usuario.id_usuario, otro.id_usuario)
         plantel = usuario.plantel or otro.plantel
         conv, _ = Conversacion.objects.get_or_create(
             participante_a_id=id_a,
             participante_b_id=id_b,
             defaults={'plantel': plantel},
         )
-        return Response({'id_conversacion': conv.id}, status=status.HTTP_200_OK)
+        return Response({'id_conversacion': conv.id_conversacion}, status=status.HTTP_200_OK)
 
 
 class MensajeListView(APIView):
@@ -233,7 +267,7 @@ class MensajeListView(APIView):
             return Response(status=status.HTTP_404_NOT_FOUND)
 
         rol = usuario.rol.nombre_rol if usuario else ''
-        if not conv.es_participante(usuario.id if usuario else -1) and rol not in ('admin', 'superusuario'):
+        if not conv.es_participante(usuario.id_usuario if usuario else -1) and rol not in ('admin', 'superusuario'):
             return Response(status=status.HTTP_403_FORBIDDEN)
 
         mensajes = Mensaje.objects.filter(
@@ -241,12 +275,12 @@ class MensajeListView(APIView):
         ).select_related('remitente')
 
         return Response([{
-            'id': m.id,
+            'id': m.id_mensaje,
             'remitente_id': m.remitente_id,
             'texto': m.texto(),
             'metadatos': m.metadatos(),
             'fecha_envio': m.fecha_envio.isoformat(),
-            'es_propio': m.remitente_id == (usuario.id if usuario else -1),
+            'es_propio': m.remitente_id == (usuario.id_usuario if usuario else -1),
         } for m in mensajes])
 
     def post(self, request, id_conv):
@@ -259,7 +293,7 @@ class MensajeListView(APIView):
         except Conversacion.DoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND)
 
-        if not conv.es_participante(usuario.id):
+        if not conv.es_participante(usuario.id_usuario):
             return Response(status=status.HTTP_403_FORBIDDEN)
 
         texto = request.data.get('texto', '').strip()
@@ -270,7 +304,7 @@ class MensajeListView(APIView):
 
         msg = Mensaje.crear(conv, usuario, texto, metadatos)
         return Response(
-            {'id_mensaje': msg.id, 'fecha_envio': msg.fecha_envio.isoformat()},
+            {'id_mensaje': msg.id_mensaje, 'fecha_envio': msg.fecha_envio.isoformat()},
             status=status.HTTP_201_CREATED,
         )
 
@@ -310,12 +344,12 @@ class UsuarioListView(APIView):
             qs = qs.filter(rol__nombre_rol=rol)
         if id_plantel:
             try:
-                qs = qs.filter(plantel__id=int(id_plantel))
+                qs = qs.filter(plantel__id_plantel=int(id_plantel))
             except (TypeError, ValueError):
                 pass
 
         return Response([{
-            'id':      u.id,
+            'id':      u.id_usuario,
             'nombre':  u.nombre or u.correo,
             'correo':  u.correo,
             'plantel': u.plantel.nombre if u.plantel else None,
@@ -324,6 +358,7 @@ class UsuarioListView(APIView):
         } for u in qs])
 
 
+<<<<<<< HEAD
 def _solicitud_dict(s):
     return {
         'id': s.id,
@@ -348,12 +383,28 @@ class SolicitudAdminView(APIView):
         if estado:
             qs = qs.filter(estado=estado)
         return Response([_solicitud_dict(s) for s in qs])
+=======
+class LogoutView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        from django.utils import timezone
+        usuario = _usuario_sesion(request)
+        if usuario:
+            Usuario.objects.filter(pk=usuario.pk).update(ultima_sesion=timezone.now())
+        return Response(status=status.HTTP_200_OK)
+
+
+class SolicitudBroadcastView(APIView):
+    permission_classes = [permissions.AllowAny]
+>>>>>>> SalvarMigraciones
 
     def post(self, request):
         usuario = _usuario_sesion(request)
         if not usuario:
             return Response({'error': 'No autenticado.'}, status=status.HTTP_401_UNAUTHORIZED)
 
+<<<<<<< HEAD
         # Si el usuario ya tiene una solicitud pendiente, se devuelve esa misma
         # (con ya_existe=True) en lugar de crear otra.
         existente = SolicitudAdmin.objects.filter(
@@ -437,6 +488,45 @@ class ResolverSolicitudAdminView(APIView):
         solicitud.save(update_fields=['estado', 'resuelta_por', 'fecha_resolucion'])
 
         return Response({'solicitud': _solicitud_dict(solicitud)}, status=status.HTTP_200_OK)
+=======
+        texto = request.data.get('texto', '').strip()
+        metadatos = request.data.get('metadatos', None)
+        if not texto:
+            return Response({'error': 'El mensaje no puede estar vacío.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        admins = (
+            Usuario.objects
+            .select_related('plantel', 'turno')
+            .filter(rol__nombre_rol='admin', activo=True, plantel=usuario.plantel)
+            .filter(Q(turno=usuario.turno) | Q(turno__isnull=True))
+        )
+        superadmins = (
+            Usuario.objects
+            .select_related('plantel', 'turno')
+            .filter(rol__nombre_rol='superusuario', activo=True)
+        )
+
+        destinatarios = list(admins) + list(superadmins)
+        if not destinatarios:
+            return Response(
+                {'error': 'No hay administradores disponibles.'},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        conversacion_ids = []
+        for dest in destinatarios:
+            id_a, id_b = Conversacion.par_ordenado(usuario.id_usuario, dest.id_usuario)
+            plantel = usuario.plantel or dest.plantel
+            conv, _ = Conversacion.objects.get_or_create(
+                participante_a_id=id_a,
+                participante_b_id=id_b,
+                defaults={'plantel': plantel},
+            )
+            Mensaje.crear(conv, usuario, texto, metadatos)
+            conversacion_ids.append(conv.id_conversacion)
+
+        return Response({'conversaciones': conversacion_ids}, status=status.HTTP_201_CREATED)
+>>>>>>> SalvarMigraciones
 
 
 class GoogleAuthView(APIView):

@@ -1,10 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import {Lock, Eye, EyeOff, CheckCircle2, ShieldCheck, Monitor, User, Home, Users, Clock, GraduationCap, LogIn,} from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import logoCobach from "../../assets/img/logo-cobach.png";
 import calendarImg from "../../assets/img/imagen-login.jpg";
 import "./login.css";
-import { GoogleLogin } from '@react-oauth/google';
 import Swal from 'sweetalert2';
 import { loginInstitucional, guardarSesion } from '../../services/authService';
 
@@ -30,9 +29,134 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [role, setRole] = useState("admin");
   const navigate = useNavigate();
+  const roleRef = useRef(role);
 
   const isInstitutionalAccess = INSTITUTIONAL_ROLES.has(role);
   const isPublicAccess = role === "tutor";
+
+  useEffect(() => {
+    roleRef.current = role;
+  }, [role]);
+
+  useEffect(() => {
+    const hash = window.location.hash.slice(1);
+    if (!hash) return;
+    const params = new URLSearchParams(hash);
+    const id_token = params.get('id_token');
+    if (id_token && window.opener) {
+      window.opener.postMessage({ type: 'google-oauth', id_token }, window.location.origin);
+      window.close();
+    }
+  }, []);
+
+  useEffect(() => {
+    const handleMessage = async (event) => {
+      if (event.origin !== window.location.origin) return;
+      if (event.data?.type !== 'google-oauth') return;
+      const { id_token } = event.data;
+      if (!id_token) return;
+
+      const currentRole = roleRef.current;
+      try {
+        let backendBase = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
+        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+          backendBase = 'http://localhost:8000';
+        }
+        const callbackUrl = `${backendBase.replace(/\/$/, '')}/api/auth/google/callback/`;
+        const resp = await fetch(callbackUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/json',
+            'ngrok-skip-browser-warning': '1',
+          },
+          body: JSON.stringify({ token: id_token, role: currentRole }),
+        });
+        if (resp.status === 204) {
+          Swal.fire({
+            icon: 'error',
+            title: 'Oops...',
+            text: 'Solo se permiten cuentas institucionales',
+          });
+          return;
+        }
+        if (!resp.ok) {
+          if (resp.status === 403) {
+            Swal.fire({
+              icon: 'error',
+              title: 'Oops...',
+              text: 'Rol no permitido para acceso institucional',
+            });
+            return;
+          }
+          const errData = await resp.json().catch(() => ({}));
+          console.error('Backend error', errData);
+          return;
+        }
+        const data = await resp.json().catch(() => ({}));
+        if (data.token) {
+          localStorage.setItem('authToken', data.token);
+          switch (currentRole) {
+            case 'admin':
+              navigate('/dashboard');
+              break;
+            case 'docente':
+              navigate('/docente/calendario');
+              break;
+            case 'alumno':
+              navigate('/alumno/calendario');
+              break;
+            default:
+              navigate('/dashboard');
+          }
+          return;
+        }
+        if (data.redirect) {
+          window.location.href = data.redirect.replace('.html', '');
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, [navigate]);
+
+  const handleGoogleLogin = () => {
+    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+    const redirectUri = `${window.location.origin}/login`;
+    const nonce = crypto.randomUUID?.() ?? Math.random().toString(36).substring(2);
+
+    const params = new URLSearchParams({
+      client_id: clientId,
+      redirect_uri: redirectUri,
+      response_type: 'id_token',
+      scope: 'openid email profile',
+      nonce,
+      prompt: 'select_account',
+    });
+
+    const w = 500;
+    const h = 600;
+    const left = Math.round(window.screenX + (window.outerWidth - w) / 2);
+    const top = Math.round(window.screenY + (window.outerHeight - h) / 2);
+
+    const popup = window.open(
+      `https://accounts.google.com/o/oauth2/v2/auth?${params}`,
+      'google-login',
+      `width=${w},height=${h},left=${left},top=${top},scrollbars=yes,resizable=yes`
+    );
+
+    if (!popup) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Popup bloqueado',
+        text: 'Permite ventanas emergentes para este sitio e intenta de nuevo.',
+      });
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -183,6 +307,7 @@ export default function Login() {
               <LogIn />
               {isPublicAccess ? "Acceder" : "Iniciar sesión"}
             </button>
+
             {isInstitutionalAccess && (
             <div className="google-btn">
               <div className="google-btn__visual" aria-hidden="true">
@@ -265,10 +390,10 @@ export default function Login() {
                           navigate('/dashboard');
                           break;
                         case 'docente':
-                          navigate('/docente/inicio');
+                          navigate('/docente/calendario');
                           break;
                         case 'alumno':
-                          navigate('/alumno/inicio');
+                          navigate('/alumno/calendario');
                           break;
                         default:
                           navigate('/dashboard');

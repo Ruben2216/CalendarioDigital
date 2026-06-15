@@ -11,8 +11,7 @@ export default defineConfig(({ mode }) => {
   // Host completo (con puerto si lo tiene) para allowedHosts
   const frontendHostFull = frontendUrl.replace(/^https?:\/\//, '').replace(/\/.*$/, '')
 
-  const allowedHosts = ['localhost', '127.0.0.1', '0.0.0.0', '::1', frontendHostFull]
-  if (isNgrok) allowedHosts.push('.ngrok-free.app')
+  const allowedHosts = ['localhost', '127.0.0.1', '0.0.0.0', '::1', frontendHostFull, '.ngrok-free.app']
 
   const hmr = isNgrok
     ? { protocol: 'wss', host: frontendHostname, clientPort: 443 }

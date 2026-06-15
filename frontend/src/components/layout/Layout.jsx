@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import { NavLink, Outlet } from "react-router-dom";
+import { useLogout } from "../../hooks/useLogout.js";
 import { LayoutDashboard, Calendar, Users, MessageSquare, Menu, Bell, ChevronDown, LogOut, CheckCheck, Trash2 } from "lucide-react";
 import Modal from "../modal/Modal.jsx";
 import logoCobach from "../../assets/img/logo-cobach.png";
@@ -24,7 +25,7 @@ const NAV = [
 ];
 
 export default function Layout() {
-  const navigate = useNavigate();
+  const cerrarSesion = useLogout();
   const { nombre, iniciales, rol, plantel, turno } = useSesion();
   const { totalSinLeer } = useMensajeriaCtx();
 
@@ -329,7 +330,7 @@ export default function Layout() {
               className="boton boton--peligro"
               onClick={() => {
                 setCerrarSesionAbierto(false);
-                navigate("/login");
+                cerrarSesion();
               }}
             >
               <LogOut size={16} />

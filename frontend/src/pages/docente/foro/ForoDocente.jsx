@@ -2,16 +2,11 @@ import { useState } from 'react';
 import { Plus } from 'lucide-react';
 import { useSesion } from '../../../hooks/useSesion.js';
 import { useMensajeria } from '../../../hooks/useMensajeria.js';
-import { obtenerOCrearConversacion } from '../../../services/mensajeriaService.js';
+import { enviarSolicitudBroadcast } from '../../../services/mensajeriaService.js';
 import ConvLista from '../../../components/mensajeria/ConvLista.jsx';
 import ChatPanel from '../../../components/mensajeria/ChatPanel.jsx';
 import ModalSolicitud from './ModalSolicitud.jsx';
 import styles from './ForoDocente.module.css';
-
-const BACKEND =
-  window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-    ? 'http://localhost:8000'
-    : (import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000');
 
 export default function ForoDocente() {
   const { id_usuario, nombre, iniciales, plantel } = useSesion();
@@ -27,57 +22,21 @@ export default function ForoDocente() {
   } = useMensajeria(id_usuario);
 
   const [modalAbierto, setModalAbierto] = useState(false);
-  const [cargandoAdmin, setCargandoAdmin] = useState(false);
+  const [enviando, setEnviando] = useState(false);
   const [errorAdmin, setErrorAdmin] = useState(null);
 
   const convActiva = conversaciones.find((c) => c.id === idConvActiva) ?? null;
   const avatarUsuario = iniciales || nombre?.slice(0, 2).toUpperCase() || 'DC';
 
-  const iniciarSolicitud = async () => {
+  const iniciarSolicitud = () => {
     setErrorAdmin(null);
-
-    // Si ya hay una conversación con un admin, simplemente la seleccionamos
-    const convAdmin = conversaciones.find(
-      (c) => c.otro_usuario?.rol === 'admin' || c.otro_usuario?.rol === 'superusuario'
-    );
-    if (convAdmin) {
-      seleccionarConversacion(convAdmin.id);
-      setModalAbierto(true);
-      return;
-    }
-
-    // Buscar el admin del plantel para crear la conversación
-    setCargandoAdmin(true);
-    try {
-      // 1° intento: admin del mismo plantel
-      let candidatos = [];
-      if (plantel?.id) {
-        const r = await fetch(`${BACKEND}/api/usuarios/?rol=admin&plantel=${plantel.id}`);
-        candidatos = await r.json();
-      }
-      // 2° fallback: superusuario (no pertenece a ningún plantel en específico)
-      if (!Array.isArray(candidatos) || candidatos.length === 0) {
-        const r = await fetch(`${BACKEND}/api/usuarios/?rol=superusuario`);
-        candidatos = await r.json();
-      }
-      if (!Array.isArray(candidatos) || candidatos.length === 0) {
-        setErrorAdmin('No hay un administrador disponible. Contacta soporte.');
-        return;
-      }
-
-      const { id_conversacion } = await obtenerOCrearConversacion(id_usuario, candidatos[0].id);
-      await recargarConversaciones();
-      seleccionarConversacion(id_conversacion);
-      setModalAbierto(true);
-    } catch {
-      setErrorAdmin('No se pudo conectar con el administrador. Intenta de nuevo.');
-    } finally {
-      setCargandoAdmin(false);
-    }
+    setModalAbierto(true);
   };
 
   const handleEnviarSolicitud = async (datos) => {
     setModalAbierto(false);
+    setErrorAdmin(null);
+    setEnviando(true);
 
     const metadatos = {
       tipo: 'solicitud_espacio',
@@ -106,7 +65,14 @@ export default function ForoDocente() {
     const textoMensaje = datos.observaciones
       || `Solicitud de espacio para "${datos.titulo}" el ${datos.fecha}.`;
 
-    await enviarMensaje(textoMensaje, metadatos);
+    try {
+      await enviarSolicitudBroadcast(id_usuario, textoMensaje, metadatos);
+      await recargarConversaciones();
+    } catch {
+      setErrorAdmin('No se pudo enviar la solicitud. Intenta de nuevo.');
+    } finally {
+      setEnviando(false);
+    }
   };
 
   return (
@@ -121,10 +87,10 @@ export default function ForoDocente() {
             type="button"
             className="boton boton--primario"
             onClick={iniciarSolicitud}
-            disabled={cargandoAdmin}
+            disabled={enviando}
           >
             <Plus size={16} />
-            {cargandoAdmin ? 'Conectando…' : 'Nueva solicitud'}
+            {enviando ? 'Enviando…' : 'Nueva solicitud'}
           </button>
           {errorAdmin && (
             <span style={{ fontSize: 11, color: 'var(--red)' }}>{errorAdmin}</span>

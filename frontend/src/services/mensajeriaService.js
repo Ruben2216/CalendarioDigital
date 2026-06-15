@@ -3,6 +3,17 @@ const BACKEND =
     ? 'http://localhost:8000'
     : (import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000');
 
+const extraHeaders = BACKEND.includes('ngrok-free.app')
+  ? { 'ngrok-skip-browser-warning': 'true' }
+  : {};
+
+function apiFetch(url, options = {}) {
+  return fetch(url, {
+    ...options,
+    headers: { ...extraHeaders, ...(options.headers || {}) },
+  });
+}
+
 const COLORES = ['azul', 'verde', 'naranja'];
 
 function horaDesde(iso) {
@@ -20,7 +31,7 @@ function inicialesDesde(nombre) {
 }
 
 export async function obtenerConversaciones(idUsuario) {
-  const res = await fetch(`${BACKEND}/api/mensajeria/conversaciones/?id_usuario=${idUsuario}`);
+  const res = await apiFetch(`${BACKEND}/api/mensajeria/conversaciones/?id_usuario=${idUsuario}`);
   if (!res.ok) throw new Error('Error al cargar conversaciones');
   const data = await res.json();
   return data.map((c, i) => ({
@@ -44,7 +55,7 @@ export async function obtenerConversaciones(idUsuario) {
 }
 
 export async function obtenerMensajes(idUsuario, idConv) {
-  const res = await fetch(
+  const res = await apiFetch(
     `${BACKEND}/api/mensajeria/conversaciones/${idConv}/mensajes/?id_usuario=${idUsuario}`
   );
   if (!res.ok) throw new Error('Error al cargar mensajes');
@@ -59,7 +70,7 @@ export async function obtenerMensajes(idUsuario, idConv) {
 }
 
 export async function enviarMensaje(idUsuario, idConv, texto, metadatos = null) {
-  const res = await fetch(`${BACKEND}/api/mensajeria/conversaciones/${idConv}/mensajes/`, {
+  const res = await apiFetch(`${BACKEND}/api/mensajeria/conversaciones/${idConv}/mensajes/`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ texto, id_usuario: idUsuario, metadatos }),
@@ -69,7 +80,7 @@ export async function enviarMensaje(idUsuario, idConv, texto, metadatos = null) 
 }
 
 export async function marcarLeido(idUsuario, idConv) {
-  await fetch(`${BACKEND}/api/mensajeria/conversaciones/${idConv}/leer/`, {
+  await apiFetch(`${BACKEND}/api/mensajeria/conversaciones/${idConv}/leer/`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ id_usuario: idUsuario }),
@@ -77,13 +88,13 @@ export async function marcarLeido(idUsuario, idConv) {
 }
 
 export async function obtenerDocentes(idUsuario) {
-  const res = await fetch(`${BACKEND}/api/mensajeria/docentes/?id_usuario=${idUsuario}`);
+  const res = await apiFetch(`${BACKEND}/api/mensajeria/docentes/?id_usuario=${idUsuario}`);
   if (!res.ok) throw new Error('Error al cargar docentes');
   return res.json();
 }
 
 export async function crearConversacion(idUsuario, idOtroUsuario) {
-  const res = await fetch(`${BACKEND}/api/mensajeria/conversaciones/`, {
+  const res = await apiFetch(`${BACKEND}/api/mensajeria/conversaciones/`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ id_usuario: idUsuario, id_otro_usuario: idOtroUsuario }),
@@ -93,3 +104,13 @@ export async function crearConversacion(idUsuario, idOtroUsuario) {
 }
 
 export const obtenerOCrearConversacion = crearConversacion;
+
+export async function enviarSolicitudBroadcast(idUsuario, texto, metadatos = null) {
+  const res = await apiFetch(`${BACKEND}/api/mensajeria/solicitudes/`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id_usuario: idUsuario, texto, metadatos }),
+  });
+  if (!res.ok) throw new Error('Error al enviar la solicitud');
+  return res.json();
+}

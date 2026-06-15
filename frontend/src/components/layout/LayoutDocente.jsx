@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import { NavLink, Outlet } from "react-router-dom";
+import { useLogout } from "../../hooks/useLogout.js";
 import { Home, Calendar, MessageSquare, Menu, Bell, ChevronDown, LogOut, CheckCheck, Trash2, ShieldCheck } from "lucide-react";
 import Modal from "../modal/Modal.jsx";
 import SolicitudAdmin from "../solicitud-admin/SolicitudAdmin.jsx";
@@ -24,7 +25,7 @@ const NAV_DOCENTE_BASE = [
 ];
 
 export default function LayoutDocente() {
-  const navigate = useNavigate();
+  const cerrarSesion = useLogout();
   const { nombre, iniciales, rol, plantel, turno } = useSesion();
   const { totalSinLeer } = useMensajeriaCtx();
 
@@ -343,7 +344,7 @@ export default function LayoutDocente() {
               className="boton boton--peligro"
               onClick={() => {
                 setCerrarSesionAbierto(false);
-                navigate("/login");
+                cerrarSesion();
               }}
             >
               <LogOut size={16} />

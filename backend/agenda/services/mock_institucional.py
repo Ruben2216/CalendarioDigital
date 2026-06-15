@@ -1,3 +1,5 @@
+import requests
+
 from agenda.models import Usuario
 
 _QR_PLACEHOLDER = "data:image/png;base64,iVBORw0KGgo="
@@ -17,36 +19,20 @@ FALLO_ALUMNO = {
 
 _DOMINIO = '@cobach.edu.mx'
 
+_URL_LOGIN_EMPLEADO = 'http://192.168.100.5:8087/api/Seguridad/Login'
+
 
 def mock_login_empleado(user_name: str, password: str) -> dict:
-    """
-    Simula POST /api/Seguridad/Login.
-    Acepta userName corto ("ruben.admin") o correo completo ("ruben.admin@cobach.edu.mx").
-    """
-    if user_name.lower().endswith(_DOMINIO):
-        correo = user_name.lower()
-        user_name = user_name[: -len(_DOMINIO)]
-    else:
-        correo = f"{user_name}{_DOMINIO}"
-
     try:
-        usuario = Usuario.objects.select_related('rol').get(correo=correo, activo=True)
-    except Usuario.DoesNotExist:
+        resp = requests.post(
+            _URL_LOGIN_EMPLEADO,
+            json={'Usuario': user_name, 'Password': password},
+            timeout=10,
+        )
+        resp.raise_for_status()
+        return resp.json()
+    except Exception:
         return FALLO_EMPLEADO
-
-    if usuario.password_mock != password:
-        return FALLO_EMPLEADO
-
-    return {
-        "exito": True,
-        "statusLogueo": True,
-        "idEmpleado": usuario.id_empleado,
-        "userName": user_name,
-        "nombre": usuario.nombre or "",
-        "token": f"mock.jwt.{usuario.rol.nombre_rol}_{user_name}",
-        "qr": _QR_PLACEHOLDER,
-        "foto": _FOTO_PLACEHOLDER,
-    }
 
 
 def mock_login_alumno(user_name: str, password: str) -> dict:
