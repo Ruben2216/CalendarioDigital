@@ -4,13 +4,19 @@ import { MensajeriaProvider } from "./context/MensajeriaContext.jsx";
 import Login from "./pages/login/login.jsx";
 import Layout from "./components/layout/Layout.jsx";
 import LayoutDocente from "./components/layout/LayoutDocente.jsx";
+import LayoutAlumno from "./components/layout/LayoutAlumno.jsx";
 import EnConstruccion from "./pages/admin/EnConstruccion.jsx";
 
 const Dashboard        = lazy(() => import("./pages/admin/dashboard/dashboard.jsx"));
 const Calendario       = lazy(() => import("./pages/admin/calendario/calendario.jsx"));
 const Mensajeria       = lazy(() => import("./pages/admin/mensajeria/Mensajeria.jsx"));
+const Dashboard = lazy(() => import("./pages/admin/dashboard/dashboard.jsx"));
+const Calendario = lazy(() => import("./pages/admin/calendario/calendario.jsx"));
+const Usuarios = lazy(() => import("./pages/admin/usuarios/usuarios.jsx"));
 const CalendarioDocente = lazy(() => import("./pages/admin/calendario/calendario.jsx"));
 const ForoDocente      = lazy(() => import("./pages/docente/foro/ForoDocente.jsx"));
+const ForoDocente = lazy(() => import("./pages/docente/foro/ForoDocente.jsx"));
+const Alumno = lazy(() => import("./pages/alumno/alumno.jsx"));
 
 function Cargando() {
   return (
@@ -50,6 +56,46 @@ function App() {
             <Route path="/eventos"    element={<EnConstruccion titulo="Eventos" />} />
             <Route path="/mensajeria" element={<Suspense fallback={<Cargando />}><Mensajeria /></Suspense>} />
             <Route path="/usuarios"   element={<EnConstruccion titulo="Usuarios" />} />
+          <Route element={<Layout />}>
+            <Route
+              path="/dashboard"
+              element={
+                <Suspense fallback={<Cargando />}>
+                  <Dashboard />
+                </Suspense>
+              }
+            />
+            <Route
+              path="/calendario"
+              element={
+                <Suspense fallback={<Cargando />}>
+                  <Calendario />
+                </Suspense>
+              }
+            />
+            <Route path="/eventos" element={<EnConstruccion titulo="Eventos" />} />
+            <Route
+              path="/usuarios"
+              element={
+                <Suspense fallback={<Cargando />}>
+                  <Usuarios />
+                </Suspense>
+              }
+            />
+          </Route>
+        </Route>
+
+        {/* Rutas alumno (solo lectura) */}
+        <Route element={<ProtectedRoute roles={['alumno']} />}>
+          <Route element={<LayoutAlumno />}>
+            <Route
+              path="/alumno/calendario"
+              element={
+                <Suspense fallback={<Cargando />}>
+                  <Alumno />
+                </Suspense>
+              }
+            />
           </Route>
         </Route>
 
