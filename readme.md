@@ -49,3 +49,30 @@ FullCalendar y sus plugins:
    esLocale traduce la librería al español. */
 
 Se utilizaron 4 vistas (mes, semana, anual y lista)
+
+# Solicitudes de acceso de administrador (docente → admin)
+
+Flujo: un docente, ya logueado, pide pasar a administrador. Un superusuario/admin
+la aprueba y, en ese momento, **el rol del usuario cambia de docente a admin**.
+
+## Backend (app `agenda`)
+- Modelo: `SolicitudAdmin` (usuario, nombre, correo, plantel, turno, motivo, estado,
+  resuelta_por, fechas). Estados: `pendiente`, `aceptada`, `rechazada`.
+- Endpoints (en `core/urls.py`):
+  - `POST /api/solicitudes-admin/` — crea la solicitud. Si el usuario ya tiene una
+    pendiente, devuelve esa misma con `ya_existe: true` (no crea otra).
+  - `GET  /api/solicitudes-admin/mia/?id_usuario=<id>` — la solicitud pendiente del usuario.
+  - `GET  /api/solicitudes-admin/` — lista (para el admin); filtro opcional `?estado=`.
+  - `POST /api/solicitudes-admin/<id>/resolver/` — body `{accion: "aceptar"|"rechazar", id_usuario}`.
+
+## >>> PUNTO DEL CAMBIO DE ROL <<<
+Está en `agenda/views.py`, dentro de `ResolverSolicitudAdminView.post`, en la rama
+`accion == "aceptar"`: ahí se hace `usuario.rol = rol_admin; usuario.save()`.
+Ese es el lugar exacto donde el docente se convierte en admin.
+
+## IMPORTANTE: aplicar la migración
+Se agregó el modelo nuevo, así que hay que correr (dentro de `backend/`, con el venv):
+```
+python manage.py migrate
+```
+Si Django no detecta la migración: `python manage.py makemigrations agenda` y luego `migrate`.

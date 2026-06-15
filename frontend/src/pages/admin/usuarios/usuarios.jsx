@@ -1,15 +1,33 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Users, UserCheck, Clock, Search, Plus, Check, X, Pencil, Trash2,
   MapPin, ShieldCheck, Mail,
 } from "lucide-react";
 import Modal from "../../../components/modal/Modal.jsx";
-import { avisoExito, confirmarAccion, confirmarEliminacion } from "../../../lib/alertas.js";
-import { PLANTELES, ROL, ESTADOS, TURNOS, usuariosIniciales } from "../../../data/usuarios.js";
+import { avisoExito, avisoError, confirmarAccion, confirmarEliminacion } from "../../../lib/alertas.js";
+import { PLANTELES, ROL, ESTADOS, TURNOS } from "../../../data/usuarios.js";
+import { listarSolicitudes, resolverSolicitud } from "../../../services/solicitudesService.js";
 import styles from "./usuarios.module.css";
 
 const ESTADOS_MAP = Object.fromEntries(ESTADOS.map((e) => [e.id, e]));
 const TURNOS_MAP = Object.fromEntries(TURNOS.map((t) => [t.id, t]));
+
+// Estado del backend (pendiente/aceptada/rechazada) → estado de esta pantalla.
+const ESTADO_BACKEND = { pendiente: "pendiente", aceptada: "activo", rechazada: "rechazado" };
+
+function solicitudAFila(s) {
+  return {
+    id: `sol-${s.id}`,
+    solicitudId: s.id,
+    origenBackend: true,
+    nombre: s.nombre,
+    correo: s.correo,
+    turno: s.turno || "matutino",
+    planteles: s.plantel ? [s.plantel] : [],
+    estado: ESTADO_BACKEND[s.estado] || "pendiente",
+    solicitado: (s.fecha_solicitud || "").slice(0, 10),
+  };
+}
 
 const FORM_VACIO = { nombre: "", correo: "", turno: "matutino", planteles: [], estado: "pendiente" };
 
@@ -30,13 +48,26 @@ function formatoFecha(clave) {
 }
 
 export default function Usuarios() {
-  const [usuarios, setUsuarios] = useState(() => usuariosIniciales());
+  const [usuarios, setUsuarios] = useState([]);
+  const [cargando, setCargando] = useState(true);
   const [busqueda, setBusqueda] = useState("");
   const [filtroEstado, setFiltroEstado] = useState("todos");
 
   const [modalAbierto, setModalAbierto] = useState(false);
   const [form, setForm] = useState(FORM_VACIO);
   const [editando, setEditando] = useState(null);
+
+  // Carga los usuarios/solicitudes reales del backend.
+  useEffect(() => {
+    let vigente = true;
+    listarSolicitudes()
+      .then((lista) => {
+        if (vigente) setUsuarios(lista.map(solicitudAFila));
+      })
+      .catch(() => { /* backend no disponible */ })
+      .finally(() => { if (vigente) setCargando(false); });
+    return () => { vigente = false; };
+  }, []);
 
   const totales = useMemo(() => ({
     total: usuarios.length,
@@ -120,10 +151,18 @@ export default function Usuarios() {
     const { isConfirmed } = await confirmarAccion({
       icono: "question",
       titulo: "Aceptar administrador",
-      html: `¿Conceder acceso a <b>${usuario.nombre}</b> como <b>${ROL.etiqueta}</b>? Podrá agregar y modificar fechas en sus planteles.`,
+      html: `¿Conceder acceso a <b>${usuario.nombre}</b> como <b>${ROL.etiqueta}</b>? Su cuenta pasará a administrador y podrá gestionar el calendario.`,
       confirmar: "Aceptar",
     });
     if (!isConfirmed) return;
+    if (usuario.origenBackend) {
+      try {
+        await resolverSolicitud(usuario.solicitudId, "aceptar");
+      } catch (err) {
+        avisoError(err.message || "No se pudo aceptar la solicitud");
+        return;
+      }
+    }
     setUsuarios((prev) => prev.map((u) => (u.id === usuario.id ? { ...u, estado: "activo" } : u)));
     avisoExito("Administrador aceptado");
   };
@@ -136,6 +175,14 @@ export default function Usuarios() {
       peligro: true,
     });
     if (!isConfirmed) return;
+    if (usuario.origenBackend) {
+      try {
+        await resolverSolicitud(usuario.solicitudId, "rechazar");
+      } catch (err) {
+        avisoError(err.message || "No se pudo rechazar la solicitud");
+        return;
+      }
+    }
     setUsuarios((prev) => prev.map((u) => (u.id === usuario.id ? { ...u, estado: "rechazado" } : u)));
     avisoExito("Solicitud rechazada");
   };
@@ -222,8 +269,14 @@ export default function Usuarios() {
           </div>
         </div>
 
-        {usuariosFiltrados.length === 0 ? (
-          <p className={styles["vacio"]}>No se encontraron usuarios con esos criterios.</p>
+        {cargando ? (
+          <p className={styles["vacio"]}>Cargando usuarios…</p>
+        ) : usuariosFiltrados.length === 0 ? (
+          <p className={styles["vacio"]}>
+            {usuarios.length === 0
+              ? "Aún no hay solicitudes ni administradores registrados."
+              : "No se encontraron usuarios con esos criterios."}
+          </p>
         ) : (
           <div className={styles["tabla-envoltura"]}>
             <table className={styles["tabla"]}>

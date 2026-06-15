@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import { Calendar, MessageSquare, Menu, Bell, ChevronDown, LogOut, CheckCheck, Trash2 } from "lucide-react";
+import { Calendar, MessageSquare, Menu, Bell, ChevronDown, LogOut, CheckCheck, Trash2, ShieldCheck } from "lucide-react";
 import Modal from "../modal/Modal.jsx";
+import SolicitudAdmin from "../solicitud-admin/SolicitudAdmin.jsx";
 import logoCobach from "../../assets/img/logo-cobach.png";
 import { NOTIFICACIONES } from "../../data/avisos.js";
 import { ZONA } from "../../lib/fechas.js";
@@ -35,6 +36,7 @@ export default function LayoutDocente() {
   const [notifAbierto, setNotifAbierto] = useState(false);
   const [notificaciones, setNotificaciones] = useState(NOTIFICACIONES);
   const [cerrarSesionAbierto, setCerrarSesionAbierto] = useState(false);
+  const [solicitudAbierto, setSolicitudAbierto] = useState(false);
 
   const notifRef = useRef(null);
 
@@ -127,6 +129,16 @@ export default function LayoutDocente() {
         </nav>
 
         <div className={styles["barra-lateral__pie"]}>
+          <button
+            type="button"
+            className="boton boton--primario"
+            style={{ width: "100%", marginBottom: 10 }}
+            onClick={() => setSolicitudAbierto(true)}
+          >
+            <ShieldCheck size={16} />
+            Solicitar acceso admin
+          </button>
+
           <div className={styles["sesion"]}>
             <span className={styles["sesion__punto"]} aria-hidden="true" />
             <div>
@@ -310,6 +322,11 @@ export default function LayoutDocente() {
           nuevamente para volver a entrar.
         </p>
       </Modal>
+
+      <SolicitudAdmin
+        abierto={solicitudAbierto}
+        onCerrar={() => setSolicitudAbierto(false)}
+      />
     </div>
   );
 }

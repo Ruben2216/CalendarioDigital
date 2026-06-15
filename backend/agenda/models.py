@@ -207,3 +207,41 @@ class Notificacion(models.Model):
 
     def __str__(self):
         return f'[{self.tipo}] {self.titulo} → {self.usuario.correo}'
+
+
+class SolicitudAdmin(models.Model):
+    """Solicitud de un docente para que su cuenta pase a rol administrador.
+    Cuando un superusuario/admin la acepta, el rol del usuario cambia a 'admin'
+    (ver ResolverSolicitudAdminView)."""
+
+    ESTADO_PENDIENTE = 'pendiente'
+    ESTADO_ACEPTADA = 'aceptada'
+    ESTADO_RECHAZADA = 'rechazada'
+    ESTADOS = [
+        (ESTADO_PENDIENTE, 'Pendiente'),
+        (ESTADO_ACEPTADA, 'Aceptada'),
+        (ESTADO_RECHAZADA, 'Rechazada'),
+    ]
+
+    usuario = models.ForeignKey(
+        Usuario, on_delete=models.CASCADE, related_name='solicitudes_admin'
+    )
+    nombre = models.CharField(max_length=150)
+    correo = models.CharField(max_length=100)
+    plantel = models.CharField(max_length=100, blank=True, default='')
+    turno = models.CharField(max_length=30, blank=True, default='')
+    motivo = models.TextField(blank=True, default='')
+    estado = models.CharField(max_length=20, choices=ESTADOS, default=ESTADO_PENDIENTE)
+    fecha_solicitud = models.DateTimeField(auto_now_add=True)
+    resuelta_por = models.ForeignKey(
+        Usuario, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='solicitudes_resueltas'
+    )
+    fecha_resolucion = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        db_table = 'SolicitudAdmin'
+        ordering = ['-fecha_solicitud']
+
+    def __str__(self):
+        return f'{self.correo} ({self.estado})'

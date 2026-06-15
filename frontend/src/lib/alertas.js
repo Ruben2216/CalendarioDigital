@@ -10,6 +10,10 @@ const Toast = Swal.mixin({
 
 export const avisoExito = (titulo) => Toast.fire({ icon: "success", title: titulo });
 
+export const avisoError = (titulo) => Toast.fire({ icon: "error", title: titulo });
+
+export const avisoInfo = (titulo) => Toast.fire({ icon: "info", title: titulo });
+
 export const confirmarEliminacion = (nombre) =>
   Swal.fire({
     icon: "warning",
