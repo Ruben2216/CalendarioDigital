@@ -11,7 +11,6 @@ const Dashboard        = lazy(() => import("./pages/admin/dashboard/dashboard.js
 const Calendario       = lazy(() => import("./pages/admin/calendario/calendario.jsx"));
 const Mensajeria       = lazy(() => import("./pages/admin/mensajeria/Mensajeria.jsx"));
 const Usuarios         = lazy(() => import("./pages/admin/usuarios/usuarios.jsx"));
-const CalendarioDocente = lazy(() => import("./pages/admin/calendario/calendario.jsx"));
 const ForoDocente      = lazy(() => import("./pages/docente/foro/ForoDocente.jsx"));
 const Alumno           = lazy(() => import("./pages/alumno/alumno.jsx"));
 
@@ -66,7 +65,7 @@ function App() {
         {/* Rutas docente */}
         <Route element={<ProtectedRoute roles={['docente']} />}>
           <Route element={<MensajeriaProvider><LayoutDocente /></MensajeriaProvider>}>
-            <Route path="/docente/calendario" element={<Suspense fallback={<Cargando />}><CalendarioDocente soloLectura /></Suspense>} />
+            <Route path="/docente/calendario" element={<Suspense fallback={<Cargando />}><Calendario soloLectura /></Suspense>} />
             <Route path="/docente/foro"       element={<Suspense fallback={<Cargando />}><ForoDocente /></Suspense>} />
           </Route>
         </Route>
