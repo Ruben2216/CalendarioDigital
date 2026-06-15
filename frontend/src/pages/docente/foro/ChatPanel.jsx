@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Send } from 'lucide-react';
-import BurbujaMensaje from './BurbujaMensaje.jsx';
+import BurbujaMensaje from '../../../components/mensajeria/BurbujaMensaje.jsx';
 import styles from './ChatPanel.module.css';
 
 export default function ChatPanel({ conversacion, onEnviar, inicialesUsuario }) {

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import { NavLink, Outlet } from "react-router-dom";
+import { useLogout } from "../../hooks/useLogout.js";
 import { Calendar, Menu, Bell, ChevronDown, LogOut, CheckCheck, Trash2 } from "lucide-react";
 import Modal from "../modal/Modal.jsx";
 import logoCobach from "../../assets/img/logo-cobach.png";
@@ -20,7 +21,7 @@ const NAV_ALUMNO = [
 ];
 
 export default function LayoutAlumno() {
-  const navigate = useNavigate();
+  const cerrarSesion = useLogout();
   const { nombre, iniciales, rol, plantel } = useSesion();
 
   const [esMovil, setEsMovil] = useState(
@@ -287,7 +288,7 @@ export default function LayoutAlumno() {
               className="boton boton--peligro"
               onClick={() => {
                 setCerrarSesionAbierto(false);
-                navigate("/login");
+                cerrarSesion();
               }}
             >
               <LogOut size={16} />

@@ -73,10 +73,10 @@ class Usuario(models.Model):
     correo = models.CharField(max_length=100, unique=True)
     nombre = models.CharField(max_length=150, null=True, blank=True)
     google_id = models.CharField(max_length=255, unique=True, null=True, blank=True)
-    id_empleado = models.IntegerField(null=True, blank=True, unique=True)
     matricula = models.CharField(max_length=20, null=True, blank=True, unique=True)
     password_mock = models.CharField(max_length=128, null=True, blank=True)
     activo = models.BooleanField(default=True)
+    ultima_sesion = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         db_table = 'Usuario'

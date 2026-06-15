@@ -8,8 +8,8 @@ class Command(BaseCommand):
 
     def handle(self, *args, **kwargs):
         try:
-            docente = Usuario.objects.get(id_empleado=2001)
-            admin = Usuario.objects.get(id_empleado=1001)
+            docente = Usuario.objects.get(correo='ruben.docente@cobach.edu.mx')
+            admin = Usuario.objects.get(correo='ruben.admin@cobach.edu.mx')
         except Usuario.DoesNotExist as e:
             self.stderr.write(f'Usuario no encontrado: {e}. Ejecuta loaddata primero.')
             return

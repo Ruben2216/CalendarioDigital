@@ -140,13 +140,15 @@ REST_FRAMEWORK = {
     ),
 }
 
-CORS_ALLOWED_ORIGINS = [
-    h.strip() for h in os.environ.get('CORS_ALLOWED_ORIGINS', 'http://localhost:5173').split(',') if h.strip()
-]
-
-CORS_ALLOWED_ORIGIN_REGEXES = [
-    r"^https://.*\.ngrok-free\.app$",
-]
+if DEBUG:
+    CORS_ALLOW_ALL_ORIGINS = True
+else:
+    CORS_ALLOWED_ORIGINS = [
+        h.strip() for h in os.environ.get('CORS_ALLOWED_ORIGINS', 'http://localhost:5173').split(',') if h.strip()
+    ]
+    CORS_ALLOWED_ORIGIN_REGEXES = [
+        r"^https://.*\.ngrok-free\.app$",
+    ]
 
 from corsheaders.defaults import default_headers
 CORS_ALLOW_HEADERS = list(default_headers) + ['ngrok-skip-browser-warning']
