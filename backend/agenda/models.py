@@ -181,3 +181,29 @@ class LecturaMensaje(models.Model):
     class Meta:
         db_table = 'LecturaMensaje'
         unique_together = ('conversacion', 'usuario')
+
+
+class Notificacion(models.Model):
+    TIPOS = [
+        ('evento_creado',      'Evento creado'),
+        ('evento_actualizado', 'Evento actualizado'),
+        ('evento_eliminado',   'Evento eliminado'),
+        ('recordatorio',       'Recordatorio'),
+    ]
+
+    usuario        = models.ForeignKey(
+        Usuario, on_delete=models.CASCADE, related_name='notificaciones'
+    )
+    titulo         = models.CharField(max_length=200)
+    mensaje        = models.TextField()
+    tipo           = models.CharField(max_length=30, choices=TIPOS)
+    evento_titulo  = models.CharField(max_length=200)
+    leida          = models.BooleanField(default=False)
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'Notificacion'
+        ordering = ['-leida', '-fecha_creacion']
+
+    def __str__(self):
+        return f'[{self.tipo}] {self.titulo} → {self.usuario.correo}'

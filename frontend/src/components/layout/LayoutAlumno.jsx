@@ -21,7 +21,7 @@ const NAV_ALUMNO = [
 
 export default function LayoutAlumno() {
   const navigate = useNavigate();
-  const { nombre, iniciales, rol } = useSesion();
+  const { nombre, iniciales, rol, plantel } = useSesion();
 
   const [esMovil, setEsMovil] = useState(
     () => window.matchMedia("(max-width: 920px)").matches
@@ -248,15 +248,15 @@ export default function LayoutAlumno() {
             <div className={styles["plantel"]}>
               <div>
                 <small>Plantel</small>
-                <strong>COBACH 01 - Tuxtla</strong>
+                <strong>{plantel?.nombre ?? (rol === 'superusuario' ? 'Todos los planteles' : 'Sin plantel')}</strong>
               </div>
               <ChevronDown size={14} />
             </div>
 
             <div className={styles["usuario"]}>
-              <span className={styles["usuario__avatar"]}>{iniciales || 'AL'}</span>
+              <span className={styles["usuario__avatar"]}>{iniciales || 'US'}</span>
               <div className={styles["usuario__info"]}>
-                <strong>{nombre || 'Alumno'}</strong>
+                <strong>{nombre || 'Usuario'}</strong>
                 <span>{ROL_ETIQUETA[rol] ?? 'Usuario'}</span>
               </div>
               <ChevronDown size={14} />

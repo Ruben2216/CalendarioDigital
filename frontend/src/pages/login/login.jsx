@@ -293,12 +293,7 @@ export default function Login() {
             </div>
             )}
 
-            {isInstitutionalAccess && (
-            <p className="login__forgot">
-              ¿Olvidaste tu contraseña?{" "}
-              <a href="#recuperar">Recuperar acceso</a>
-            </p>
-            )}
+
           </form>
         </aside>
       </div>

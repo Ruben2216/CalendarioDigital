@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useSesion } from '../../../hooks/useSesion.js';
 import { useNavigate } from "react-router-dom";
 import {
   Calendar, Clock, Users, Bell, ChevronLeft, ChevronRight, MapPin,
@@ -35,6 +36,7 @@ export default function Dashboard() {
   );
   const [fechaSeleccionada, setFechaSeleccionada] = useState(null);
 
+  const { nombre } = useSesion();
   const saludo = saludoPorHora(hoy.getHours());
 
   const fechaLarga = useMemo(() => {
@@ -108,7 +110,7 @@ export default function Dashboard() {
       <div className={styles["columna"]}>
         <section className={styles["encabezado"]}>
           <div>
-            <h2 className={styles["encabezado__saludo"]}>{saludo.texto}, José Rubén</h2>
+            <h2 className={styles["encabezado__saludo"]}>{saludo.texto}{nombre ? `, ${nombre.split(' ')[0]}` : ''}</h2>
             <div className={styles["encabezado__subtitulo"]}>
               <Calendar size={13} />
               <span>{fechaLarga}</span>

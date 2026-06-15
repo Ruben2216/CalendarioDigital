@@ -361,25 +361,6 @@
 }
 
 
-.login__forgot {
-  text-align: center;
-  font-size: 0.78125rem;
-  color: #8ca0bc;
-  margin: 0.875rem 0 0;
-}
-
-.login__forgot a {
-  color: #4a90e2;
-  font-weight: 600;
-  text-decoration: none;
-  transition: color 0.15s;
-}
-
-.login__forgot a:hover {
-  color: #74b0f4;
-  text-decoration: underline;
-}
-
 
 .login__footer {
   position: relative;
@@ -535,10 +516,6 @@
 
   .google-btn {
     height: clamp(2rem, 4.2vh, 2.8rem);
-  }
-
-  .login__forgot {
-    margin-top: clamp(0.3rem, 0.7vh, 0.6rem);
   }
 
   .login__footer {
@@ -699,11 +676,6 @@
   .google-btn {
     height: 3.25rem;
     font-size: 1rem;
-  }
-
-  .login__forgot {
-    font-size: 0.8125rem;
-    margin-top: 0.75rem;
   }
 
   .login__footer {

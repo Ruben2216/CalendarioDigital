@@ -23,7 +23,7 @@ const NAV_DOCENTE_BASE = [
 
 export default function LayoutDocente() {
   const navigate = useNavigate();
-  const { nombre, iniciales, rol } = useSesion();
+  const { nombre, iniciales, rol, plantel } = useSesion();
   const { totalSinLeer } = useMensajeriaCtx();
 
   const [esMovil, setEsMovil] = useState(
@@ -257,15 +257,15 @@ export default function LayoutDocente() {
             <div className={styles["plantel"]}>
               <div>
                 <small>Plantel</small>
-                <strong>COBACH 01 - Tuxtla</strong>
+                <strong>{plantel?.nombre ?? (rol === 'superusuario' ? 'Todos los planteles' : 'Sin plantel')}</strong>
               </div>
               <ChevronDown size={14} />
             </div>
 
             <div className={styles["usuario"]}>
-              <span className={styles["usuario__avatar"]}>{iniciales || 'DC'}</span>
+              <span className={styles["usuario__avatar"]}>{iniciales || 'US'}</span>
               <div className={styles["usuario__info"]}>
-                <strong>{nombre || 'Docente'}</strong>
+                <strong>{nombre || 'Usuario'}</strong>
                 <span>{ROL_ETIQUETA[rol] ?? 'Usuario'}</span>
               </div>
               <ChevronDown size={14} />

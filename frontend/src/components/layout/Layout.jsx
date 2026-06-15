@@ -26,7 +26,7 @@ const NAV = [
 
 export default function Layout() {
   const navigate = useNavigate();
-  const { nombre, iniciales, rol } = useSesion();
+  const { nombre, iniciales, rol, plantel } = useSesion();
   const { totalSinLeer } = useMensajeriaCtx();
 
   const [esMovil, setEsMovil] = useState(
@@ -257,7 +257,7 @@ export default function Layout() {
             <div className={styles["plantel"]}>
               <div>
                 <small>Plantel</small>
-                <strong>COBACH 01 - Tuxtla</strong>
+                <strong>{plantel?.nombre ?? (rol === 'superusuario' ? 'Todos los planteles' : 'Sin plantel')}</strong>
               </div>
               <ChevronDown size={14} />
             </div>
