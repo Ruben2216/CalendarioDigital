@@ -8,14 +8,11 @@ from agenda.views import (
     MensajeListView,
     MarcarLeidoView,
     UsuarioListView,
-<<<<<<< HEAD
     SolicitudAdminView,
     MiSolicitudAdminView,
     ResolverSolicitudAdminView,
-=======
     SolicitudBroadcastView,
     LogoutView,
->>>>>>> SalvarMigraciones
 )
 
 urlpatterns = [

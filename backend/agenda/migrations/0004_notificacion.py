@@ -7,7 +7,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('agenda', '0003_conversacion_mensaje_lecturamensaje'),
+        ('agenda', '0003_seed_roles'),
     ]
 
     operations = [

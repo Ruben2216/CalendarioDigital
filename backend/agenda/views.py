@@ -15,11 +15,7 @@ from .services.mock_institucional import (
     mock_login_empleado,
     mock_login_alumno,
 )
-<<<<<<< HEAD
 from .models import Usuario, Rol, Conversacion, Mensaje, LecturaMensaje, SolicitudAdmin
-=======
-from .models import Rol, Usuario, Conversacion, Mensaje, LecturaMensaje
->>>>>>> SalvarMigraciones
 
 
 ROLES_EMPLEADO = {'superusuario', 'admin', 'docente'}
@@ -46,10 +42,12 @@ class LoginInstitucionalView(APIView):
             id_externo = respuesta_institucional.get('matricula')
             campo_busqueda = 'matricula'
         else:
-            try:
-                usuario_local = Usuario.objects.get(correo=user_name, activo=True)
-            except Usuario.DoesNotExist:
-                usuario_local = None
+            usuario_local = None
+            if rol_solicitado in ('admin', 'superusuario'):
+                try:
+                    usuario_local = Usuario.objects.get(correo=user_name, activo=True)
+                except Usuario.DoesNotExist:
+                    pass
 
             if usuario_local and usuario_local.password_mock and usuario_local.password_mock == password:
                 credenciales_validas = True
@@ -358,7 +356,6 @@ class UsuarioListView(APIView):
         } for u in qs])
 
 
-<<<<<<< HEAD
 def _solicitud_dict(s):
     return {
         'id': s.id,
@@ -383,28 +380,12 @@ class SolicitudAdminView(APIView):
         if estado:
             qs = qs.filter(estado=estado)
         return Response([_solicitud_dict(s) for s in qs])
-=======
-class LogoutView(APIView):
-    permission_classes = [permissions.AllowAny]
-
-    def post(self, request):
-        from django.utils import timezone
-        usuario = _usuario_sesion(request)
-        if usuario:
-            Usuario.objects.filter(pk=usuario.pk).update(ultima_sesion=timezone.now())
-        return Response(status=status.HTTP_200_OK)
-
-
-class SolicitudBroadcastView(APIView):
-    permission_classes = [permissions.AllowAny]
->>>>>>> SalvarMigraciones
 
     def post(self, request):
         usuario = _usuario_sesion(request)
         if not usuario:
             return Response({'error': 'No autenticado.'}, status=status.HTTP_401_UNAUTHORIZED)
 
-<<<<<<< HEAD
         # Si el usuario ya tiene una solicitud pendiente, se devuelve esa misma
         # (con ya_existe=True) en lugar de crear otra.
         existente = SolicitudAdmin.objects.filter(
@@ -473,12 +454,9 @@ class ResolverSolicitudAdminView(APIView):
                     {'error': 'No existe el rol admin en el catálogo.'},
                     status=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 )
-            # ───────── PUNTO DEL CAMBIO DE ROL: docente → admin ─────────
-            # Aquí es donde el usuario deja de ser docente y se vuelve admin.
             usuario = solicitud.usuario
             usuario.rol = rol_admin
             usuario.save(update_fields=['rol'])
-            # ────────────────────────────────────────────────────────────
             solicitud.estado = SolicitudAdmin.ESTADO_ACEPTADA
         else:
             solicitud.estado = SolicitudAdmin.ESTADO_RECHAZADA
@@ -488,7 +466,26 @@ class ResolverSolicitudAdminView(APIView):
         solicitud.save(update_fields=['estado', 'resuelta_por', 'fecha_resolucion'])
 
         return Response({'solicitud': _solicitud_dict(solicitud)}, status=status.HTTP_200_OK)
-=======
+
+
+class LogoutView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        usuario = _usuario_sesion(request)
+        if usuario:
+            Usuario.objects.filter(pk=usuario.pk).update(ultima_sesion=timezone.now())
+        return Response(status=status.HTTP_200_OK)
+
+
+class SolicitudBroadcastView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        usuario = _usuario_sesion(request)
+        if not usuario:
+            return Response({'error': 'No autenticado.'}, status=status.HTTP_401_UNAUTHORIZED)
+
         texto = request.data.get('texto', '').strip()
         metadatos = request.data.get('metadatos', None)
         if not texto:
@@ -526,7 +523,6 @@ class ResolverSolicitudAdminView(APIView):
             conversacion_ids.append(conv.id_conversacion)
 
         return Response({'conversaciones': conversacion_ids}, status=status.HTTP_201_CREATED)
->>>>>>> SalvarMigraciones
 
 
 class GoogleAuthView(APIView):
