@@ -315,16 +315,23 @@
 /* Modal: nota del rol */
 .rol-nota {
   display: flex;
-  align-items: center;
-  gap: 6px;
-  margin: -4px 0 0;
+  align-items: flex-start;
+  gap: 7px;
+  margin: -2px 0 0;
   font-size: 12px;
+  line-height: 1.4;
   color: var(--muted);
 }
 
 .rol-nota svg {
   color: var(--blue);
   flex: none;
+  margin-top: 2px;
+}
+
+.rol-nota b {
+  color: #344054;
+  font-weight: 700;
 }
 
 /* Modal: lista de planteles con checkbox */

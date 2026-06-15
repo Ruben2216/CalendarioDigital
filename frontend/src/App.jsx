@@ -5,7 +5,6 @@ import Login from "./pages/login/login.jsx";
 import Layout from "./components/layout/Layout.jsx";
 import LayoutDocente from "./components/layout/LayoutDocente.jsx";
 import LayoutAlumno from "./components/layout/LayoutAlumno.jsx";
-import EnConstruccion from "./pages/admin/EnConstruccion.jsx";
 
 const Dashboard        = lazy(() => import("./pages/admin/dashboard/dashboard.jsx"));
 const Calendario       = lazy(() => import("./pages/admin/calendario/calendario.jsx"));
@@ -49,7 +48,6 @@ function App() {
           <Route element={<MensajeriaProvider><Layout /></MensajeriaProvider>}>
             <Route path="/dashboard"  element={<Suspense fallback={<Cargando />}><Dashboard /></Suspense>} />
             <Route path="/calendario" element={<Suspense fallback={<Cargando />}><Calendario /></Suspense>} />
-            <Route path="/eventos"    element={<EnConstruccion titulo="Eventos" />} />
             <Route path="/mensajeria" element={<Suspense fallback={<Cargando />}><Mensajeria /></Suspense>} />
             <Route path="/usuarios"   element={<Suspense fallback={<Cargando />}><Usuarios /></Suspense>} />
           </Route>

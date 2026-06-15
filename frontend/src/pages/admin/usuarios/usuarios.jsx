@@ -431,12 +431,12 @@ export default function Usuarios() {
 
           <p className={styles["rol-nota"]}>
             <Clock size={13} />
-            Solo podrá gestionar fechas en el turno <b>&nbsp;{TURNOS_MAP[form.turno]?.etiqueta}</b>, no en ambos.
+            <span>Solo podrá gestionar fechas en el turno <b>{TURNOS_MAP[form.turno]?.etiqueta}</b>, no en ambos.</span>
           </p>
 
           <p className={styles["rol-nota"]}>
             <ShieldCheck size={13} />
-            Se registrará como <b>&nbsp;{ROL.etiqueta}</b>. {ROL.descripcion}
+            <span>Se registrará como <b>{ROL.etiqueta}</b>. {ROL.descripcion}</span>
           </p>
 
           <div className="formulario__campo">

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import { LayoutDashboard, Calendar, Clock, Users, MessageSquare, Menu, Bell, ChevronDown, LogOut, CheckCheck, Trash2 } from "lucide-react";
+import { LayoutDashboard, Calendar, Users, MessageSquare, Menu, Bell, ChevronDown, LogOut, CheckCheck, Trash2 } from "lucide-react";
 import Modal from "../modal/Modal.jsx";
 import logoCobach from "../../assets/img/logo-cobach.png";
 import { NOTIFICACIONES } from "../../data/avisos.js";
@@ -19,7 +19,6 @@ const ROL_ETIQUETA = {
 const NAV = [
   { etiqueta: "Dashboard",  icono: LayoutDashboard, ruta: "/dashboard" },
   { etiqueta: "Calendario", icono: Calendar,         ruta: "/calendario" },
-  { etiqueta: "Eventos",    icono: Clock,            ruta: "/eventos" },
   { etiqueta: "Mensajería", icono: MessageSquare,    ruta: "/mensajeria" },
   { etiqueta: "Usuarios",   icono: Users,            ruta: "/usuarios" },
 ];
