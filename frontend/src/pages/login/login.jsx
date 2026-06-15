@@ -59,10 +59,10 @@ export default function Login() {
 
     switch (sesion?.rol ?? role) {
       case 'docente':
-        navigate('/docente/calendario');
+        navigate('/docente/inicio');
         break;
       case 'alumno':
-        navigate('/alumno/calendario');
+        navigate('/alumno/inicio');
         break;
       default:
         navigate('/dashboard');
@@ -265,10 +265,10 @@ export default function Login() {
                           navigate('/dashboard');
                           break;
                         case 'docente':
-                          navigate('/docente/calendario');
+                          navigate('/docente/inicio');
                           break;
                         case 'alumno':
-                          navigate('/alumno/calendario');
+                          navigate('/alumno/inicio');
                           break;
                         default:
                           navigate('/dashboard');

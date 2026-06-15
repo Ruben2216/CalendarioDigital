@@ -1,0 +1,281 @@
+.calendario {
+  padding-bottom: 4px;
+}
+
+.calendario__cabecera {
+  min-height: 52px;
+  padding: 0 14px 0 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #edf1f7;
+}
+
+.calendario__controles {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.calendario__nav {
+  width: 24px;
+  height: 24px;
+  border: 0;
+  border-radius: 7px;
+  background: #f2f5f9;
+  color: var(--muted);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.calendario__nav:hover {
+  background: #e6ebf3;
+}
+
+.calendario__hoy {
+  height: 24px;
+  border: 0;
+  border-radius: 7px;
+  background: var(--blue);
+  color: #fff;
+  padding: 0 10px;
+  font-size: 10px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.calendario__cuerpo {
+  padding: 12px 14px 0;
+}
+
+.calendario__mes {
+  margin: 0 0 10px;
+  font-family: var(--font-display);
+  font-size: 13px;
+  line-height: 1;
+  font-weight: 800;
+  color: #15233d;
+}
+
+.calendario__rejilla {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 2px;
+}
+
+.calendario__dia-semana {
+  height: 22px;
+  display: grid;
+  place-items: center;
+  color: var(--muted-2);
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.dia {
+  aspect-ratio: 1;
+  position: relative;
+  display: grid;
+  place-items: center;
+  border: 0;
+  padding: 0;
+  border-radius: 50%;
+  background: transparent;
+  font-family: var(--font-display);
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #334155;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.dia:hover {
+  background: #eef2f8;
+}
+
+.dia--apagado {
+  color: #c0c8d5;
+}
+
+.dia--hoy {
+  background: var(--blue);
+  color: #fff;
+}
+
+.dia--hoy:hover {
+  background: var(--blue-strong);
+}
+
+.dia--seleccionado {
+  box-shadow: 0 0 0 2px var(--blue);
+}
+
+.dia--seleccionado:hover {
+  background: var(--blue-soft);
+}
+
+.dia--hoy.dia--seleccionado {
+  box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--blue);
+}
+
+.dia::after {
+  content: "";
+  position: absolute;
+  bottom: 2px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: transparent;
+}
+
+.dia--azul::after { background: var(--blue); }
+.dia--naranja::after { background: var(--orange); }
+.dia--verde::after { background: var(--green); }
+.dia--morado::after { background: var(--purple); }
+.dia--teal::after { background: var(--teal); }
+.dia--marino::after { background: var(--marino); }
+.dia--rojo::after { background: var(--red); }
+.dia--gris::after { background: var(--muted-2); }
+.dia--hoy::after { background: #fff; }
+
+.dia-eventos {
+  margin: 12px 14px 0;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--panel-soft);
+  border: 1px solid var(--line);
+}
+
+.dia-eventos__cabecera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.dia-eventos__titulo {
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 800;
+  color: #15233d;
+}
+
+.dia-eventos__limpiar {
+  border: 0;
+  background: transparent;
+  color: var(--blue);
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.dia-eventos__limpiar:hover {
+  text-decoration: underline;
+}
+
+.dia-eventos__vacio {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.dia-eventos__lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.dia-eventos__item {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.dia-eventos__marca {
+  width: 4px;
+  align-self: stretch;
+  min-height: 38px;
+  border-radius: 999px;
+  flex: none;
+}
+
+.dia-eventos__marca--azul { background: var(--blue); }
+.dia-eventos__marca--naranja { background: var(--orange); }
+.dia-eventos__marca--verde { background: var(--green); }
+.dia-eventos__marca--morado { background: var(--purple); }
+.dia-eventos__marca--teal { background: var(--teal); }
+.dia-eventos__marca--marino { background: var(--marino); }
+.dia-eventos__marca--rojo { background: var(--red); }
+.dia-eventos__marca--gris { background: var(--muted-2); }
+
+.dia-eventos__copia {
+  min-width: 0;
+  flex: 1;
+}
+
+.dia-eventos__nombre {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 13px;
+  line-height: 1.25;
+  font-weight: 700;
+  color: #101828;
+}
+
+.dia-eventos__meta {
+  margin-top: 6px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.calendario__leyenda {
+  margin-top: 10px;
+  padding: 10px 14px 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  border-top: 1px solid #edf1f7;
+}
+
+.leyenda {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+.leyenda__punto {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  flex: none;
+}
+
+.leyenda__punto--azul { background: var(--blue); }
+.leyenda__punto--naranja { background: var(--orange); }
+.leyenda__punto--verde { background: var(--green); }
+.leyenda__punto--morado { background: var(--purple); }
+.leyenda__punto--teal { background: var(--teal); }
+.leyenda__punto--marino { background: var(--marino); }
+.leyenda__punto--rojo { background: var(--red); }
+.leyenda__punto--gris { background: var(--muted-2); }

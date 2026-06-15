@@ -166,6 +166,11 @@
   flex: 1;
 }
 
+.evento__cuenta {
+  flex: none;
+  margin-top: 1px;
+}
+
 .evento__titulo {
   margin: 0;
   font-family: var(--font-display);

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import { Calendar, Menu, Bell, ChevronDown, LogOut, CheckCheck, Trash2 } from "lucide-react";
+import { Home, Calendar, Menu, Bell, ChevronDown, LogOut, CheckCheck, Trash2 } from "lucide-react";
 import Modal from "../modal/Modal.jsx";
 import logoCobach from "../../assets/img/logo-cobach.png";
 import { NOTIFICACIONES } from "../../data/avisos.js";
@@ -16,12 +16,13 @@ const ROL_ETIQUETA = {
 };
 
 const NAV_ALUMNO = [
+  { etiqueta: 'Inicio', icono: Home, ruta: '/alumno/inicio' },
   { etiqueta: 'Calendario', icono: Calendar, ruta: '/alumno/calendario' },
 ];
 
 export default function LayoutAlumno() {
   const navigate = useNavigate();
-  const { nombre, iniciales, rol, plantel } = useSesion();
+  const { nombre, iniciales, rol, plantel, turno } = useSesion();
 
   const [esMovil, setEsMovil] = useState(
     () => window.matchMedia("(max-width: 920px)").matches
@@ -32,13 +33,18 @@ export default function LayoutAlumno() {
   const [notifAbierto, setNotifAbierto] = useState(false);
   const [notificaciones, setNotificaciones] = useState(NOTIFICACIONES);
   const [cerrarSesionAbierto, setCerrarSesionAbierto] = useState(false);
+  const [perfilAbierto, setPerfilAbierto] = useState(false);
 
   const notifRef = useRef(null);
+  const perfilRef = useRef(null);
 
   useEffect(() => {
     const alClicar = (e) => {
       if (notifRef.current && !notifRef.current.contains(e.target)) {
         setNotifAbierto(false);
+      }
+      if (perfilRef.current && !perfilRef.current.contains(e.target)) {
+        setPerfilAbierto(false);
       }
     };
     document.addEventListener("mousedown", alClicar);
@@ -70,6 +76,11 @@ export default function LayoutAlumno() {
   const horaActual = new Date().toLocaleTimeString("es-MX", {
     timeZone: ZONA, hour: "2-digit", minute: "2-digit",
   });
+
+  const anioActual = new Date().getFullYear();
+  const ciclo = new Date().getMonth() >= 7
+    ? `${anioActual}–${anioActual + 1}`
+    : `${anioActual - 1}–${anioActual}`;
 
   const cerrarMenuMovil = () => {
     if (esMovil) setMenuAbierto(false);
@@ -253,13 +264,37 @@ export default function LayoutAlumno() {
               <ChevronDown size={14} />
             </div>
 
-            <div className={styles["usuario"]}>
-              <span className={styles["usuario__avatar"]}>{iniciales || 'US'}</span>
-              <div className={styles["usuario__info"]}>
-                <strong>{nombre || 'Usuario'}</strong>
-                <span>{ROL_ETIQUETA[rol] ?? 'Usuario'}</span>
-              </div>
-              <ChevronDown size={14} />
+            <div className={styles["menu-perfil"]} ref={perfilRef}>
+              <button
+                type="button"
+                className={styles["usuario"]}
+                onClick={() => setPerfilAbierto((v) => !v)}
+                aria-expanded={perfilAbierto}
+              >
+                <span className={styles["usuario__avatar"]}>{iniciales || 'US'}</span>
+                <div className={styles["usuario__info"]}>
+                  <strong>{nombre || 'Usuario'}</strong>
+                  <span>{ROL_ETIQUETA[rol] ?? 'Usuario'}</span>
+                </div>
+                <ChevronDown size={14} />
+              </button>
+
+              {perfilAbierto && (
+                <div className={styles["menu-perfil__panel"]}>
+                  <div className={styles["menu-perfil__cab"]}>
+                    <span className={styles["usuario__avatar"]}>{iniciales || 'US'}</span>
+                    <div>
+                      <div className={styles["menu-perfil__nombre"]}>{nombre || 'Usuario'}</div>
+                      <div className={styles["menu-perfil__rol"]}>{ROL_ETIQUETA[rol] ?? 'Usuario'}</div>
+                    </div>
+                  </div>
+                  <ul className={styles["menu-perfil__datos"]}>
+                    <li><span>Plantel</span><strong>{plantel?.nombre || '—'}</strong></li>
+                    <li><span>Turno</span><strong>{turno?.nombre || '—'}</strong></li>
+                    <li><span>Ciclo escolar</span><strong>{ciclo}</strong></li>
+                  </ul>
+                </div>
+              )}
             </div>
           </div>
         </header>

@@ -25,6 +25,18 @@ function saludoPorHora(hora) {
   return { texto: "Buenas noches" };
 }
 
+function diasRestantes(claveHoy, clave) {
+  const a = desdeClaveFecha(claveHoy);
+  const b = desdeClaveFecha(clave);
+  return Math.round((b - a) / 86400000);
+}
+
+function cuenta(dias) {
+  if (dias <= 0) return { texto: "Hoy", color: "azul" };
+  if (dias === 1) return { texto: "Mañana", color: "naranja" };
+  return { texto: `En ${dias} días`, color: "gris" };
+}
+
 export default function Dashboard() {
   const navigate = useNavigate();
   const hoy = useMemo(() => ahoraMexico(), []);
@@ -168,6 +180,7 @@ export default function Dashboard() {
             ) : (
               proximosEventos.map((evento) => {
                 const fecha = desdeClaveFecha(evento.fecha);
+                const c = cuenta(diasRestantes(claveHoy, evento.fecha));
                 return (
                   <div key={evento.id} className={styles["evento"]}>
                     <div className={styles["evento__fecha"]}>
@@ -195,6 +208,9 @@ export default function Dashboard() {
                         )}
                       </div>
                     </div>
+                    <span className={`etiqueta etiqueta--${c.color} ${styles["evento__cuenta"]}`}>
+                      {c.texto}
+                    </span>
                   </div>
                 );
               })
@@ -251,7 +267,7 @@ export default function Dashboard() {
           <div className={styles["calendario__cabecera"]}>
             <div className="tarjeta__titulo">
               <Calendar size={16} />
-              Calendario institucional
+              Calendario
             </div>
             <div className={styles["calendario__controles"]}>
               <button type="button" className={styles["calendario__nav"]} onClick={() => irMes(-1)} aria-label="Mes anterior">
