@@ -27,3 +27,28 @@ export const confirmarEliminacion = (nombre) =>
       actions: "swal-acciones",
     },
   });
+
+export const confirmarAccion = ({
+  titulo,
+  html,
+  icono = "warning",
+  confirmar = "Aceptar",
+  cancelar = "Cancelar",
+  peligro = false,
+}) =>
+  Swal.fire({
+    icon: icono,
+    title: titulo,
+    html,
+    showCancelButton: true,
+    confirmButtonText: confirmar,
+    cancelButtonText: cancelar,
+    reverseButtons: true,
+    focusCancel: true,
+    buttonsStyling: false,
+    customClass: {
+      confirmButton: `boton ${peligro ? "boton--peligro" : "boton--primario"}`,
+      cancelButton: "boton boton--fantasma",
+      actions: "swal-acciones",
+    },
+  });

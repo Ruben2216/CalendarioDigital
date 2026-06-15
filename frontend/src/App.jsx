@@ -3,12 +3,15 @@ import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom
 import Login from "./pages/login/login.jsx";
 import Layout from "./components/layout/Layout.jsx";
 import LayoutDocente from "./components/layout/LayoutDocente.jsx";
+import LayoutAlumno from "./components/layout/LayoutAlumno.jsx";
 import EnConstruccion from "./pages/admin/EnConstruccion.jsx";
 
 const Dashboard = lazy(() => import("./pages/admin/dashboard/dashboard.jsx"));
 const Calendario = lazy(() => import("./pages/admin/calendario/calendario.jsx"));
+const Usuarios = lazy(() => import("./pages/admin/usuarios/usuarios.jsx"));
 const CalendarioDocente = lazy(() => import("./pages/admin/calendario/calendario.jsx"));
 const ForoDocente = lazy(() => import("./pages/docente/foro/ForoDocente.jsx"));
+const Alumno = lazy(() => import("./pages/alumno/alumno.jsx"));
 
 function Cargando() {
   return (
@@ -60,7 +63,28 @@ function App() {
               }
             />
             <Route path="/eventos" element={<EnConstruccion titulo="Eventos" />} />
-            <Route path="/usuarios" element={<EnConstruccion titulo="Usuarios" />} />
+            <Route
+              path="/usuarios"
+              element={
+                <Suspense fallback={<Cargando />}>
+                  <Usuarios />
+                </Suspense>
+              }
+            />
+          </Route>
+        </Route>
+
+        {/* Rutas alumno (solo lectura) */}
+        <Route element={<ProtectedRoute roles={['alumno']} />}>
+          <Route element={<LayoutAlumno />}>
+            <Route
+              path="/alumno/calendario"
+              element={
+                <Suspense fallback={<Cargando />}>
+                  <Alumno />
+                </Suspense>
+              }
+            />
           </Route>
         </Route>
 

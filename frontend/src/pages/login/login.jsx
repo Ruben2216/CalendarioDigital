@@ -61,6 +61,9 @@ export default function Login() {
       case 'docente':
         navigate('/docente/calendario');
         break;
+      case 'alumno':
+        navigate('/alumno/calendario');
+        break;
       default:
         navigate('/dashboard');
     }
@@ -265,8 +268,7 @@ export default function Login() {
                           navigate('/docente/calendario');
                           break;
                         case 'alumno':
-                          // navigate('/alumno/dashboard'); // Futuro
-                          navigate('/dashboard');
+                          navigate('/alumno/calendario');
                           break;
                         default:
                           navigate('/dashboard');
