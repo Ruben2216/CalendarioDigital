@@ -14,7 +14,7 @@ class Command(BaseCommand):
             self.stderr.write(f'Usuario no encontrado: {e}. Ejecuta loaddata primero.')
             return
 
-        id_a, id_b = Conversacion.par_ordenado(docente.id, admin.id)
+        id_a, id_b = Conversacion.par_ordenado(docente.id_usuario, admin.id_usuario)
         conv, creada = Conversacion.objects.get_or_create(
             participante_a_id=id_a,
             participante_b_id=id_b,

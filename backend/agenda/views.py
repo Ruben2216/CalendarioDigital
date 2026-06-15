@@ -79,7 +79,7 @@ class LoginInstitucionalView(APIView):
 
         permisos_extra = [
             {
-                'id_turno': pe.turno_objetivo.id,
+                'id_turno': pe.turno_objetivo.id_turno,
                 'nombre_turno': pe.turno_objetivo.nombre_turno,
             }
             for pe in usuario.permisos_especiales.filter(activo=True)
@@ -91,15 +91,15 @@ class LoginInstitucionalView(APIView):
             'foto': respuesta_institucional.get('foto', ''),
             'qr': respuesta_institucional.get('qr', ''),
             'sesion': {
-                'id_usuario': usuario.id,
+                'id_usuario': usuario.id_usuario,
                 'rol': usuario.rol.nombre_rol,
                 'plantel': {
-                    'id': usuario.plantel.id if usuario.plantel else None,
+                    'id': usuario.plantel.id_plantel if usuario.plantel else None,
                     'nombre': usuario.plantel.nombre if usuario.plantel else None,
                     'clave': usuario.plantel.clave if usuario.plantel else None,
                 },
                 'turno': {
-                    'id': usuario.turno.id if usuario.turno else None,
+                    'id': usuario.turno.id_turno if usuario.turno else None,
                     'nombre': usuario.turno.nombre_turno if usuario.turno else None,
                 },
                 'permisos_especiales': permisos_extra,
@@ -137,7 +137,7 @@ class DocentesListView(APIView):
 
         docentes = docentes.select_related('rol', 'plantel', 'turno')
         return Response([{
-            'id': d.id,
+            'id': d.id_usuario,
             'nombre': d.nombre or d.correo,
             'correo': d.correo,
             'turno': d.turno.nombre_turno if d.turno else None,
@@ -172,14 +172,14 @@ class ConversacionListView(APIView):
             lectura = conv.lecturas.filter(usuario=usuario).first()
             sin_leer = conv.mensajes.filter(
                 eliminado=False,
-                id__gt=lectura.ultimo_leido_id if lectura and lectura.ultimo_leido_id else 0,
+                pk__gt=lectura.ultimo_leido_id if lectura and lectura.ultimo_leido_id else 0,
             ).exclude(remitente=usuario).count()
 
             otro = conv.participante_b if conv.participante_a == usuario else conv.participante_a
             resultado.append({
-                'id': conv.id,
+                'id': conv.id_conversacion,
                 'otro_usuario': {
-                    'id': otro.id,
+                    'id': otro.id_usuario,
                     'nombre': otro.nombre or otro.correo,
                     'rol': otro.rol.nombre_rol,
                 },
@@ -211,14 +211,14 @@ class ConversacionListView(APIView):
                     status=status.HTTP_403_FORBIDDEN,
                 )
 
-        id_a, id_b = Conversacion.par_ordenado(usuario.id, otro.id)
+        id_a, id_b = Conversacion.par_ordenado(usuario.id_usuario, otro.id_usuario)
         plantel = usuario.plantel or otro.plantel
         conv, _ = Conversacion.objects.get_or_create(
             participante_a_id=id_a,
             participante_b_id=id_b,
             defaults={'plantel': plantel},
         )
-        return Response({'id_conversacion': conv.id}, status=status.HTTP_200_OK)
+        return Response({'id_conversacion': conv.id_conversacion}, status=status.HTTP_200_OK)
 
 
 class MensajeListView(APIView):
@@ -240,12 +240,12 @@ class MensajeListView(APIView):
         ).select_related('remitente')
 
         return Response([{
-            'id': m.id,
+            'id': m.id_mensaje,
             'remitente_id': m.remitente_id,
             'texto': m.texto(),
             'metadatos': m.metadatos(),
             'fecha_envio': m.fecha_envio.isoformat(),
-            'es_propio': m.remitente_id == (usuario.id if usuario else -1),
+            'es_propio': m.remitente_id == (usuario.id_usuario if usuario else -1),
         } for m in mensajes])
 
     def post(self, request, id_conv):
@@ -269,7 +269,7 @@ class MensajeListView(APIView):
 
         msg = Mensaje.crear(conv, usuario, texto, metadatos)
         return Response(
-            {'id_mensaje': msg.id, 'fecha_envio': msg.fecha_envio.isoformat()},
+            {'id_mensaje': msg.id_mensaje, 'fecha_envio': msg.fecha_envio.isoformat()},
             status=status.HTTP_201_CREATED,
         )
 
@@ -314,7 +314,7 @@ class UsuarioListView(APIView):
                 pass
 
         return Response([{
-            'id':      u.id,
+            'id':      u.id_usuario,
             'nombre':  u.nombre or u.correo,
             'correo':  u.correo,
             'plantel': u.plantel.nombre if u.plantel else None,

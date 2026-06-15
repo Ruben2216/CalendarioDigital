@@ -4,6 +4,7 @@ from django.db import models
 
 
 class Rol(models.Model):
+    id_rol = models.BigAutoField(primary_key=True)
     nombre_rol = models.CharField(max_length=50, unique=True)
 
     class Meta:
@@ -14,6 +15,7 @@ class Rol(models.Model):
 
 
 class Plantel(models.Model):
+    id_plantel = models.BigAutoField(primary_key=True)
     clave = models.CharField(max_length=10, unique=True)
     nombre = models.CharField(max_length=100)
     activo = models.BooleanField(default=True)
@@ -26,6 +28,7 @@ class Plantel(models.Model):
 
 
 class Turno(models.Model):
+    id_turno = models.BigAutoField(primary_key=True)
     plantel = models.ForeignKey(
         Plantel, on_delete=models.CASCADE, related_name='turnos'
     )
@@ -33,12 +36,14 @@ class Turno(models.Model):
 
     class Meta:
         db_table = 'Turno'
+        unique_together = ('plantel', 'nombre_turno')
 
     def __str__(self):
         return f'{self.nombre_turno} — {self.plantel.nombre}'
 
 
 class Grupo(models.Model):
+    id_grupo = models.BigAutoField(primary_key=True)
     turno = models.ForeignKey(
         Turno, on_delete=models.CASCADE, related_name='grupos'
     )
@@ -53,6 +58,7 @@ class Grupo(models.Model):
 
 
 class Usuario(models.Model):
+    id_usuario = models.BigAutoField(primary_key=True)
     rol = models.ForeignKey(
         Rol, on_delete=models.PROTECT, related_name='usuarios'
     )
@@ -67,19 +73,25 @@ class Usuario(models.Model):
     correo = models.CharField(max_length=100, unique=True)
     nombre = models.CharField(max_length=150, null=True, blank=True)
     google_id = models.CharField(max_length=255, unique=True, null=True, blank=True)
-    id_empleado = models.IntegerField(null=True, blank=True)
-    matricula = models.CharField(max_length=20, null=True, blank=True)
+    id_empleado = models.IntegerField(null=True, blank=True, unique=True)
+    matricula = models.CharField(max_length=20, null=True, blank=True, unique=True)
     password_mock = models.CharField(max_length=128, null=True, blank=True)
     activo = models.BooleanField(default=True)
 
     class Meta:
         db_table = 'Usuario'
 
+    def clean(self):
+        from django.core.exceptions import ValidationError
+        if self.turno_id and self.plantel_id and self.turno.plantel_id != self.plantel_id:
+            raise ValidationError('El turno no pertenece al plantel asignado al usuario.')
+
     def __str__(self):
         return f'{self.correo} ({self.rol.nombre_rol})'
 
 
 class PermisoEspecial(models.Model):
+    id_permiso_especial = models.BigAutoField(primary_key=True)
     usuario = models.ForeignKey(
         Usuario, on_delete=models.CASCADE, related_name='permisos_especiales'
     )
@@ -97,6 +109,7 @@ class PermisoEspecial(models.Model):
 
 
 class Conversacion(models.Model):
+    id_conversacion = models.BigAutoField(primary_key=True)
     participante_a = models.ForeignKey(
         Usuario, on_delete=models.CASCADE, related_name='conversaciones_como_a'
     )
@@ -115,7 +128,6 @@ class Conversacion(models.Model):
 
     @staticmethod
     def par_ordenado(id_a: int, id_b: int) -> tuple[int, int]:
-        """Garantiza que participante_a.id siempre sea el menor."""
         return (min(id_a, id_b), max(id_a, id_b))
 
     def es_participante(self, id_usuario: int) -> bool:
@@ -123,6 +135,7 @@ class Conversacion(models.Model):
 
 
 class Mensaje(models.Model):
+    id_mensaje = models.BigAutoField(primary_key=True)
     conversacion = models.ForeignKey(
         Conversacion, on_delete=models.CASCADE, related_name='mensajes'
     )
@@ -168,6 +181,7 @@ class Mensaje(models.Model):
 
 
 class LecturaMensaje(models.Model):
+    id_lectura_mensaje = models.BigAutoField(primary_key=True)
     conversacion = models.ForeignKey(
         Conversacion, on_delete=models.CASCADE, related_name='lecturas'
     )
@@ -191,6 +205,7 @@ class Notificacion(models.Model):
         ('recordatorio',       'Recordatorio'),
     ]
 
+    id_notificacion = models.BigAutoField(primary_key=True)
     usuario        = models.ForeignKey(
         Usuario, on_delete=models.CASCADE, related_name='notificaciones'
     )
