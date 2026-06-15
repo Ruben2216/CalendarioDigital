@@ -22,14 +22,21 @@ export const ESTADOS = [
   { id: "rechazado", etiqueta: "Rechazado", color: "rojo" },
 ];
 
+/* Turno en el que el administrador puede gestionar fechas. Solo puede tener
+   UNO: Matutino o Vespertino, no ambos. */
+export const TURNOS = [
+  { id: "matutino", etiqueta: "Matutino", color: "naranja" },
+  { id: "vespertino", etiqueta: "Vespertino", color: "marino" },
+];
+
 export function usuariosIniciales() {
   return [
-    { id: 1, nombre: "José Rubén Gómez Pérez", correo: "jruben@cobach.edu.mx", planteles: ["COBACH 01 - Tuxtla Terán"], estado: "activo", solicitado: "2026-05-12" },
-    { id: 2, nombre: "María Fernanda Aguilar", correo: "mfaguilar@cobach.edu.mx", planteles: ["COBACH 02 - San Cristóbal", "COBACH 04 - Comitán"], estado: "activo", solicitado: "2026-05-20" },
-    { id: 3, nombre: "Carlos Eduardo Ramírez", correo: "cramirez@cobach.edu.mx", planteles: ["COBACH 03 - Tapachula"], estado: "pendiente", solicitado: "2026-06-08" },
-    { id: 4, nombre: "Ana Lucía Hernández", correo: "ahernandez@cobach.edu.mx", planteles: ["COBACH 05 - Pichucalco"], estado: "pendiente", solicitado: "2026-06-10" },
-    { id: 5, nombre: "Luis Ángel Martínez", correo: "lmartinez@cobach.edu.mx", planteles: ["COBACH 06 - Palenque"], estado: "rechazado", solicitado: "2026-05-28" },
-    { id: 6, nombre: "Diana Patricia Vázquez", correo: "dvazquez@cobach.edu.mx", planteles: ["COBACH 07 - Arriaga", "COBACH 08 - Villaflores"], estado: "activo", solicitado: "2026-04-30" },
-    { id: 7, nombre: "Roberto Jiménez Cruz", correo: "rjimenez@cobach.edu.mx", planteles: ["COBACH 01 - Tuxtla Terán"], estado: "pendiente", solicitado: "2026-06-13" },
+    { id: 1, nombre: "José Rubén Gómez Pérez", correo: "jruben@cobach.edu.mx", turno: "matutino", planteles: ["COBACH 01 - Tuxtla Terán"], estado: "activo", solicitado: "2026-05-12" },
+    { id: 2, nombre: "María Fernanda Aguilar", correo: "mfaguilar@cobach.edu.mx", turno: "vespertino", planteles: ["COBACH 02 - San Cristóbal", "COBACH 04 - Comitán"], estado: "activo", solicitado: "2026-05-20" },
+    { id: 3, nombre: "Carlos Eduardo Ramírez", correo: "cramirez@cobach.edu.mx", turno: "matutino", planteles: ["COBACH 03 - Tapachula"], estado: "pendiente", solicitado: "2026-06-08" },
+    { id: 4, nombre: "Ana Lucía Hernández", correo: "ahernandez@cobach.edu.mx", turno: "vespertino", planteles: ["COBACH 05 - Pichucalco"], estado: "pendiente", solicitado: "2026-06-10" },
+    { id: 5, nombre: "Luis Ángel Martínez", correo: "lmartinez@cobach.edu.mx", turno: "matutino", planteles: ["COBACH 06 - Palenque"], estado: "rechazado", solicitado: "2026-05-28" },
+    { id: 6, nombre: "Diana Patricia Vázquez", correo: "dvazquez@cobach.edu.mx", turno: "vespertino", planteles: ["COBACH 07 - Arriaga", "COBACH 08 - Villaflores"], estado: "activo", solicitado: "2026-04-30" },
+    { id: 7, nombre: "Roberto Jiménez Cruz", correo: "rjimenez@cobach.edu.mx", turno: "matutino", planteles: ["COBACH 01 - Tuxtla Terán"], estado: "pendiente", solicitado: "2026-06-13" },
   ];
 }

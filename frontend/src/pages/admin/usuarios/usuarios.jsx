@@ -5,12 +5,13 @@ import {
 } from "lucide-react";
 import Modal from "../../../components/modal/Modal.jsx";
 import { avisoExito, confirmarAccion, confirmarEliminacion } from "../../../lib/alertas.js";
-import { PLANTELES, ROL, ESTADOS, usuariosIniciales } from "../../../data/usuarios.js";
+import { PLANTELES, ROL, ESTADOS, TURNOS, usuariosIniciales } from "../../../data/usuarios.js";
 import styles from "./usuarios.module.css";
 
 const ESTADOS_MAP = Object.fromEntries(ESTADOS.map((e) => [e.id, e]));
+const TURNOS_MAP = Object.fromEntries(TURNOS.map((t) => [t.id, t]));
 
-const FORM_VACIO = { nombre: "", correo: "", planteles: [], estado: "pendiente" };
+const FORM_VACIO = { nombre: "", correo: "", turno: "matutino", planteles: [], estado: "pendiente" };
 
 function iniciales(nombre) {
   return nombre
@@ -76,6 +77,7 @@ export default function Usuarios() {
     setForm({
       nombre: usuario.nombre,
       correo: usuario.correo,
+      turno: usuario.turno,
       planteles: [...usuario.planteles],
       estado: usuario.estado,
     });
@@ -229,6 +231,7 @@ export default function Usuarios() {
                 <tr>
                   <th>Usuario</th>
                   <th>Planteles asignados</th>
+                  <th>Turno</th>
                   <th>Rol</th>
                   <th>Estado</th>
                   <th>Solicitado</th>
@@ -238,6 +241,7 @@ export default function Usuarios() {
               <tbody>
                 {usuariosFiltrados.map((u) => {
                   const estado = ESTADOS_MAP[u.estado];
+                  const turno = TURNOS_MAP[u.turno];
                   return (
                     <tr key={u.id}>
                       <td>
@@ -263,6 +267,9 @@ export default function Usuarios() {
                             </span>
                           ))}
                         </div>
+                      </td>
+                      <td>
+                        <span className={`etiqueta etiqueta--${turno?.color}`}>{turno?.etiqueta}</span>
                       </td>
                       <td>
                         <span className={`etiqueta etiqueta--${ROL.color}`}>{ROL.etiqueta}</span>
@@ -350,14 +357,29 @@ export default function Usuarios() {
             <input type="email" required placeholder="usuario@cobach.edu.mx" value={form.correo} onChange={fijarCampo("correo")} />
           </label>
 
-          <label className="formulario__campo">
-            <span className="formulario__etiqueta">Estado</span>
-            <select value={form.estado} onChange={fijarCampo("estado")}>
-              {ESTADOS.map((e) => (
-                <option key={e.id} value={e.id}>{e.etiqueta}</option>
-              ))}
-            </select>
-          </label>
+          <div className="formulario__fila">
+            <label className="formulario__campo">
+              <span className="formulario__etiqueta">Turno</span>
+              <select value={form.turno} onChange={fijarCampo("turno")}>
+                {TURNOS.map((t) => (
+                  <option key={t.id} value={t.id}>{t.etiqueta}</option>
+                ))}
+              </select>
+            </label>
+            <label className="formulario__campo">
+              <span className="formulario__etiqueta">Estado</span>
+              <select value={form.estado} onChange={fijarCampo("estado")}>
+                {ESTADOS.map((e) => (
+                  <option key={e.id} value={e.id}>{e.etiqueta}</option>
+                ))}
+              </select>
+            </label>
+          </div>
+
+          <p className={styles["rol-nota"]}>
+            <Clock size={13} />
+            Solo podrá gestionar fechas en el turno <b>&nbsp;{TURNOS_MAP[form.turno]?.etiqueta}</b>, no en ambos.
+          </p>
 
           <p className={styles["rol-nota"]}>
             <ShieldCheck size={13} />
