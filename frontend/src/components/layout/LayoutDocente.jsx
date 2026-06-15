@@ -6,6 +6,7 @@ import logoCobach from "../../assets/img/logo-cobach.png";
 import { NOTIFICACIONES } from "../../data/avisos.js";
 import { ZONA } from "../../lib/fechas.js";
 import { useSesion } from "../../hooks/useSesion.js";
+import { useMensajeriaCtx } from "../../context/MensajeriaContext.jsx";
 import styles from "./Layout.module.css";
 
 const ROL_ETIQUETA = {
@@ -15,14 +16,15 @@ const ROL_ETIQUETA = {
   alumno: 'Alumno',
 };
 
-const NAV_DOCENTE = [
-  { etiqueta: 'Calendario', icono: Calendar, ruta: '/docente/calendario', badge: 0 },
-  { etiqueta: 'Foro', icono: MessageSquare, ruta: '/docente/foro', badge: 2 },
+const NAV_DOCENTE_BASE = [
+  { etiqueta: 'Calendario', icono: Calendar,      ruta: '/docente/calendario' },
+  { etiqueta: 'Foro',       icono: MessageSquare, ruta: '/docente/foro', badgeDinamico: true },
 ];
 
 export default function LayoutDocente() {
   const navigate = useNavigate();
   const { nombre, iniciales, rol } = useSesion();
+  const { totalSinLeer } = useMensajeriaCtx();
 
   const [esMovil, setEsMovil] = useState(
     () => window.matchMedia("(max-width: 920px)").matches
@@ -101,7 +103,9 @@ export default function LayoutDocente() {
         </div>
 
         <nav className={styles["navegacion"]} aria-label="Navegación principal">
-          {NAV_DOCENTE.map(({ etiqueta, icono: Icono, ruta, badge }) => (
+          {NAV_DOCENTE_BASE.map(({ etiqueta, icono: Icono, ruta, badgeDinamico }) => {
+            const badge = badgeDinamico ? totalSinLeer : 0;
+            return (
             <NavLink
               key={ruta}
               to={ruta}
@@ -118,7 +122,8 @@ export default function LayoutDocente() {
                 <span className={styles["navegacion__badge"]}>{badge}</span>
               )}
             </NavLink>
-          ))}
+            );
+          })}
         </nav>
 
         <div className={styles["barra-lateral__pie"]}>

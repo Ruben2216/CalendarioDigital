@@ -1,14 +1,16 @@
 import { lazy, Suspense } from "react";
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom";
+import { MensajeriaProvider } from "./context/MensajeriaContext.jsx";
 import Login from "./pages/login/login.jsx";
 import Layout from "./components/layout/Layout.jsx";
 import LayoutDocente from "./components/layout/LayoutDocente.jsx";
 import EnConstruccion from "./pages/admin/EnConstruccion.jsx";
 
-const Dashboard = lazy(() => import("./pages/admin/dashboard/dashboard.jsx"));
-const Calendario = lazy(() => import("./pages/admin/calendario/calendario.jsx"));
+const Dashboard        = lazy(() => import("./pages/admin/dashboard/dashboard.jsx"));
+const Calendario       = lazy(() => import("./pages/admin/calendario/calendario.jsx"));
+const Mensajeria       = lazy(() => import("./pages/admin/mensajeria/Mensajeria.jsx"));
 const CalendarioDocente = lazy(() => import("./pages/admin/calendario/calendario.jsx"));
-const ForoDocente = lazy(() => import("./pages/docente/foro/ForoDocente.jsx"));
+const ForoDocente      = lazy(() => import("./pages/docente/foro/ForoDocente.jsx"));
 
 function Cargando() {
   return (
@@ -37,52 +39,25 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Login />} />
+        <Route path="/"      element={<Login />} />
         <Route path="/login" element={<Login />} />
 
         {/* Rutas admin */}
         <Route element={<ProtectedRoute roles={['admin', 'superusuario']} />}>
-          <Route element={<Layout />}>
-            <Route
-              path="/dashboard"
-              element={
-                <Suspense fallback={<Cargando />}>
-                  <Dashboard />
-                </Suspense>
-              }
-            />
-            <Route
-              path="/calendario"
-              element={
-                <Suspense fallback={<Cargando />}>
-                  <Calendario />
-                </Suspense>
-              }
-            />
-            <Route path="/eventos" element={<EnConstruccion titulo="Eventos" />} />
-            <Route path="/usuarios" element={<EnConstruccion titulo="Usuarios" />} />
+          <Route element={<MensajeriaProvider><Layout /></MensajeriaProvider>}>
+            <Route path="/dashboard"  element={<Suspense fallback={<Cargando />}><Dashboard /></Suspense>} />
+            <Route path="/calendario" element={<Suspense fallback={<Cargando />}><Calendario /></Suspense>} />
+            <Route path="/eventos"    element={<EnConstruccion titulo="Eventos" />} />
+            <Route path="/mensajeria" element={<Suspense fallback={<Cargando />}><Mensajeria /></Suspense>} />
+            <Route path="/usuarios"   element={<EnConstruccion titulo="Usuarios" />} />
           </Route>
         </Route>
 
         {/* Rutas docente */}
         <Route element={<ProtectedRoute roles={['docente']} />}>
-          <Route element={<LayoutDocente />}>
-            <Route
-              path="/docente/calendario"
-              element={
-                <Suspense fallback={<Cargando />}>
-                  <CalendarioDocente soloLectura />
-                </Suspense>
-              }
-            />
-            <Route
-              path="/docente/foro"
-              element={
-                <Suspense fallback={<Cargando />}>
-                  <ForoDocente />
-                </Suspense>
-              }
-            />
+          <Route element={<MensajeriaProvider><LayoutDocente /></MensajeriaProvider>}>
+            <Route path="/docente/calendario" element={<Suspense fallback={<Cargando />}><CalendarioDocente soloLectura /></Suspense>} />
+            <Route path="/docente/foro"       element={<Suspense fallback={<Cargando />}><ForoDocente /></Suspense>} />
           </Route>
         </Route>
 

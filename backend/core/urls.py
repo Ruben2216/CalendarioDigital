@@ -1,9 +1,24 @@
 from django.contrib import admin
 from django.urls import path
-from agenda.views import GoogleAuthView, LoginInstitucionalView
+from agenda.views import (
+    GoogleAuthView,
+    LoginInstitucionalView,
+    DocentesListView,
+    ConversacionListView,
+    MensajeListView,
+    MarcarLeidoView,
+    UsuarioListView,
+)
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/auth/google/callback/', GoogleAuthView.as_view(), name='google-callback'),
     path('api/auth/login/', LoginInstitucionalView.as_view(), name='login-institucional'),
+
+    # Mensajería
+    path('api/usuarios/', UsuarioListView.as_view(), name='usuarios-list'),
+    path('api/mensajeria/docentes/', DocentesListView.as_view(), name='docentes-list'),
+    path('api/mensajeria/conversaciones/', ConversacionListView.as_view(), name='conversaciones'),
+    path('api/mensajeria/conversaciones/<int:id_conv>/mensajes/', MensajeListView.as_view(), name='mensajes'),
+    path('api/mensajeria/conversaciones/<int:id_conv>/leer/', MarcarLeidoView.as_view(), name='marcar-leido'),
 ]

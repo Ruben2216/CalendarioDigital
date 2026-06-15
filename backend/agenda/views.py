@@ -3,6 +3,8 @@ from django.conf import settings
 
 import requests
 
+from django.db.models import Q
+
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, permissions
@@ -12,7 +14,7 @@ from .services.mock_institucional import (
     mock_login_empleado,
     mock_login_alumno,
 )
-from .models import Usuario
+from .models import Usuario, Conversacion, Mensaje, LecturaMensaje
 
 
 ROLES_EMPLEADO = {'superusuario', 'admin', 'docente'}
@@ -103,6 +105,222 @@ class LoginInstitucionalView(APIView):
                 'permisos_especiales': permisos_extra,
             },
         }, status=status.HTTP_200_OK)
+
+
+def _usuario_sesion(request):
+    """Lee id_usuario del body o query params y devuelve el Usuario activo."""
+    id_usuario = request.data.get('id_usuario') or request.query_params.get('id_usuario')
+    try:
+        return (
+            Usuario.objects
+            .select_related('rol', 'plantel')
+            .get(pk=int(id_usuario), activo=True)
+        )
+    except (TypeError, ValueError, Usuario.DoesNotExist):
+        return None
+
+
+class DocentesListView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        usuario = _usuario_sesion(request)
+        if not usuario:
+            return Response({'error': 'No autenticado.'}, status=status.HTTP_401_UNAUTHORIZED)
+
+        if usuario.rol.nombre_rol == 'superusuario':
+            docentes = Usuario.objects.filter(rol__nombre_rol='docente', activo=True)
+        else:
+            docentes = Usuario.objects.filter(
+                rol__nombre_rol='docente', plantel=usuario.plantel, activo=True
+            )
+
+        docentes = docentes.select_related('rol', 'plantel', 'turno')
+        return Response([{
+            'id': d.id,
+            'nombre': d.nombre or d.correo,
+            'correo': d.correo,
+            'turno': d.turno.nombre_turno if d.turno else None,
+        } for d in docentes])
+
+
+class ConversacionListView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        usuario = _usuario_sesion(request)
+        if not usuario:
+            return Response({'error': 'No autenticado.'}, status=status.HTTP_401_UNAUTHORIZED)
+
+        rol = usuario.rol.nombre_rol
+        if rol == 'superusuario':
+            convs = Conversacion.objects.filter(activa=True)
+        elif rol == 'admin':
+            convs = Conversacion.objects.filter(activa=True, plantel=usuario.plantel)
+        else:
+            convs = Conversacion.objects.filter(activa=True).filter(
+                Q(participante_a=usuario) | Q(participante_b=usuario)
+            )
+
+        convs = convs.select_related(
+            'participante_a__rol', 'participante_b__rol', 'plantel'
+        ).prefetch_related('lecturas', 'mensajes')
+
+        resultado = []
+        for conv in convs:
+            ultimo = conv.mensajes.filter(eliminado=False).last()
+            lectura = conv.lecturas.filter(usuario=usuario).first()
+            sin_leer = conv.mensajes.filter(
+                eliminado=False,
+                id__gt=lectura.ultimo_leido_id if lectura and lectura.ultimo_leido_id else 0,
+            ).exclude(remitente=usuario).count()
+
+            otro = conv.participante_b if conv.participante_a == usuario else conv.participante_a
+            resultado.append({
+                'id': conv.id,
+                'otro_usuario': {
+                    'id': otro.id,
+                    'nombre': otro.nombre or otro.correo,
+                    'rol': otro.rol.nombre_rol,
+                },
+                'plantel': conv.plantel.nombre,
+                'sin_leer': sin_leer,
+                'ultimo_mensaje': {
+                    'texto': ultimo.texto() if ultimo else '',
+                    'fecha': ultimo.fecha_envio.isoformat() if ultimo else None,
+                } if ultimo else None,
+            })
+
+        return Response(resultado)
+
+    def post(self, request):
+        usuario = _usuario_sesion(request)
+        if not usuario:
+            return Response({'error': 'No autenticado.'}, status=status.HTTP_401_UNAUTHORIZED)
+
+        id_otro = request.data.get('id_otro_usuario')
+        try:
+            otro = Usuario.objects.select_related('plantel').get(pk=int(id_otro), activo=True)
+        except (TypeError, ValueError, Usuario.DoesNotExist):
+            return Response({'error': 'Usuario destino no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
+
+        if usuario.rol.nombre_rol != 'superusuario':
+            if usuario.plantel != otro.plantel:
+                return Response(
+                    {'error': 'No puedes contactar usuarios de otro plantel.'},
+                    status=status.HTTP_403_FORBIDDEN,
+                )
+
+        id_a, id_b = Conversacion.par_ordenado(usuario.id, otro.id)
+        plantel = usuario.plantel or otro.plantel
+        conv, _ = Conversacion.objects.get_or_create(
+            participante_a_id=id_a,
+            participante_b_id=id_b,
+            defaults={'plantel': plantel},
+        )
+        return Response({'id_conversacion': conv.id}, status=status.HTTP_200_OK)
+
+
+class MensajeListView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request, id_conv):
+        usuario = _usuario_sesion(request)
+        try:
+            conv = Conversacion.objects.get(pk=id_conv)
+        except Conversacion.DoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
+        rol = usuario.rol.nombre_rol if usuario else ''
+        if not conv.es_participante(usuario.id if usuario else -1) and rol not in ('admin', 'superusuario'):
+            return Response(status=status.HTTP_403_FORBIDDEN)
+
+        mensajes = Mensaje.objects.filter(
+            conversacion=conv, eliminado=False
+        ).select_related('remitente')
+
+        return Response([{
+            'id': m.id,
+            'remitente_id': m.remitente_id,
+            'texto': m.texto(),
+            'metadatos': m.metadatos(),
+            'fecha_envio': m.fecha_envio.isoformat(),
+            'es_propio': m.remitente_id == (usuario.id if usuario else -1),
+        } for m in mensajes])
+
+    def post(self, request, id_conv):
+        usuario = _usuario_sesion(request)
+        if not usuario:
+            return Response({'error': 'No autenticado.'}, status=status.HTTP_401_UNAUTHORIZED)
+
+        try:
+            conv = Conversacion.objects.get(pk=id_conv)
+        except Conversacion.DoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
+        if not conv.es_participante(usuario.id):
+            return Response(status=status.HTTP_403_FORBIDDEN)
+
+        texto = request.data.get('texto', '').strip()
+        metadatos = request.data.get('metadatos', None)
+
+        if not texto:
+            return Response({'error': 'El mensaje no puede estar vacío.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        msg = Mensaje.crear(conv, usuario, texto, metadatos)
+        return Response(
+            {'id_mensaje': msg.id, 'fecha_envio': msg.fecha_envio.isoformat()},
+            status=status.HTTP_201_CREATED,
+        )
+
+
+class MarcarLeidoView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request, id_conv):
+        usuario = _usuario_sesion(request)
+        if not usuario:
+            return Response({'error': 'No autenticado.'}, status=status.HTTP_401_UNAUTHORIZED)
+
+        try:
+            conv = Conversacion.objects.get(pk=id_conv)
+        except Conversacion.DoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
+        ultimo = Mensaje.objects.filter(conversacion=conv, eliminado=False).last()
+        if ultimo:
+            LecturaMensaje.objects.update_or_create(
+                conversacion=conv,
+                usuario=usuario,
+                defaults={'ultimo_leido': ultimo},
+            )
+        return Response(status=status.HTTP_200_OK)
+
+
+class UsuarioListView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        rol = request.query_params.get('rol')
+        id_plantel = request.query_params.get('plantel')
+
+        qs = Usuario.objects.select_related('rol', 'plantel', 'turno').filter(activo=True)
+        if rol:
+            qs = qs.filter(rol__nombre_rol=rol)
+        if id_plantel:
+            try:
+                qs = qs.filter(plantel__id=int(id_plantel))
+            except (TypeError, ValueError):
+                pass
+
+        return Response([{
+            'id':      u.id,
+            'nombre':  u.nombre or u.correo,
+            'correo':  u.correo,
+            'plantel': u.plantel.nombre if u.plantel else None,
+            'turno':   u.turno.nombre_turno if u.turno else None,
+            'rol':     u.rol.nombre_rol,
+        } for u in qs])
 
 
 class GoogleAuthView(APIView):

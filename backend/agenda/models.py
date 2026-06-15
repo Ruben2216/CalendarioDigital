@@ -1,3 +1,5 @@
+import json
+
 from django.db import models
 
 
@@ -92,3 +94,90 @@ class PermisoEspecial(models.Model):
 
     class Meta:
         db_table = 'PermisoEspecial'
+
+
+class Conversacion(models.Model):
+    participante_a = models.ForeignKey(
+        Usuario, on_delete=models.CASCADE, related_name='conversaciones_como_a'
+    )
+    participante_b = models.ForeignKey(
+        Usuario, on_delete=models.CASCADE, related_name='conversaciones_como_b'
+    )
+    plantel = models.ForeignKey(
+        Plantel, on_delete=models.CASCADE, related_name='conversaciones'
+    )
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+    activa = models.BooleanField(default=True)
+
+    class Meta:
+        db_table = 'Conversacion'
+        unique_together = ('participante_a', 'participante_b')
+
+    @staticmethod
+    def par_ordenado(id_a: int, id_b: int) -> tuple[int, int]:
+        """Garantiza que participante_a.id siempre sea el menor."""
+        return (min(id_a, id_b), max(id_a, id_b))
+
+    def es_participante(self, id_usuario: int) -> bool:
+        return id_usuario in (self.participante_a_id, self.participante_b_id)
+
+
+class Mensaje(models.Model):
+    conversacion = models.ForeignKey(
+        Conversacion, on_delete=models.CASCADE, related_name='mensajes'
+    )
+    remitente = models.ForeignKey(
+        Usuario, on_delete=models.CASCADE, related_name='mensajes_enviados'
+    )
+    contenido_cifrado = models.TextField()
+    iv = models.CharField(max_length=24)
+    metadatos_cifrados = models.TextField(null=True, blank=True)
+    iv_metadatos = models.CharField(max_length=24, null=True, blank=True)
+    fecha_envio = models.DateTimeField(auto_now_add=True)
+    eliminado = models.BooleanField(default=False)
+
+    class Meta:
+        db_table = 'Mensaje'
+        ordering = ['fecha_envio']
+
+    @classmethod
+    def crear(cls, conversacion, remitente, texto: str, metadatos: dict = None):
+        from .services.cifrado import cifrar
+        contenido_b64, iv_b64 = cifrar(texto)
+        meta_b64, iv_meta_b64 = (None, None)
+        if metadatos:
+            meta_b64, iv_meta_b64 = cifrar(json.dumps(metadatos, ensure_ascii=False))
+        return cls.objects.create(
+            conversacion=conversacion,
+            remitente=remitente,
+            contenido_cifrado=contenido_b64,
+            iv=iv_b64,
+            metadatos_cifrados=meta_b64,
+            iv_metadatos=iv_meta_b64,
+        )
+
+    def texto(self) -> str:
+        from .services.cifrado import descifrar
+        return descifrar(self.contenido_cifrado, self.iv)
+
+    def metadatos(self) -> dict | None:
+        from .services.cifrado import descifrar
+        if not self.metadatos_cifrados:
+            return None
+        return json.loads(descifrar(self.metadatos_cifrados, self.iv_metadatos))
+
+
+class LecturaMensaje(models.Model):
+    conversacion = models.ForeignKey(
+        Conversacion, on_delete=models.CASCADE, related_name='lecturas'
+    )
+    usuario = models.ForeignKey(
+        Usuario, on_delete=models.CASCADE, related_name='lecturas'
+    )
+    ultimo_leido = models.ForeignKey(
+        Mensaje, on_delete=models.SET_NULL, null=True, related_name='+'
+    )
+
+    class Meta:
+        db_table = 'LecturaMensaje'
+        unique_together = ('conversacion', 'usuario')

@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import { LayoutDashboard, Calendar, Clock, Users, Menu, Bell, ChevronDown, LogOut, CheckCheck, Trash2 } from "lucide-react";
+import { LayoutDashboard, Calendar, Clock, Users, MessageSquare, Menu, Bell, ChevronDown, LogOut, CheckCheck, Trash2 } from "lucide-react";
 import Modal from "../modal/Modal.jsx";
 import logoCobach from "../../assets/img/logo-cobach.png";
 import { NOTIFICACIONES } from "../../data/avisos.js";
 import { ZONA } from "../../lib/fechas.js";
 import { useSesion } from "../../hooks/useSesion.js";
+import { useMensajeriaCtx } from "../../context/MensajeriaContext.jsx";
 import styles from "./Layout.module.css";
 
 const ROL_ETIQUETA = {
@@ -16,15 +17,17 @@ const ROL_ETIQUETA = {
 };
 
 const NAV = [
-  { etiqueta: "Dashboard", icono: LayoutDashboard, ruta: "/dashboard" },
-  { etiqueta: "Calendario", icono: Calendar, ruta: "/calendario" },
-  { etiqueta: "Eventos", icono: Clock, ruta: "/eventos" },
-  { etiqueta: "Usuarios", icono: Users, ruta: "/usuarios" },
+  { etiqueta: "Dashboard",  icono: LayoutDashboard, ruta: "/dashboard" },
+  { etiqueta: "Calendario", icono: Calendar,         ruta: "/calendario" },
+  { etiqueta: "Eventos",    icono: Clock,            ruta: "/eventos" },
+  { etiqueta: "Mensajería", icono: MessageSquare,    ruta: "/mensajeria" },
+  { etiqueta: "Usuarios",   icono: Users,            ruta: "/usuarios" },
 ];
 
 export default function Layout() {
   const navigate = useNavigate();
   const { nombre, iniciales, rol } = useSesion();
+  const { totalSinLeer } = useMensajeriaCtx();
 
   const [esMovil, setEsMovil] = useState(
     () => window.matchMedia("(max-width: 920px)").matches
@@ -116,6 +119,9 @@ export default function Layout() {
             >
               <Icono size={18} />
               {etiqueta}
+              {etiqueta === "Mensajería" && totalSinLeer > 0 && (
+                <span className={styles["navegacion__badge"]}>{totalSinLeer}</span>
+              )}
             </NavLink>
           ))}
         </nav>

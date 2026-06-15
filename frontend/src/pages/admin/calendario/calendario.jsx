@@ -15,8 +15,7 @@ import {
 } from "lucide-react";
 import Modal from "../../../components/modal/Modal.jsx";
 import AvisoBadge from "../../../components/aviso-badge/AvisoBadge.jsx";
-import SelectorFecha from "../../../components/campos/SelectorFecha.jsx";
-import SelectorHora from "../../../components/campos/SelectorHora.jsx";
+import FormularioEvento from "../../../components/formulario-evento/FormularioEvento.jsx";
 import { avisoExito, confirmarEliminacion } from "../../../lib/alertas.js";
 import {
   NOMBRES_MES, ABREV_MES, aClaveFecha, desdeClaveFecha, sumarDias, minutosDe, formatoHora,
@@ -388,12 +387,6 @@ export default function Calendario({ soloLectura = false }) {
     setModalEvento(true);
   };
 
-
-  const actualizarCampoEvento = (campo) => (e) =>
-    setFormEvento((prev) => ({ ...prev, [campo]: e.target.value }));
-
-  const fijarCampoEvento = (campo, valor) =>
-    setFormEvento((prev) => ({ ...prev, [campo]: valor }));
 
   const guardarEvento = (e) => {
     e.preventDefault();
@@ -997,90 +990,13 @@ export default function Calendario({ soloLectura = false }) {
           </>
         }
       >
-        <form id="form-evento-calendario" className="formulario" onSubmit={guardarEvento}>
-          <label className="formulario__campo">
-            <span className="formulario__etiqueta">Título</span>
-            <input type="text" required placeholder="Nombre del evento" value={formEvento.titulo} onChange={actualizarCampoEvento("titulo")} />
-          </label>
-
-          <div className="formulario__fila">
-            <label className="formulario__campo">
-              <span className="formulario__etiqueta">Tipo de evento</span>
-              <select value={formEvento.tipo} onChange={actualizarCampoEvento("tipo")}>
-                {tipos.map((t) => (
-                  <option key={t.id} value={t.id}>{t.etiqueta}</option>
-                ))}
-              </select>
-            </label>
-            <label className="formulario__campo">
-              <span className="formulario__etiqueta">Área</span>
-              <select value={formEvento.area} onChange={actualizarCampoEvento("area")}>
-                {AREAS.map((a) => (
-                  <option key={a} value={a}>{a}</option>
-                ))}
-              </select>
-            </label>
-          </div>
-
-          <div className="formulario__fila">
-            <div className="formulario__campo">
-              <span className="formulario__etiqueta">Fecha inicio</span>
-              <SelectorFecha
-                value={formEvento.fecha}
-                onChange={(v) => fijarCampoEvento("fecha", v)}
-              />
-            </div>
-            <div className="formulario__campo">
-              <span className="formulario__etiqueta">Fecha fin (opcional)</span>
-              <SelectorFecha
-                value={formEvento.fechaFin}
-                min={formEvento.fecha}
-                placeholder="Mismo día"
-                onChange={(v) => fijarCampoEvento("fechaFin", v)}
-              />
-            </div>
-          </div>
-
-          <div className={styles["interruptor"]}>
-            <div>
-              <span className="formulario__etiqueta">Todo el día</span>
-              <p className={styles["interruptor__nota"]}>Sin hora de inicio ni fin.</p>
-            </div>
-            <button
-              type="button"
-              role="switch"
-              aria-checked={formEvento.todoElDia}
-              className={`${styles["switch"]} ${formEvento.todoElDia ? styles["switch--on"] : ""}`}
-              onClick={() => setFormEvento((p) => ({ ...p, todoElDia: !p.todoElDia }))}
-            >
-              <span className={styles["switch__bolita"]} />
-            </button>
-          </div>
-
-          {!formEvento.todoElDia && (
-            <div className="formulario__fila">
-              <div className="formulario__campo">
-                <span className="formulario__etiqueta">Hora inicio</span>
-                <SelectorHora
-                  value={formEvento.horaInicio}
-                  onChange={(v) => fijarCampoEvento("horaInicio", v)}
-                />
-              </div>
-              <div className="formulario__campo">
-                <span className="formulario__etiqueta">Hora fin</span>
-                <SelectorHora
-                  value={formEvento.horaFin}
-                  onChange={(v) => fijarCampoEvento("horaFin", v)}
-                />
-              </div>
-            </div>
-          )}
-
-          <label className="formulario__campo">
-            <span className="formulario__etiqueta">Lugar / Grupo</span>
-            <input type="text" placeholder="Aula, auditorio, explanada..." value={formEvento.lugar} onChange={actualizarCampoEvento("lugar")} />
-          </label>
-        </form>
+        <FormularioEvento
+          id="form-evento-calendario"
+          form={formEvento}
+          tipos={tipos}
+          onChange={(campo, valor) => setFormEvento((prev) => ({ ...prev, [campo]: valor }))}
+          onSubmit={guardarEvento}
+        />
       </Modal>
 
       {/* Modal: crear y editar tipo de evento */}

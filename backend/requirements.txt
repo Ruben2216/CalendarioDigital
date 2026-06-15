@@ -9,3 +9,4 @@ tzdata==2026.2
 requests==2.31.0
 django-cors-headers==4.0.0
 python-dotenv==1.0.0
+cryptography>=42.0.0
