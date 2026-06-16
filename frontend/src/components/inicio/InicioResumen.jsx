@@ -1,14 +1,17 @@
 import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  Calendar, Clock, MapPin, CalendarDays, CalendarCheck, ChevronRight, Hourglass,
+  Calendar, Clock, MapPin, CalendarDays, CalendarCheck, ChevronRight, Hourglass, Megaphone,
 } from "lucide-react";
 import {
   ZONA, ABREV_MES, ahoraMexico, aClaveFecha, desdeClaveFecha, formatoHora,
 } from "../../lib/fechas.js";
 import { TIPOS, eventosIniciales } from "../../data/calendario.js";
+import { anunciosPara } from "../../lib/anunciosStore.js";
 import { useSesion } from "../../hooks/useSesion.js";
 import MiniCalendario from "../mini-calendario/MiniCalendario.jsx";
+import ListaAnuncios from "../anuncios/ListaAnuncios.jsx";
+import TarjetaColapsable from "../tarjeta-colapsable/TarjetaColapsable.jsx";
 import styles from "./InicioResumen.module.css";
 
 const TIPOS_MAP = Object.fromEntries(TIPOS.map((t) => [t.id, t]));
@@ -34,12 +37,13 @@ function cuenta(dias) {
 }
 
 // Resumen de inicio (solo lectura) compartido por alumno y docente.
-export default function InicioResumen({ rutaCalendario }) {
+export default function InicioResumen({ rutaCalendario, audiencia }) {
   const navigate = useNavigate();
   const { nombre } = useSesion();
   const hoy = useMemo(() => ahoraMexico(), []);
   const claveHoy = aClaveFecha(hoy);
   const eventos = useMemo(() => eventosIniciales(), []);
+  const anuncios = useMemo(() => anunciosPara(audiencia), [audiencia]);
 
   const saludo = saludoPorHora(hoy.getHours());
 
@@ -122,61 +126,65 @@ export default function InicioResumen({ rutaCalendario }) {
 
       {/* próximos eventos + mini calendario */}
       <div className={styles["rejilla"]}>
-        <article className="tarjeta">
-          <div className="tarjeta__cabecera">
-            <div className="tarjeta__titulo">
-              <Calendar size={16} />
-              Próximos eventos
-            </div>
-            <button type="button" className="tarjeta__enlace" onClick={() => navigate(rutaCalendario)}>
-              Ver todos
-              <ChevronRight size={14} />
-            </button>
-          </div>
-
-          <div className={styles["eventos"]}>
-            {proximos.length === 0 ? (
-              <p className={styles["eventos__vacio"]}>No hay eventos próximos.</p>
-            ) : (
-              proximos.map((ev) => {
-                const fecha = desdeClaveFecha(ev.fecha);
-                const c = cuenta(diasRestantes(claveHoy, ev.fecha));
-                return (
-                  <div key={ev.id} className={styles["evento"]}>
-                    <div className={styles["evento__fecha"]}>
-                      <strong>{fecha.getDate()}</strong>
-                      <span>{ABREV_MES[fecha.getMonth()]}</span>
-                    </div>
-                    <div className={styles["evento__copia"]}>
-                      <h3 className={styles["evento__titulo"]}>{ev.titulo}</h3>
-                      <div className={styles["evento__meta"]}>
-                        <span className={`etiqueta etiqueta--${colorTipo(ev.tipo)}`}>
-                          {etiquetaTipo(ev.tipo)}
-                        </span>
-                        {ev.horaInicio && (
-                          <span className={styles["meta"]}>
-                            <Clock size={11} />
-                            {formatoHora(ev.horaInicio)}
-                            {ev.horaFin && ` - ${formatoHora(ev.horaFin)}`}
-                          </span>
-                        )}
-                        {ev.lugar && (
-                          <span className={styles["meta"]}>
-                            <MapPin size={11} />
-                            {ev.lugar}
-                          </span>
-                        )}
+        <div className={styles["columna"]}>
+          <TarjetaColapsable
+            icono={Calendar}
+            titulo="Próximos eventos"
+            accion={
+              <button type="button" className="tarjeta__enlace" onClick={() => navigate(rutaCalendario)}>
+                Ver todos
+                <ChevronRight size={14} />
+              </button>
+            }
+          >
+            <div className={styles["eventos"]}>
+              {proximos.length === 0 ? (
+                <p className={styles["eventos__vacio"]}>No hay eventos próximos.</p>
+              ) : (
+                proximos.map((ev) => {
+                  const fecha = desdeClaveFecha(ev.fecha);
+                  const c = cuenta(diasRestantes(claveHoy, ev.fecha));
+                  return (
+                    <div key={ev.id} className={styles["evento"]}>
+                      <div className={styles["evento__fecha"]}>
+                        <strong>{fecha.getDate()}</strong>
+                        <span>{ABREV_MES[fecha.getMonth()]}</span>
                       </div>
+                      <div className={styles["evento__copia"]}>
+                        <h3 className={styles["evento__titulo"]}>{ev.titulo}</h3>
+                        <div className={styles["evento__meta"]}>
+                          <span className={`etiqueta etiqueta--${colorTipo(ev.tipo)}`}>
+                            {etiquetaTipo(ev.tipo)}
+                          </span>
+                          {ev.horaInicio && (
+                            <span className={styles["meta"]}>
+                              <Clock size={11} />
+                              {formatoHora(ev.horaInicio)}
+                              {ev.horaFin && ` - ${formatoHora(ev.horaFin)}`}
+                            </span>
+                          )}
+                          {ev.lugar && (
+                            <span className={styles["meta"]}>
+                              <MapPin size={11} />
+                              {ev.lugar}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <span className={`etiqueta etiqueta--${c.color} ${styles["evento__cuenta"]}`}>
+                        {c.texto}
+                      </span>
                     </div>
-                    <span className={`etiqueta etiqueta--${c.color} ${styles["evento__cuenta"]}`}>
-                      {c.texto}
-                    </span>
-                  </div>
-                );
-              })
-            )}
-          </div>
-        </article>
+                  );
+                })
+              )}
+            </div>
+          </TarjetaColapsable>
+
+          <TarjetaColapsable icono={Megaphone} titulo="Anuncios">
+            <ListaAnuncios anuncios={anuncios} />
+          </TarjetaColapsable>
+        </div>
 
         <aside className={styles["lateral"]}>
           <MiniCalendario eventos={eventos} />

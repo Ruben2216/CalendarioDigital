@@ -10,6 +10,7 @@ const Dashboard        = lazy(() => import("./pages/admin/dashboard/dashboard.js
 const Calendario       = lazy(() => import("./pages/admin/calendario/calendario.jsx"));
 const Mensajeria       = lazy(() => import("./pages/admin/mensajeria/Mensajeria.jsx"));
 const Usuarios         = lazy(() => import("./pages/admin/usuarios/usuarios.jsx"));
+const Anuncios         = lazy(() => import("./pages/admin/anuncios/anuncios.jsx"));
 const ForoDocente      = lazy(() => import("./pages/docente/foro/ForoDocente.jsx"));
 const DocenteInicio    = lazy(() => import("./pages/docente/inicio.jsx"));
 const AlumnoInicio     = lazy(() => import("./pages/alumno/inicio.jsx"));
@@ -52,6 +53,7 @@ function App() {
             <Route path="/calendario" element={<Suspense fallback={<Cargando />}><Calendario /></Suspense>} />
             <Route path="/mensajeria" element={<Suspense fallback={<Cargando />}><Mensajeria /></Suspense>} />
             <Route path="/usuarios"   element={<Suspense fallback={<Cargando />}><Usuarios /></Suspense>} />
+            <Route path="/anuncios"   element={<Suspense fallback={<Cargando />}><Anuncios /></Suspense>} />
           </Route>
         </Route>
 

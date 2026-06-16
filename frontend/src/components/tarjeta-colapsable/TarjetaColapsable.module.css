@@ -1,0 +1,30 @@
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.chevron {
+  color: var(--muted-2);
+  flex: none;
+  transform: rotate(-90deg);
+  transition: transform 0.18s ease;
+}
+
+.chevron--abierto {
+  transform: rotate(0deg);
+}
+
+.accion {
+  flex: none;
+}

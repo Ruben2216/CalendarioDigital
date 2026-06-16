@@ -10,7 +10,10 @@ import {
   formatoHora, formatoFechaLarga,
 } from "../../../lib/fechas.js";
 import { TIPOS, eventosIniciales } from "../../../data/calendario.js";
-import { NOTIFICACIONES, ANUNCIOS } from "../../../data/avisos.js";
+import { NOTIFICACIONES } from "../../../data/avisos.js";
+import ListaAnuncios from "../../../components/anuncios/ListaAnuncios.jsx";
+import TarjetaColapsable from "../../../components/tarjeta-colapsable/TarjetaColapsable.jsx";
+import { leerAnuncios } from "../../../lib/anunciosStore.js";
 import styles from "./dashboard.module.css";
 
 const DIAS_MINI = ["D", "L", "M", "M", "J", "V", "S"];
@@ -43,6 +46,7 @@ export default function Dashboard() {
   const claveHoy = aClaveFecha(hoy);
 
   const eventos = useMemo(() => eventosIniciales(), []);
+  const anuncios = useMemo(() => leerAnuncios(), []);
   const [mesVisible, setMesVisible] = useState(
     () => new Date(hoy.getFullYear(), hoy.getMonth(), 1)
   );
@@ -162,18 +166,16 @@ export default function Dashboard() {
           </article>
         </section>
 
-        <article className="tarjeta">
-          <div className="tarjeta__cabecera">
-            <div className="tarjeta__titulo">
-              <Calendar size={16} />
-              Próximos eventos
-            </div>
+        <TarjetaColapsable
+          icono={Calendar}
+          titulo="Próximos eventos"
+          accion={
             <button type="button" className="tarjeta__enlace" onClick={() => navigate("/calendario")}>
               Ver todos
               <ChevronRight size={14} />
             </button>
-          </div>
-
+          }
+        >
           <div className={styles["eventos"]}>
             {proximosEventos.length === 0 ? (
               <p className={styles["eventos__vacio"]}>No hay eventos próximos.</p>
@@ -216,7 +218,7 @@ export default function Dashboard() {
               })
             )}
           </div>
-        </article>
+        </TarjetaColapsable>
 
         <div className={styles["promo-anuncios"]}>
           <article className={`tarjeta ${styles["promo"]}`}>
@@ -237,28 +239,18 @@ export default function Dashboard() {
             </span>
           </article>
 
-          <article className="tarjeta">
-            <div className="tarjeta__cabecera">
-              <div className="tarjeta__titulo">
-                <Megaphone size={16} />
-                Anuncios
-              </div>
-            </div>
-            <div className={styles["anuncios"]}>
-              {ANUNCIOS.map(({ id, icono: Icono, color, titulo, descripcion, fecha }) => (
-                <div key={id} className={styles["anuncio"]}>
-                  <span className={`${styles["anuncio__icono"]} ${styles[`anuncio__icono--${color}`]}`}>
-                    <Icono size={14} />
-                  </span>
-                  <div className={styles["anuncio__copia"]}>
-                    <h3 className={styles["anuncio__titulo"]}>{titulo}</h3>
-                    <p className={styles["anuncio__descripcion"]}>{descripcion}</p>
-                  </div>
-                  <span className={styles["anuncio__fecha"]}>{fecha}</span>
-                </div>
-              ))}
-            </div>
-          </article>
+          <TarjetaColapsable
+            icono={Megaphone}
+            titulo="Anuncios"
+            accion={
+              <button type="button" className="tarjeta__enlace" onClick={() => navigate("/anuncios")}>
+                Ver todos
+                <ChevronRight size={14} />
+              </button>
+            }
+          >
+            <ListaAnuncios anuncios={anuncios.slice(0, 4)} mostrarAudiencia />
+          </TarjetaColapsable>
         </div>
       </div>
 
@@ -372,17 +364,15 @@ export default function Dashboard() {
           </div>
         </article>
 
-        <article className="tarjeta">
-          <div className="tarjeta__cabecera">
-            <div className="tarjeta__titulo">
-              <Bell size={16} />
-              Notificaciones
-            </div>
-            {notifSinLeer > 0 && (
+        <TarjetaColapsable
+          icono={Bell}
+          titulo="Notificaciones"
+          accion={
+            notifSinLeer > 0 ? (
               <span className="etiqueta etiqueta--azul">{notifSinLeer} nuevas</span>
-            )}
-          </div>
-
+            ) : null
+          }
+        >
           <div className={styles["notif-lista"]}>
             {NOTIFICACIONES.slice(0, 5).map(({ id, icono: Icono, color, titulo, subtitulo, sinLeer }) => (
               <div
@@ -399,7 +389,7 @@ export default function Dashboard() {
               </div>
             ))}
           </div>
-        </article>
+        </TarjetaColapsable>
       </aside>
     </section>
   );

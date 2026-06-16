@@ -89,6 +89,12 @@
   align-items: start;
 }
 
+.columna {
+  display: grid;
+  gap: 16px;
+  align-content: start;
+}
+
 .lateral {
   display: grid;
   gap: 16px;
