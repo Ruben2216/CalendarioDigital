@@ -91,6 +91,7 @@ DATABASES = {
         'HOST': os.environ.get('DB_HOST'),
         'OPTIONS': {
             'driver': os.environ.get('DB_DRIVER'),
+            'extra_params': 'TrustServerCertificate=yes;Encrypt=no',
         },
     }
 }
