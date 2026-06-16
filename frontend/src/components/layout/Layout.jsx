@@ -26,7 +26,7 @@ const NAV = [
 
 export default function Layout() {
   const cerrarSesion = useLogout();
-  const { nombre, iniciales, rol, plantel, turno } = useSesion();
+  const { nombre, iniciales, rol, plantel, turno, tipoEmpleado, adscripcion } = useSesion();
   const { totalSinLeer } = useMensajeriaCtx();
 
   const [esMovil, setEsMovil] = useState(
@@ -266,8 +266,8 @@ export default function Layout() {
 
             <div className={styles["plantel"]}>
               <div>
-                <small>Plantel</small>
-                <strong>{plantel?.nombre ?? (rol === 'superusuario' ? 'Todos los planteles' : 'Sin plantel')}</strong>
+                <small>{tipoEmpleado === 'Administrativo' ? 'Departamento' : 'Plantel'}</small>
+                <strong>{adscripcion || (plantel?.nombre ?? (rol === 'superusuario' ? 'Todos los planteles' : 'Sin plantel'))}</strong>
               </div>
               <ChevronDown size={14} />
             </div>
@@ -282,7 +282,7 @@ export default function Layout() {
                 <span className={styles["usuario__avatar"]}>{iniciales || 'US'}</span>
                 <div className={styles["usuario__info"]}>
                   <strong>{nombre || 'Usuario'}</strong>
-                  <span>{ROL_ETIQUETA[rol] ?? 'Usuario'}</span>
+                  <span>{tipoEmpleado || ROL_ETIQUETA[rol] || 'Usuario'}</span>
                 </div>
                 <ChevronDown size={14} />
               </button>
@@ -293,11 +293,14 @@ export default function Layout() {
                     <span className={styles["usuario__avatar"]}>{iniciales || 'US'}</span>
                     <div>
                       <div className={styles["menu-perfil__nombre"]}>{nombre || 'Usuario'}</div>
-                      <div className={styles["menu-perfil__rol"]}>{ROL_ETIQUETA[rol] ?? 'Usuario'}</div>
+                      <div className={styles["menu-perfil__rol"]}>{tipoEmpleado || ROL_ETIQUETA[rol] || 'Usuario'}</div>
                     </div>
                   </div>
                   <ul className={styles["menu-perfil__datos"]}>
-                    <li><span>Plantel</span><strong>{plantel?.nombre || '—'}</strong></li>
+                    <li>
+                      <span>{tipoEmpleado === 'Administrativo' ? 'Departamento' : 'Plantel'}</span>
+                      <strong>{adscripcion || plantel?.nombre || '—'}</strong>
+                    </li>
                     <li><span>Turno</span><strong>{turno?.nombre || '—'}</strong></li>
                     <li><span>Ciclo escolar</span><strong>{ciclo}</strong></li>
                   </ul>

@@ -14,6 +14,7 @@ from .serializers import LoginInstitucionalSerializer
 from .services.mock_institucional import (
     mock_login_empleado,
     mock_login_alumno,
+    obtener_datos_por_correo,
 )
 from .models import Usuario, Rol, Conversacion, Mensaje, LecturaMensaje, SolicitudAdmin
 
@@ -118,6 +119,13 @@ class LoginInstitucionalView(APIView):
             for pe in usuario.permisos_especiales.filter(activo=True)
         ]
 
+        datos_empleado = {}
+        if rol_solicitado != 'alumno' and id_externo:
+            datos_empleado = obtener_datos_por_correo(id_externo)
+            id_api_value = str(datos_empleado['id']) if datos_empleado.get('id') is not None else None
+            if id_api_value and usuario.id_api != id_api_value:
+                Usuario.objects.filter(pk=usuario.pk).update(id_api=id_api_value)
+
         return Response({
             'token': respuesta_institucional.get('token', ''),
             'nombre': usuario.nombre or '',
@@ -136,6 +144,8 @@ class LoginInstitucionalView(APIView):
                     'nombre': usuario.turno.nombre_turno if usuario.turno else None,
                 },
                 'permisos_especiales': permisos_extra,
+                'tipoEmpleado': datos_empleado.get('tipoEmpleado', ''),
+                'adscripcion': datos_empleado.get('adscripcion', '') or datos_empleado.get('nombreAdscripcion', ''),
             },
         }, status=status.HTTP_200_OK)
 

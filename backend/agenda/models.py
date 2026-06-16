@@ -75,6 +75,7 @@ class Usuario(models.Model):
     google_id = models.CharField(max_length=255, unique=True, null=True, blank=True)
     matricula = models.CharField(max_length=20, null=True, blank=True, unique=True)
     password_mock = models.CharField(max_length=128, null=True, blank=True)
+    id_api = models.CharField(max_length=100, null=True, blank=True)
     activo = models.BooleanField(default=True)
     ultima_sesion = models.DateTimeField(null=True, blank=True)
 
