@@ -13,13 +13,24 @@ from rest_framework import status, permissions
 from .serializers import LoginInstitucionalSerializer
 from .services.mock_institucional import (
     mock_login_empleado,
-    mock_login_alumno,
+    login_alumno,
     obtener_datos_por_correo,
+    es_alumno,
 )
 from .models import Usuario, Rol, Conversacion, Mensaje, LecturaMensaje, SolicitudAdmin
 
 
 ROLES_EMPLEADO = {'superusuario', 'admin', 'docente'}
+
+_TURNOS_ALUMNO = {'M': 'Matutino', 'V': 'Vespertino', 'N': 'Nocturno'}
+
+
+def _qr_data_uri(qr: str) -> str:
+    if not qr:
+        return ''
+    if qr.startswith('data:'):
+        return qr
+    return f'data:image/png;base64,{qr}'
 
 
 class LoginInstitucionalView(APIView):
@@ -37,28 +48,26 @@ class LoginInstitucionalView(APIView):
         password = serializer.validated_data['password']
         rol_solicitado = serializer.validated_data['rol']
 
+        # El alumno se autentica directamente contra la API institucional
+        # (usuario = CURP, password = matrícula) y sus datos provienen de ahí
         if rol_solicitado == 'alumno':
-            respuesta_institucional = mock_login_alumno(user_name, password)
-            credenciales_validas = respuesta_institucional.get('estatusLogin') == 1
-            id_externo = respuesta_institucional.get('matricula')
-            campo_busqueda = 'matricula'
-        else:
-            usuario_local = None
-            if rol_solicitado in ('admin', 'superusuario'):
-                try:
-                    usuario_local = Usuario.objects.get(correo=user_name, activo=True)
-                except Usuario.DoesNotExist:
-                    pass
+            return self._login_alumno(user_name, password)
 
-            if usuario_local and usuario_local.password_mock and usuario_local.password_mock == password:
-                credenciales_validas = True
-                id_externo = usuario_local.correo
-                respuesta_institucional = {'token': f'local-{usuario_local.id_usuario}', 'foto': '', 'qr': ''}
-            else:
-                respuesta_institucional = mock_login_empleado(user_name, password)
-                credenciales_validas = respuesta_institucional.get('statusLogueo') is True
-                id_externo = respuesta_institucional.get('correoInstitucional', '')
-            campo_busqueda = 'correo'
+        usuario_local = None
+        if rol_solicitado in ('admin', 'superusuario'):
+            try:
+                usuario_local = Usuario.objects.get(correo=user_name, activo=True)
+            except Usuario.DoesNotExist:
+                pass
+
+        if usuario_local and usuario_local.password_mock and usuario_local.password_mock == password:
+            credenciales_validas = True
+            id_externo = usuario_local.correo
+            respuesta_institucional = {'token': f'local-{usuario_local.id_usuario}', 'foto': '', 'qr': ''}
+        else:
+            respuesta_institucional = mock_login_empleado(user_name, password)
+            credenciales_validas = respuesta_institucional.get('statusLogueo') is True
+            id_externo = respuesta_institucional.get('correoInstitucional', '')
 
         if not credenciales_validas:
             return Response(
@@ -67,33 +76,25 @@ class LoginInstitucionalView(APIView):
             )
 
         try:
-            if rol_solicitado == 'alumno':
-                usuario = (
-                    Usuario.objects
-                    .select_related('rol', 'plantel', 'turno')
-                    .prefetch_related('permisos_especiales__turno_objetivo')
-                    .get(matricula=id_externo, activo=True)
-                )
-            else:
-                rol_obj, _ = Rol.objects.get_or_create(nombre_rol='docente')
-                usuario, creado = Usuario.objects.get_or_create(
-                    correo=id_externo,
-                    defaults={
-                        'rol': rol_obj,
-                        'nombre': respuesta_institucional.get('empleado') or '',
-                        'activo': True,
-                    },
-                )
-                if not creado:
-                    nombre_api = respuesta_institucional.get('empleado') or ''
-                    if nombre_api and usuario.nombre != nombre_api:
-                        Usuario.objects.filter(pk=usuario.pk).update(nombre=nombre_api)
-                usuario = (
-                    Usuario.objects
-                    .select_related('rol', 'plantel', 'turno')
-                    .prefetch_related('permisos_especiales__turno_objetivo')
-                    .get(pk=usuario.pk, activo=True)
-                )
+            rol_obj, _ = Rol.objects.get_or_create(nombre_rol='docente')
+            usuario, creado = Usuario.objects.get_or_create(
+                correo=id_externo,
+                defaults={
+                    'rol': rol_obj,
+                    'nombre': respuesta_institucional.get('empleado') or '',
+                    'activo': True,
+                },
+            )
+            if not creado:
+                nombre_api = respuesta_institucional.get('empleado') or ''
+                if nombre_api and usuario.nombre != nombre_api:
+                    Usuario.objects.filter(pk=usuario.pk).update(nombre=nombre_api)
+            usuario = (
+                Usuario.objects
+                .select_related('rol', 'plantel', 'turno')
+                .prefetch_related('permisos_especiales__turno_objetivo')
+                .get(pk=usuario.pk, activo=True)
+            )
         except Usuario.DoesNotExist:
             return Response(
                 {'error': 'Usuario no registrado en el sistema.'},
@@ -146,6 +147,45 @@ class LoginInstitucionalView(APIView):
                 'permisos_especiales': permisos_extra,
                 'tipoEmpleado': datos_empleado.get('tipoEmpleado', ''),
                 'adscripcion': datos_empleado.get('adscripcion', '') or datos_empleado.get('nombreAdscripcion', ''),
+            },
+        }, status=status.HTTP_200_OK)
+
+    def _login_alumno(self, usuario, password):
+        """Login de alumno contra la API institucional (CURP + matrícula).
+
+        Los datos del alumno (nombre, plantel, turno, grupo, etc.) provienen
+        íntegramente de la respuesta de la API; no se consulta la BD local.
+        """
+        datos = login_alumno(usuario, password)
+        if datos.get('estatusLogin') != 1:
+            return Response(
+                {'error': 'Credenciales incorrectas.'},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+
+        codigo_turno = (datos.get('turno') or '').strip().upper()
+        return Response({
+            'token': datos.get('token', ''),
+            'nombre': datos.get('nombres') or '',
+            'foto': datos.get('foto', '') or '',
+            'qr': _qr_data_uri(datos.get('qr', '')),
+            'sesion': {
+                'id_usuario': datos.get('idAlumno'),
+                'rol': 'alumno',
+                'matricula': datos.get('matricula'),
+                'curp': datos.get('curp'),
+                'plantel': {
+                    'id': None,
+                    'nombre': datos.get('plantel'),
+                    'clave': datos.get('clavePlantel'),
+                },
+                'turno': {
+                    'id': None,
+                    'nombre': _TURNOS_ALUMNO.get(codigo_turno, datos.get('turno')),
+                },
+                'grupo': datos.get('grupo'),
+                'semestre': datos.get('semestre'),
+                'permisos_especiales': [],
             },
         }, status=status.HTTP_200_OK)
 
@@ -572,6 +612,11 @@ class GoogleAuthView(APIView):
 
         if not correo.endswith('@cobach.edu.mx'):
             return Response(status=status.HTTP_204_NO_CONTENT)
+
+        # Si el acceso es como alumno, verificamos contra la API institucional
+        # que el correo realmente pertenezca a un alumno.
+        if role == 'alumno' and not es_alumno(obtener_datos_por_correo(correo)):
+            return Response(status=status.HTTP_403_FORBIDDEN)
 
         origin = request.headers.get('origin') or request.META.get('HTTP_ORIGIN')
         allowed = getattr(settings, 'CORS_ALLOWED_ORIGINS', [])
