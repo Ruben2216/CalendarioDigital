@@ -7,6 +7,16 @@ Content-Type: application/json
     "Password": "Cobach123!"
 }
 
+### Login Docente/Empleado
+POST http://192.168.100.5:8087/api/Seguridad/Login HTTP/1.1
+Content-Type: application/json
+
+{
+    "Usuario": "Rald880607hta",
+    "Password": "Mia021224#"
+}
+
+
 ###
 POST http://192.168.100.5:8087/api/Seguridad/LoginAlumnos HTTP/1.1
 Content-Type: application/json
@@ -44,6 +54,12 @@ Content-Length: 0
 
 ###
 POST /api/Seguridad/ObtenerDatosPorCorreo?correo=camila.coutino.2403378@cobach.edu.mx HTTP/1.1
+Host: 192.168.100.5:8087
+Accept: */*
+Content-Length: 0
+
+###
+POST /api/Seguridad/ObtenerDatosPorCorreo?correo=eleodoro.leon.agu@cobach.edu.mx HTTP/1.1
 Host: 192.168.100.5:8087
 Accept: */*
 Content-Length: 0

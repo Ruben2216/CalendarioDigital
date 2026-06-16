@@ -239,7 +239,7 @@ export default function Login() {
             {isInstitutionalAccess && (
               <>
                 <label className="login__label" htmlFor="userName">
-                  {role === "alumno" ? "Matrícula" : "Usuario/correo institucional"}
+                  {role === "alumno" ? "Matrícula" : "Usuario"}
                 </label>
                 <div className="login__field">
                   <User className="login__field-icon" />

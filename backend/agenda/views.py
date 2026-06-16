@@ -52,7 +52,7 @@ class LoginInstitucionalView(APIView):
             if usuario_local and usuario_local.password_mock and usuario_local.password_mock == password:
                 credenciales_validas = True
                 id_externo = usuario_local.correo
-                respuesta_institucional = {'token': '', 'foto': '', 'qr': ''}
+                respuesta_institucional = {'token': f'local-{usuario_local.id_usuario}', 'foto': '', 'qr': ''}
             else:
                 respuesta_institucional = mock_login_empleado(user_name, password)
                 credenciales_validas = respuesta_institucional.get('statusLogueo') is True
