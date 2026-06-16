@@ -262,7 +262,6 @@ export default function LayoutAlumno() {
                 <small>Plantel</small>
                 <strong>{plantel?.nombre ?? (rol === 'superusuario' ? 'Todos los planteles' : 'Sin plantel')}</strong>
               </div>
-              <ChevronDown size={14} />
             </div>
 
             <div className={styles["menu-perfil"]} ref={perfilRef}>

@@ -181,16 +181,22 @@ export default function Login() {
     const { token, nombre, sesion } = resultado.datos;
     guardarSesion(token, { ...sesion, nombre });
 
-    switch (sesion?.rol ?? role) {
-      case 'docente':
-        navigate('/docente/inicio');
-        break;
-      case 'alumno':
-        navigate('/alumno/inicio');
-        break;
-      default:
-        navigate('/dashboard');
-    }
+    const rolDestino = sesion?.rol ?? role;
+    const rutaDestino =
+      rolDestino === 'docente' ? '/docente/inicio'
+        : rolDestino === 'alumno' ? '/alumno/inicio'
+          : '/dashboard';
+
+    await Swal.fire({
+      icon: 'success',
+      title: '¡Bienvenido!',
+      text: nombre ? `Hola, ${nombre}` : 'Inicio de sesión correcto.',
+      timer: 1600,
+      timerProgressBar: true,
+      showConfirmButton: false,
+    });
+
+    navigate(rutaDestino);
   };
 
   return (
@@ -239,14 +245,14 @@ export default function Login() {
             {isInstitutionalAccess && (
               <>
                 <label className="login__label" htmlFor="userName">
-                  {role === "alumno" ? "Matrícula" : "Usuario"}
+                  {role === "alumno" ? "CURP" : "Usuario"}
                 </label>
                 <div className="login__field">
                   <User className="login__field-icon" />
                   <input
                     id="userName"
                     type="text"
-                    placeholder={role === "alumno" ? "A123456" : "usuario o correo@cobach.edu.mx"}
+                    placeholder={role === "alumno" ? "CURP (18 caracteres)" : "usuario o correo@cobach.edu.mx"}
                     value={userName}
                     onChange={(e) => setUserName(e.target.value)}
                     required
@@ -258,14 +264,14 @@ export default function Login() {
 
                 {/* Contraseña */}
                 <label className="login__label" htmlFor="password">
-                  Contraseña
+                  {role === "alumno" ? "Contraseña (matrícula)" : "Contraseña"}
                 </label>
                 <div className="login__field">
                   <Lock className="login__field-icon" />
                   <input
                     id="password"
                     type={showPassword ? "text" : "password"}
-                    placeholder="••••••••••"
+                    placeholder={role === "alumno" ? "Tu matrícula" : "••••••••••"}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
