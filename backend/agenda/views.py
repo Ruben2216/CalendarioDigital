@@ -138,7 +138,6 @@ class LoginInstitucionalView(APIView):
                 'plantel': {
                     'id': usuario.plantel.id_plantel if usuario.plantel else None,
                     'nombre': usuario.plantel.nombre if usuario.plantel else None,
-                    'clave': usuario.plantel.clave if usuario.plantel else None,
                 },
                 'turno': {
                     'id': usuario.turno.id_turno if usuario.turno else None,
@@ -177,7 +176,6 @@ class LoginInstitucionalView(APIView):
                 'plantel': {
                     'id': None,
                     'nombre': datos.get('plantel'),
-                    'clave': datos.get('clavePlantel'),
                 },
                 'turno': {
                     'id': None,
@@ -408,7 +406,7 @@ class UsuarioListView(APIView):
 
 def _solicitud_dict(s):
     return {
-        'id': s.id,
+        'id': s.id_solicitud_admin,
         'id_usuario': s.usuario_id,
         'nombre': s.nombre,
         'correo': s.correo,

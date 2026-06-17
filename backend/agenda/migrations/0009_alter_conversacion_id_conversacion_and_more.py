@@ -50,10 +50,6 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.RunSQL(
-            sql='ALTER TABLE [Rol] DROP COLUMN [id_rol];',
-            reverse_sql='ALTER TABLE [Rol] ADD [id_rol] int NULL;',
-        ),
-        migrations.RunSQL(
             sql=SQL_RENOMBRAR,
             reverse_sql=SQL_REVERTIR,
             state_operations=ESTADO,

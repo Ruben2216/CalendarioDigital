@@ -16,9 +16,7 @@ class Rol(models.Model):
 
 class Plantel(models.Model):
     id_plantel = models.BigAutoField(primary_key=True)
-    clave = models.CharField(max_length=10, unique=True)
     nombre = models.CharField(max_length=100)
-    activo = models.BooleanField(default=True)
 
     class Meta:
         db_table = 'Plantel'
