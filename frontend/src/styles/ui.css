@@ -157,6 +157,7 @@
 .formulario__campo {
   display: grid;
   gap: 6px;
+  min-width: 0; /* permite que celdas grid se compriman sin desbordarse */
 }
 
 .formulario__etiqueta {
@@ -169,6 +170,9 @@
 .formulario__campo input,
 .formulario__campo select,
 .formulario__campo textarea {
+  width: 100%;    /* ocupa exactamente el ancho de su celda, sin importar el contenido */
+  min-width: 0;
+  box-sizing: border-box;
   min-height: 40px;
   padding: 9px 12px;
   border-radius: 10px;

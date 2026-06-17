@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import { useLogout } from "../../hooks/useLogout.js";
 import { Home, Calendar, MessageSquare, Menu, Bell, ChevronDown, LogOut, CheckCheck, Trash2, ShieldCheck, Megaphone, Pencil, X, Plus } from "lucide-react";
-import { guardarConfiguracionPlanteles } from "../../services/authService.js";
+import { guardarConfiguracionPlanteles, obtenerPlanteles } from "../../services/authService.js";
 import Modal from "../modal/Modal.jsx";
 import SolicitudAdmin from "../solicitud-admin/SolicitudAdmin.jsx";
 import logoCobach from "../../assets/img/logo-cobach.png";
@@ -125,10 +125,8 @@ export default function LayoutDocente() {
     setErrorEdit('');
     setEditando(true);
     if (!plantelesCache.current) {
-      const base = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
       setCargandoOpciones(true);
-      fetch(`${base}/api/planteles/`, { headers: { Accept: 'application/json', 'ngrok-skip-browser-warning': '1' } })
-        .then(r => r.json())
+      obtenerPlanteles()
         .then(data => { plantelesCache.current = data; })
         .catch(() => {})
         .finally(() => setCargandoOpciones(false));

@@ -24,6 +24,14 @@ export async function loginInstitucional(userName, password, rol) {
     return { exito: true, datos };
 }
 
+export async function obtenerPlanteles() {
+    const respuesta = await fetch(`${BASE_URL}/api/planteles/`, {
+        headers: { ...baseHeaders() },
+    });
+    if (!respuesta.ok) throw new Error('Error al cargar planteles');
+    return respuesta.json(); // [{ id, nombre }]
+}
+
 export async function guardarConfiguracionPlanteles(selecciones) {
     const token = localStorage.getItem('authToken');
     const sesion = obtenerSesion();

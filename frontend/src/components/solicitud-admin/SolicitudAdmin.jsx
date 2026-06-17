@@ -3,10 +3,16 @@ import { ShieldCheck, Send, Clock, MapPin } from "lucide-react";
 import Modal from "../modal/Modal.jsx";
 import { avisoExito, avisoError, avisoInfo } from "../../lib/alertas.js";
 import { useSesion } from "../../hooks/useSesion.js";
-import { PLANTELES, TURNOS } from "../../data/usuarios.js";
 import { miSolicitudPendiente, enviarSolicitud } from "../../services/solicitudesService.js";
+import { obtenerPlanteles } from "../../services/authService.js";
 import styles from "./SolicitudAdmin.module.css";
 
+// Turnos válidos: excluyentes entre sí (Mixto = cubre ambos)
+const TURNOS = [
+  { id: "matutino",   etiqueta: "Matutino" },
+  { id: "vespertino", etiqueta: "Vespertino" },
+  { id: "mixto",      etiqueta: "Mixto (ambos)" },
+];
 const TURNOS_MAP = Object.fromEntries(TURNOS.map((t) => [t.id, t.etiqueta]));
 
 function formatoFecha(iso) {
@@ -17,33 +23,35 @@ function formatoFecha(iso) {
 }
 
 export default function SolicitudAdmin({ abierto, onCerrar }) {
-  const { nombre} = useSesion();
-  
+  const { nombre, correo: correoPerfil } = useSesion();
 
-  const inicial = () => ({
-    nombre: nombre || "",
-    correo:   "",
-    plantel: PLANTELES[0],
-    turno: "matutino",
-    motivo: "",
+  const inicial = (primerPlantel = "") => ({
+    nombre:  nombre || "",
+    correo:  correoPerfil || "",
+    plantel: primerPlantel,
+    turno:   "matutino",
+    motivo:  "",
   });
 
-  const [form, setForm] = useState(inicial);
+  const [form, setForm] = useState(() => inicial());
+  const [planteles, setPlanteles] = useState([]);
   const [pendiente, setPendiente] = useState(null);
   const [cargando, setCargando] = useState(false);
   const [enviando, setEnviando] = useState(false);
 
-  // Al abrir, se consulta si ya hay una solicitud pendiente.
+  // Al abrir, carga planteles reales y verifica solicitud pendiente en paralelo.
   useEffect(() => {
     if (!abierto) return undefined;
     let vigente = true;
 
     async function cargar() {
-      setForm(inicial());
       setCargando(true);
       try {
-        const s = await miSolicitudPendiente();
-        if (vigente) setPendiente(s);
+        const [s, ps] = await Promise.all([miSolicitudPendiente(), obtenerPlanteles()]);
+        if (!vigente) return;
+        setPendiente(s);
+        setPlanteles(ps);
+        setForm(inicial(ps[0]?.nombre ?? ""));
       } catch {
         if (vigente) setPendiente(null);
       } finally {
@@ -192,10 +200,13 @@ export default function SolicitudAdmin({ abierto, onCerrar }) {
             <div className="formulario__fila">
               <label className="formulario__campo">
                 <span className="formulario__etiqueta">Plantel</span>
-                <select value={form.plantel} onChange={fijar("plantel")}>
-                  {PLANTELES.map((p) => (
-                    <option key={p} value={p}>{p}</option>
-                  ))}
+                <select value={form.plantel} onChange={fijar("plantel")} disabled={cargando || planteles.length === 0}>
+                  {planteles.length === 0
+                    ? <option value="">Cargando planteles…</option>
+                    : planteles.map(p => (
+                        <option key={p.id} value={p.nombre}>{p.nombre}</option>
+                      ))
+                  }
                 </select>
               </label>
               <label className="formulario__campo">

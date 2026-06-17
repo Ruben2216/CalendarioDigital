@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import './ModalConfiguracion.css';
+import { obtenerPlanteles } from '../services/authService.js';
 
 // Componente para manejar la selección múltiple de planteles y turnos
 export default function ModalConfiguracion({ isOpen, onClose, onSave }) {
@@ -13,12 +14,7 @@ export default function ModalConfiguracion({ isOpen, onClose, onSave }) {
 
     const fetchPlanteles = async () => {
       try {
-        const base = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
-        const res = await fetch(`${base}/api/planteles/`, {
-          headers: { 'Accept': 'application/json', 'ngrok-skip-browser-warning': '1' },
-        });
-        if (!res.ok) throw new Error('Error al cargar planteles');
-        const data = await res.json();
+        const data = await obtenerPlanteles();
         setPlantelesDisponibles(data.map(p => ({ id: String(p.id), nombre: p.nombre })));
       } catch (error) {
         console.error("Error cargando planteles", error);
