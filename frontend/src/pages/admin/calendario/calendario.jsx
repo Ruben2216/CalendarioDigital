@@ -21,7 +21,8 @@ import {
   NOMBRES_MES, ABREV_MES, aClaveFecha, desdeClaveFecha, sumarDias, minutosDe, formatoHora,
   formatoFechaLarga, calcularSemestre, ahoraMexico,
 } from "../../../lib/fechas.js";
-import { TIPOS, AREAS, COLORES_TIPO, SEMESTRES, GRUPOS, PLANTELES, TURNOS, eventosIniciales, alcanceEvento } from "../../../data/calendario.js";
+import { TIPOS, AREAS, COLORES_TIPO, SEMESTRES, GRUPOS, TURNOS, eventosIniciales, alcanceEvento } from "../../../data/calendario.js";
+import SelectorPlantel from "../../../components/selector-plantel/SelectorPlantel.jsx";
 import { useSesion } from "../../../hooks/useSesion.js";
 import VistaAnual from "./vistas/VistaAnual.jsx";   
 import VistaLista from "./vistas/VistaLista.jsx";   
@@ -944,12 +945,11 @@ export default function Calendario({ soloLectura = false }) {
                     <option value={filtroPlantel}>{filtroPlantel || "Todos"}</option>
                   </select>
                 ) : (
-                  <select value={filtroPlantel} onChange={(e) => setFiltroPlantel(e.target.value)}>
-                    <option value="">Todos</option>
-                    {PLANTELES.map((p) => (
-                      <option key={p} value={p}>{p}</option>
-                    ))}
-                  </select>
+                  <SelectorPlantel
+                    value={filtroPlantel}
+                    onChange={setFiltroPlantel}
+                    textoTodos="Todos"
+                  />
                 )}
               </label>
 

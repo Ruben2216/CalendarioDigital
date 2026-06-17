@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Megaphone } from "lucide-react";
 import Modal from "../modal/Modal.jsx";
 import { AUDIENCIAS, COLORES_ANUNCIO } from "../../data/anuncios.js";
-import { PLANTELES } from "../../data/usuarios.js";
+import SelectorPlantel from "../selector-plantel/SelectorPlantel.jsx";
 import styles from "./ModalAnuncio.module.css";
 
 export default function ModalAnuncio({ anuncio, onCerrar, onGuardar }) {
@@ -89,12 +89,11 @@ export default function ModalAnuncio({ anuncio, onCerrar, onGuardar }) {
 
         <label className="formulario__campo">
           <span className="formulario__etiqueta">Alcance</span>
-          <select value={form.plantel} onChange={fijar("plantel")}>
-            <option value="">General (todos los planteles)</option>
-            {PLANTELES.map((p) => (
-              <option key={p} value={p}>{p}</option>
-            ))}
-          </select>
+          <SelectorPlantel
+            value={form.plantel}
+            onChange={(v) => setForm((prev) => ({ ...prev, plantel: v }))}
+            textoTodos="General (todos los planteles)"
+          />
         </label>
 
         <div className={styles["previa"]}>

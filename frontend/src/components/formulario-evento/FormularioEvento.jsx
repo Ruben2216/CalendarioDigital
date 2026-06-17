@@ -1,6 +1,7 @@
 import SelectorFecha from '../campos/SelectorFecha.jsx';
 import SelectorHora from '../campos/SelectorHora.jsx';
-import { AREAS, TIPOS, SEMESTRES, GRUPOS, PLANTELES, TURNOS } from '../../data/calendario.js';
+import SelectorPlantel from '../selector-plantel/SelectorPlantel.jsx';
+import { AREAS, TIPOS, SEMESTRES, GRUPOS, TURNOS } from '../../data/calendario.js';
 import styles from './FormularioEvento.module.css';
 
 export default function FormularioEvento({
@@ -103,12 +104,11 @@ export default function FormularioEvento({
       <div className="formulario__fila">
         <label className="formulario__campo">
           <span className="formulario__etiqueta">Plantel</span>
-          <select value={form.plantel} onChange={set('plantel')}>
-            <option value="">Todos</option>
-            {PLANTELES.map((p) => (
-              <option key={p} value={p}>{p}</option>
-            ))}
-          </select>
+          <SelectorPlantel
+            value={form.plantel}
+            onChange={(v) => fij('plantel', v)}
+            textoTodos="Todos"
+          />
         </label>
         <label className="formulario__campo">
           <span className="formulario__etiqueta">Turno</span>

@@ -1,0 +1,156 @@
+.selector {
+  position: relative;
+}
+
+.control {
+  display: flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 0 8px 0 12px;
+  border-radius: 10px;
+  border: 1px solid #dbe4f0;
+  background: #f8fbff;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.control--abierto {
+  border-color: var(--blue);
+  background: #fff;
+}
+
+.abrir {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 0;
+  background: transparent;
+  padding: 9px 0;
+  font: inherit;
+  font-size: 13px;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.abrir svg {
+  color: var(--muted-2);
+  flex: none;
+}
+
+.valor {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.valor--vacio {
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.flecha {
+  color: var(--muted-2);
+  flex: none;
+}
+
+.limpiar {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.limpiar:hover {
+  background: var(--red-soft);
+  color: var(--red);
+}
+
+.panel {
+  position: fixed;
+  z-index: 300;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: 0 18px 40px rgba(9, 22, 48, 0.16);
+  overflow: hidden;
+}
+
+.buscador {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid #edf1f7;
+}
+
+.buscador svg {
+  color: var(--muted-2);
+  flex: none;
+}
+
+.buscador input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  font: inherit;
+  font-size: 13px;
+  color: var(--text);
+}
+
+.opciones {
+  list-style: none;
+  margin: 0;
+  padding: 6px;
+  max-height: 320px;
+  overflow-y: auto;
+  display: grid;
+  gap: 1px;
+}
+
+.opcion {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  font: inherit;
+  font-size: 13px;
+  color: #344054;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.opcion:hover {
+  background: var(--panel-soft);
+}
+
+.check {
+  width: 14px;
+  flex: none;
+  color: var(--blue);
+  display: inline-flex;
+}
+
+.estado {
+  padding: 14px 12px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 12.5px;
+}

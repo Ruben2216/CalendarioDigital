@@ -33,12 +33,6 @@ export const SEMESTRES = [1, 2, 3, 4, 5, 6];
 
 export const GRUPOS = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"];
 
-export const PLANTELES = [
-  "Plantel 01 - Tuxtla",
-  "Plantel 02 - San Cristóbal",
-  "Plantel 13 - Tuxtla Oriente",
-];
-
 export const TURNOS = ["Matutino", "Vespertino"];
 
 export function alcanceEvento(ev) {
