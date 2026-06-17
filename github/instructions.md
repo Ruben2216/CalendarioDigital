@@ -25,6 +25,7 @@ Estas instrucciones son la única fuente de verdad para guiar respuestas y gener
 * **Funciones y Variables:** `snake_case`.
 * **Arquitectura:** Fat Models, Skinny Views. Lógica de negocio en modelos o servicios.
 * **Optimización ORM:** Obligatorio el uso de `select_related` y `prefetch_related` para mitigar problemas N+1.
+* **Llaves primarias:** Toda tabla declara su PK explícita como `id_<nombre_tabla>` en singular (ej. `id_usuario`, `id_rol`, `id_conversacion`), tanto en el modelo como en la columna física de la base de datos. Solo se permite `db_column` para tablas externas/heredadas que no se puedan alterar.
 
 ### Idioma del Código
 * **Archivos, Carpetas y Peticiones (HTTP):** Inglés.

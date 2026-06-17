@@ -1,6 +1,6 @@
 import SelectorFecha from '../campos/SelectorFecha.jsx';
 import SelectorHora from '../campos/SelectorHora.jsx';
-import { AREAS, TIPOS } from '../../data/calendario.js';
+import { AREAS, TIPOS, SEMESTRES, GRUPOS, PLANTELES, TURNOS } from '../../data/calendario.js';
 import styles from './FormularioEvento.module.css';
 
 export default function FormularioEvento({
@@ -100,8 +100,29 @@ export default function FormularioEvento({
         </div>
       )}
 
+      <div className="formulario__fila">
+        <label className="formulario__campo">
+          <span className="formulario__etiqueta">Plantel</span>
+          <select value={form.plantel} onChange={set('plantel')}>
+            <option value="">Todos</option>
+            {PLANTELES.map((p) => (
+              <option key={p} value={p}>{p}</option>
+            ))}
+          </select>
+        </label>
+        <label className="formulario__campo">
+          <span className="formulario__etiqueta">Turno</span>
+          <select value={form.turno} onChange={set('turno')}>
+            <option value="">Todos</option>
+            {TURNOS.map((t) => (
+              <option key={t} value={t}>{t}</option>
+            ))}
+          </select>
+        </label>
+      </div>
+
       <label className="formulario__campo">
-        <span className="formulario__etiqueta">Lugar / Grupo</span>
+        <span className="formulario__etiqueta">Lugar</span>
         <input
           type="text"
           placeholder="Aula, auditorio, explanada..."
@@ -109,6 +130,45 @@ export default function FormularioEvento({
           onChange={set('lugar')}
         />
       </label>
+
+      <div className={styles['interruptor']}>
+        <div>
+          <span className="formulario__etiqueta">Dirigido a un grupo/semestre específico</span>
+          <p className={styles['interruptor__nota']}>Si está apagado, el evento aplica a todos.</p>
+        </div>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={form.especifico}
+          className={`${styles['switch']} ${form.especifico ? styles['switch--on'] : ''}`}
+          onClick={() => fij('especifico', !form.especifico)}
+        >
+          <span className={styles['switch__bolita']} />
+        </button>
+      </div>
+
+      {form.especifico && (
+        <div className="formulario__fila">
+          <label className="formulario__campo">
+            <span className="formulario__etiqueta">Semestre</span>
+            <select value={form.semestre} onChange={set('semestre')}>
+              <option value="">Todos</option>
+              {SEMESTRES.map((s) => (
+                <option key={s} value={s}>{s}.º</option>
+              ))}
+            </select>
+          </label>
+          <label className="formulario__campo">
+            <span className="formulario__etiqueta">Grupo</span>
+            <select value={form.grupo} onChange={set('grupo')}>
+              <option value="">Todos</option>
+              {GRUPOS.map((g) => (
+                <option key={g} value={g}>{g}</option>
+              ))}
+            </select>
+          </label>
+        </div>
+      )}
 
     </form>
   );

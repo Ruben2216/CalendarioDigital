@@ -4,7 +4,7 @@ from django.db import models
 
 
 class Rol(models.Model):
-    id_rol = models.BigAutoField(primary_key=True, db_column='id')
+    id_rol = models.BigAutoField(primary_key=True)
     nombre_rol = models.CharField(max_length=50, unique=True)
 
     class Meta:
@@ -15,7 +15,7 @@ class Rol(models.Model):
 
 
 class Plantel(models.Model):
-    id_plantel = models.BigAutoField(primary_key=True, db_column='id')
+    id_plantel = models.BigAutoField(primary_key=True)
     clave = models.CharField(max_length=10, unique=True)
     nombre = models.CharField(max_length=100)
     activo = models.BooleanField(default=True)
@@ -28,7 +28,7 @@ class Plantel(models.Model):
 
 
 class Turno(models.Model):
-    id_turno = models.BigAutoField(primary_key=True, db_column='id')
+    id_turno = models.BigAutoField(primary_key=True)
     plantel = models.ForeignKey(
         Plantel, on_delete=models.CASCADE, related_name='turnos'
     )
@@ -43,7 +43,7 @@ class Turno(models.Model):
 
 
 class Grupo(models.Model):
-    id_grupo = models.BigAutoField(primary_key=True, db_column='id')
+    id_grupo = models.BigAutoField(primary_key=True)
     turno = models.ForeignKey(
         Turno, on_delete=models.CASCADE, related_name='grupos'
     )
@@ -58,7 +58,7 @@ class Grupo(models.Model):
 
 
 class Usuario(models.Model):
-    id_usuario = models.BigAutoField(primary_key=True, db_column='id')
+    id_usuario = models.BigAutoField(primary_key=True)
     rol = models.ForeignKey(
         Rol, on_delete=models.PROTECT, related_name='usuarios'
     )
@@ -92,7 +92,7 @@ class Usuario(models.Model):
 
 
 class PermisoEspecial(models.Model):
-    id_permiso_especial = models.BigAutoField(primary_key=True, db_column='id')
+    id_permiso_especial = models.BigAutoField(primary_key=True)
     usuario = models.ForeignKey(
         Usuario, on_delete=models.CASCADE, related_name='permisos_especiales'
     )
@@ -110,7 +110,7 @@ class PermisoEspecial(models.Model):
 
 
 class Conversacion(models.Model):
-    id_conversacion = models.BigAutoField(primary_key=True, db_column='id')
+    id_conversacion = models.BigAutoField(primary_key=True)
     participante_a = models.ForeignKey(
         Usuario, on_delete=models.CASCADE, related_name='conversaciones_como_a'
     )
@@ -136,7 +136,7 @@ class Conversacion(models.Model):
 
 
 class Mensaje(models.Model):
-    id_mensaje = models.BigAutoField(primary_key=True, db_column='id')
+    id_mensaje = models.BigAutoField(primary_key=True)
     conversacion = models.ForeignKey(
         Conversacion, on_delete=models.CASCADE, related_name='mensajes'
     )
@@ -182,7 +182,7 @@ class Mensaje(models.Model):
 
 
 class LecturaMensaje(models.Model):
-    id_lectura_mensaje = models.BigAutoField(primary_key=True, db_column='id')
+    id_lectura_mensaje = models.BigAutoField(primary_key=True)
     conversacion = models.ForeignKey(
         Conversacion, on_delete=models.CASCADE, related_name='lecturas'
     )
@@ -239,6 +239,7 @@ class SolicitudAdmin(models.Model):
         (ESTADO_RECHAZADA, 'Rechazada'),
     ]
 
+    id_solicitud_admin = models.BigAutoField(primary_key=True)
     usuario = models.ForeignKey(
         Usuario, on_delete=models.CASCADE, related_name='solicitudes_admin'
     )

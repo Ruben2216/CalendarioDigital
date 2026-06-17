@@ -4,7 +4,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('agenda', '0006_remove_notificacion_id_notificacion_id_notificacion'),
+        ('agenda', '0007_alter_conversacion_id_conversacion_and_more'),
     ]
 
     operations = [

@@ -21,7 +21,8 @@ import {
   NOMBRES_MES, ABREV_MES, aClaveFecha, desdeClaveFecha, sumarDias, minutosDe, formatoHora,
   formatoFechaLarga, calcularSemestre, ahoraMexico,
 } from "../../../lib/fechas.js";
-import { TIPOS, AREAS, COLORES_TIPO, eventosIniciales } from "../../../data/calendario.js";
+import { TIPOS, AREAS, COLORES_TIPO, SEMESTRES, GRUPOS, PLANTELES, TURNOS, eventosIniciales, alcanceEvento } from "../../../data/calendario.js";
+import { useSesion } from "../../../hooks/useSesion.js";
 import VistaAnual from "./vistas/VistaAnual.jsx";   
 import VistaLista from "./vistas/VistaLista.jsx";   
 import styles from "./calendario.module.css";
@@ -42,7 +43,8 @@ const VISTAS = [
 /* Valores iniciales de los formularios (evento nuevo y tipo nuevo). */
 const FORM_EVENTO_VACIO = {
   titulo: "", tipo: "academico", area: "Académica", fecha: "", fechaFin: "",
-  horaInicio: "", horaFin: "", lugar: "", formato: "punto", todoElDia: false,
+  horaInicio: "", horaFin: "", lugar: "", plantel: "", turno: "", formato: "punto", todoElDia: false,
+  especifico: false, semestre: "", grupo: "",
 };
 const FORM_TIPO_VACIO = { id: null, etiqueta: "", color: "azul" };
 
@@ -62,6 +64,8 @@ export default function Calendario({ soloLectura = false }) {
   const hoy = useMemo(() => ahoraMexico(), []); // fecha/hora real en zona MX
   const claveHoy = aClaveFecha(hoy);            // "YYYY-MM-DD" de hoy
 
+  const sesion = useSesion();
+
   const [tipos, setTipos] = useState(TIPOS);                          // tipos de evento (CRUD)
   const [eventos, setEventos] = useState(() => eventosIniciales());   // eventos (CRUD)
   const [vista, setVista] = useState("mes");                          // vista activa
@@ -69,8 +73,22 @@ export default function Calendario({ soloLectura = false }) {
   const [tituloVista, setTituloVista] = useState("");                 // título que da FC (semana/anual/lista)
   const [fechaSeleccionada, setFechaSeleccionada] = useState(claveHoy); // día resaltado
   const [mesSeleccionado, setMesSeleccionado] = useState(null);         // mes elegido en la vista anual
-  const [tiposOcultos, setTiposOcultos] = useState(() => new Set());
+  const [filtroTipo, setFiltroTipo] = useState("todos");
   const [filtroArea, setFiltroArea] = useState("todas");
+  const [filtroSemestre, setFiltroSemestre] = useState(
+    () => (soloLectura && sesion.semestre ? String(sesion.semestre) : "")
+  );
+  const [filtroGrupo, setFiltroGrupo] = useState(
+    () => (soloLectura && sesion.grupo ? sesion.grupo : "")
+  );
+  const [filtroPlantel, setFiltroPlantel] = useState(
+    () => (soloLectura && sesion.plantel?.nombre ? sesion.plantel.nombre : "")
+  );
+  const [filtroTurno, setFiltroTurno] = useState(
+    () => (soloLectura && sesion.turno?.nombre ? sesion.turno.nombre : "")
+  );
+  const [filtroFechaDesde, setFiltroFechaDesde] = useState("");
+  const [filtroFechaHasta, setFiltroFechaHasta] = useState("");
   const [pickerAbierto, setPickerAbierto] = useState(false);            // selector de mes
   const [anioPicker, setAnioPicker] = useState(() => hoy.getFullYear());
   const [vistaMenu, setVistaMenu] = useState(false);                    // menú desplegable de vista
@@ -166,11 +184,20 @@ export default function Calendario({ soloLectura = false }) {
   // Eventos visibles tras aplicar los filtros de tipo y área.
   const eventosFiltrados = useMemo(() => {
     return eventos.filter((ev) => {
-      if (tiposOcultos.has(ev.tipo)) return false;
+      if (filtroTipo !== "todos" && ev.tipo !== filtroTipo) return false;
       if (filtroArea !== "todas" && ev.area !== filtroArea) return false;
+      if (filtroSemestre && ev.semestre != null && String(ev.semestre) !== filtroSemestre) return false;
+      if (filtroGrupo && ev.grupo != null && ev.grupo !== filtroGrupo) return false;
+      if (filtroPlantel && ev.plantel != null && ev.plantel !== filtroPlantel) return false;
+      if (filtroTurno && ev.turno != null && ev.turno !== filtroTurno) return false;
+      if (filtroFechaDesde && (ev.fechaFin || ev.fecha) < filtroFechaDesde) return false;
+      if (filtroFechaHasta && ev.fecha > filtroFechaHasta) return false;
       return true;
     });
-  }, [eventos, tiposOcultos, filtroArea]);
+  }, [
+    eventos, filtroTipo, filtroArea, filtroSemestre, filtroGrupo,
+    filtroPlantel, filtroTurno, filtroFechaDesde, filtroFechaHasta,
+  ]);
 
   const eventosFC = useMemo(() => {
     return eventosFiltrados.map((ev) => {
@@ -243,24 +270,26 @@ export default function Calendario({ soloLectura = false }) {
     : fechaSeleccionada
       ? formatoFechaLarga(fechaSeleccionada)
       : "Selecciona un día";
-  const hayFiltros = tiposOcultos.size > 0 || filtroArea !== "todas";
+  const hayFiltros = filtroTipo !== "todos" || filtroArea !== "todas" ||
+    filtroFechaDesde !== "" || filtroFechaHasta !== "" ||
+    (!soloLectura && (filtroSemestre !== "" || filtroGrupo !== "" || filtroPlantel !== "" || filtroTurno !== ""));
 
   const seleccionarDiaAnual = (clave) => {
     setFechaSeleccionada(clave);
     setMesSeleccionado(null);
   };
 
-  const alternarTipo = (id) =>
-    setTiposOcultos((prev) => {
-      const nuevo = new Set(prev);
-      if (nuevo.has(id)) nuevo.delete(id);
-      else nuevo.add(id);
-      return nuevo;
-    });
-
   const limpiarFiltros = () => {
-    setTiposOcultos(new Set());
+    setFiltroTipo("todos");
     setFiltroArea("todas");
+    setFiltroFechaDesde("");
+    setFiltroFechaHasta("");
+    if (!soloLectura) {
+      setFiltroSemestre("");
+      setFiltroGrupo("");
+      setFiltroPlantel("");
+      setFiltroTurno("");
+    }
   };
 
   // Texto que se muestra en la toolbar según la vista.
@@ -381,8 +410,11 @@ export default function Calendario({ soloLectura = false }) {
     setFormEvento({
       titulo: ev.titulo, tipo: ev.tipo, area: ev.area, fecha: ev.fecha,
       fechaFin: ev.fechaFin || "", horaInicio: ev.horaInicio || "",
-      horaFin: ev.horaFin || "", lugar: ev.lugar || "", formato: ev.formato || "punto",
+      horaFin: ev.horaFin || "", lugar: ev.lugar || "", plantel: ev.plantel ?? "",
+      turno: ev.turno ?? "", formato: ev.formato || "punto",
       todoElDia: !ev.horaInicio,
+      especifico: ev.semestre != null || ev.grupo != null,
+      semestre: ev.semestre ?? "", grupo: ev.grupo ?? "",
     });
     setModalEvento(true);
   };
@@ -391,7 +423,7 @@ export default function Calendario({ soloLectura = false }) {
   const guardarEvento = (e) => {
     e.preventDefault();
     if (!formEvento.fecha) return;
-    const { todoElDia, ...resto } = formEvento;
+    const { todoElDia, especifico, ...resto } = formEvento;
     const datos = {
       ...resto,
       titulo: formEvento.titulo.trim(),
@@ -400,6 +432,10 @@ export default function Calendario({ soloLectura = false }) {
       horaInicio: todoElDia ? "" : formEvento.horaInicio,
       horaFin: todoElDia ? "" : formEvento.horaFin,
       formato: todoElDia ? "rango" : "punto",
+      plantel: formEvento.plantel || null,
+      turno: formEvento.turno || null,
+      semestre: especifico && formEvento.semestre ? Number(formEvento.semestre) : null,
+      grupo: especifico && formEvento.grupo ? formEvento.grupo : null,
     };
     if (eventoEditando) {
       setEventos((prev) => prev.map((ev) => (ev.id === eventoEditando ? { ...ev, ...datos } : ev)));
@@ -458,12 +494,7 @@ export default function Calendario({ soloLectura = false }) {
     setEventos((prev) =>
       prev.map((ev) => (ev.tipo === tipo.id ? { ...ev, tipo: reemplazo.id } : ev))
     );
-    setTiposOcultos((prev) => {
-      if (!prev.has(tipo.id)) return prev;
-      const nuevo = new Set(prev);
-      nuevo.delete(tipo.id);
-      return nuevo;
-    });
+    setFiltroTipo((prev) => (prev === tipo.id ? "todos" : prev));
     setTipos((prev) => prev.filter((t) => t.id !== tipo.id));
   };
 
@@ -704,7 +735,7 @@ export default function Calendario({ soloLectura = false }) {
                       <th>Hora</th>
                       <th>Evento</th>
                       <th>Área</th>
-                      <th>Lugar / Grupo</th>
+                      <th>Lugar</th>
                       <th>Tipo</th>
                       {!soloLectura && <th className={styles["tabla__acciones-col"]}>Acciones</th>}
                     </tr>
@@ -725,9 +756,17 @@ export default function Calendario({ soloLectura = false }) {
                             </span>
                           </span>
                         </td>
-                        <td className={styles["tabla__evento"]}>{ev.titulo}</td>
+                        <td className={styles["tabla__evento"]}>
+                          {ev.titulo}
+                          <small className={styles["tabla__sub"]}>{alcanceEvento(ev)}</small>
+                        </td>
                         <td className={styles["tabla__tenue"]}>{ev.area}</td>
-                        <td className={styles["tabla__tenue"]}>{ev.lugar || "—"}</td>
+                        <td className={styles["tabla__tenue"]}>
+                          {ev.lugar || "—"}
+                          <small className={styles["tabla__sub"]}>
+                            {ev.plantel || "Todos los planteles"}{ev.turno ? ` · ${ev.turno}` : ""}
+                          </small>
+                        </td>
                         <td>
                           <span className={`etiqueta etiqueta--${colorTipo(ev.tipo)}`}>
                             {etiquetaTipo(ev.tipo)}
@@ -855,24 +894,15 @@ export default function Calendario({ soloLectura = false }) {
               )}
             </div>
             <div className={styles["filtros"]}>
-              <div>
-                <span className="formulario__etiqueta">Tipos de evento</span>
-                <ul className={styles["checks"]}>
+              <label className="formulario__campo">
+                <span className="formulario__etiqueta">Tipo de evento</span>
+                <select value={filtroTipo} onChange={(e) => setFiltroTipo(e.target.value)}>
+                  <option value="todos">Todos</option>
                   {tipos.map((t) => (
-                    <li key={t.id}>
-                      <label className={styles["check"]}>
-                        <input
-                          type="checkbox"
-                          checked={!tiposOcultos.has(t.id)}
-                          onChange={() => alternarTipo(t.id)}
-                        />
-                        <span className={`${styles["check__punto"]} ${styles[`check__punto--${t.color}`]}`} />
-                        <span className={styles["check__texto"]}>{t.etiqueta}</span>
-                      </label>
-                    </li>
+                    <option key={t.id} value={t.id}>{t.etiqueta}</option>
                   ))}
-                </ul>
-              </div>
+                </select>
+              </label>
 
               <label className="formulario__campo">
                 <span className="formulario__etiqueta">Área</span>
@@ -883,6 +913,63 @@ export default function Calendario({ soloLectura = false }) {
                   ))}
                 </select>
               </label>
+
+              <label className="formulario__campo">
+                <span className="formulario__etiqueta">Semestre</span>
+                <select value={filtroSemestre} disabled={soloLectura} onChange={(e) => setFiltroSemestre(e.target.value)}>
+                  <option value="">Todos</option>
+                  {SEMESTRES.map((s) => (
+                    <option key={s} value={s}>{s}.º</option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="formulario__campo">
+                <span className="formulario__etiqueta">Grupo</span>
+                <select value={filtroGrupo} disabled={soloLectura} onChange={(e) => setFiltroGrupo(e.target.value)}>
+                  <option value="">Todos</option>
+                  {GRUPOS.map((g) => (
+                    <option key={g} value={g}>{g}</option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="formulario__campo">
+                <span className="formulario__etiqueta">Plantel</span>
+                {soloLectura ? (
+                  <select value={filtroPlantel} disabled>
+                    <option value={filtroPlantel}>{filtroPlantel || "Todos"}</option>
+                  </select>
+                ) : (
+                  <select value={filtroPlantel} onChange={(e) => setFiltroPlantel(e.target.value)}>
+                    <option value="">Todos</option>
+                    {PLANTELES.map((p) => (
+                      <option key={p} value={p}>{p}</option>
+                    ))}
+                  </select>
+                )}
+              </label>
+
+              <label className="formulario__campo">
+                <span className="formulario__etiqueta">Turno</span>
+                <select value={filtroTurno} disabled={soloLectura} onChange={(e) => setFiltroTurno(e.target.value)}>
+                  <option value="">Todos</option>
+                  {TURNOS.map((t) => (
+                    <option key={t} value={t}>{t}</option>
+                  ))}
+                </select>
+              </label>
+
+              <div className="formulario__fila">
+                <label className="formulario__campo">
+                  <span className="formulario__etiqueta">Desde</span>
+                  <input type="date" value={filtroFechaDesde} onChange={(e) => setFiltroFechaDesde(e.target.value)} />
+                </label>
+                <label className="formulario__campo">
+                  <span className="formulario__etiqueta">Hasta</span>
+                  <input type="date" value={filtroFechaHasta} onChange={(e) => setFiltroFechaHasta(e.target.value)} />
+                </label>
+              </div>
             </div>
           </article>
         </aside>

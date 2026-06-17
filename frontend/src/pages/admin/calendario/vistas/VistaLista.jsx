@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { Pencil, Trash2 } from "lucide-react";
 import { formatoHora, formatoFechaLarga } from "../../../../lib/fechas.js";
+import { alcanceEvento } from "../../../../data/calendario.js";
 import styles from "./VistaLista.module.css";
 
 export default function VistaLista({ eventos, fechaActual, colorTipo, etiquetaTipo, onSeleccionarDia, onEditar, onEliminar, soloLectura = false, })
@@ -56,6 +57,9 @@ export default function VistaLista({ eventos, fechaActual, colorTipo, etiquetaTi
                   <span className={styles["lista__sub"]}>
                     {ev.area}
                     {ev.lugar ? ` · ${ev.lugar}` : ""}
+                    {ev.plantel ? ` · ${ev.plantel}` : ""}
+                    {ev.turno ? ` · ${ev.turno}` : ""}
+                    {(ev.semestre != null || ev.grupo != null) ? ` · ${alcanceEvento(ev)}` : ""}
                   </span>
                 </div>
 

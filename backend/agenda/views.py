@@ -22,7 +22,7 @@ from .models import Usuario, Rol, Conversacion, Mensaje, LecturaMensaje, Solicit
 
 ROLES_EMPLEADO = {'superusuario', 'admin', 'docente'}
 
-_TURNOS_ALUMNO = {'M': 'Matutino', 'V': 'Vespertino', 'N': 'Nocturno'}
+_TURNOS_ALUMNO = {'M': 'Matutino', 'V': 'Vespertino'}
 
 
 def _qr_data_uri(qr: str) -> str:
