@@ -14,12 +14,17 @@ from agenda.views import (
     SolicitudBroadcastView,
     LogoutView,
     GuardarConfiguracionPlantelesView,
+    TurnoListView,
+    PlantelListView,
 )
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/auth/google/callback/', GoogleAuthView.as_view(), name='google-callback'),
     path('api/auth/login/', LoginInstitucionalView.as_view(), name='login-institucional'),
+    
+    path('api/planteles/', PlantelListView.as_view(), name='planteles-list'),
+    path('api/turnos/', TurnoListView.as_view(), name='turnos-list'),
 
     # Solicitudes de acceso de administrador (docente → admin)
     path('api/solicitudes-admin/', SolicitudAdminView.as_view(), name='solicitudes-admin'),

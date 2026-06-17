@@ -27,7 +27,27 @@ const NAV_DOCENTE_BASE = [
 
 export default function LayoutDocente() {
   const cerrarSesion = useLogout();
-  const { nombre, iniciales, rol, plantel, turno, tipoEmpleado, adscripcion } = useSesion();
+  const { nombre, iniciales, rol, planteles = [], tipoEmpleado, adscripcion } = useSesion();
+
+  // Agrupar por plantel (un docente puede tener Matutino+Vespertino en el mismo plantel)
+  const plantelesAgrupados = Object.values(
+    planteles.reduce((acc, up) => {
+      const id = up.plantel.id;
+      if (!acc[id]) acc[id] = { plantel: up.plantel, turnos: [] };
+      acc[id].turnos.push(up.turno);
+      return acc;
+    }, {})
+  );
+
+  const plantelHeaderText =
+    adscripcion ||
+    (plantelesAgrupados.length === 1
+      ? plantelesAgrupados[0].plantel.nombre
+      : plantelesAgrupados.length > 1
+      ? `${plantelesAgrupados.length} planteles`
+      : rol === 'superusuario'
+      ? 'Todos los planteles'
+      : 'Sin plantel');
   const { totalSinLeer } = useMensajeriaCtx();
 
   const [esMovil, setEsMovil] = useState(
@@ -281,8 +301,8 @@ export default function LayoutDocente() {
 
             <div className={styles["plantel"]}>
               <div>
-                <small>{tipoEmpleado === 'Administrativo' ? 'Departamento' : 'Plantel'}</small>
-                <strong>{adscripcion || (plantel?.nombre ?? (rol === 'superusuario' ? 'Todos los planteles' : 'Sin plantel'))}</strong>
+                <small>{tipoEmpleado === 'Administrativo' ? 'Departamento' : 'Adscripción'}</small>
+                <strong>{plantelHeaderText}</strong>
               </div>
               <ChevronDown size={14} />
             </div>
@@ -311,12 +331,33 @@ export default function LayoutDocente() {
                       <div className={styles["menu-perfil__rol"]}>{tipoEmpleado || ROL_ETIQUETA[rol] || 'Usuario'}</div>
                     </div>
                   </div>
+
+                  {plantelesAgrupados.length > 0 && (
+                    <div className={styles["menu-perfil__planteles"]}>
+                      <span className={styles["menu-perfil__planteles-label"]}>Planteles asignados</span>
+                      {plantelesAgrupados.map(({ plantel, turnos }) => (
+                        <div key={plantel.id} className={styles["menu-perfil__plantel-fila"]}>
+                          <span className={styles["menu-perfil__plantel-nombre"]} title={plantel.nombre}>
+                            {plantel.nombre}
+                          </span>
+                          <span className={styles["menu-perfil__turnos-badges"]}>
+                            {turnos.map((t) => {
+                              const clave = t.nombre.toLowerCase();
+                              const mod = clave === 'matutino' || clave === 'vespertino' || clave === 'mixto'
+                                ? clave : 'otro';
+                              return (
+                                <span key={t.id} className={styles[`menu-perfil__turno-badge--${mod}`] + ' ' + styles['menu-perfil__turno-badge']}>
+                                  {t.nombre}
+                                </span>
+                              );
+                            })}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
                   <ul className={styles["menu-perfil__datos"]}>
-                    <li>
-                      <span>{tipoEmpleado === 'Administrativo' ? 'Departamento' : 'Plantel'}</span>
-                      <strong>{adscripcion || plantel?.nombre || '—'}</strong>
-                    </li>
-                    <li><span>Turno</span><strong>{turno?.nombre || '—'}</strong></li>
                     <li><span>Ciclo escolar</span><strong>{ciclo}</strong></li>
                   </ul>
                 </div>

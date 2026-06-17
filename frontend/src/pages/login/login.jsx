@@ -190,9 +190,10 @@ export default function Login() {
         : rolDestino === 'alumno' ? '/alumno/inicio'
           : '/dashboard';
 
-    // Verificar si necesita configurar planteles
-    if ((rolDestino === 'docente' || rolDestino === 'admin') && 
-        (!sesion.planteles || sesion.planteles.length === 0)) {
+    // Solo los Docentes (según tipoEmpleado del endpoint institucional) configuran sus planteles/turnos.
+    // Personal administrativo no necesita ese dato — tienen adscripcion/departamento propio.
+    const esDocente = (sesion.tipoEmpleado || '').trim().toLowerCase() === 'docente';
+    if (esDocente && (!sesion.planteles || sesion.planteles.length === 0)) {
       setPendingRoute(rutaDestino);
       setShowModalConfig(true);
       return;
@@ -220,7 +221,14 @@ export default function Login() {
       });
       return;
     }
-    
+
+    // Actualizar planteles en la sesión del localStorage con los datos reales del backend
+    const sesionActual = JSON.parse(localStorage.getItem('sesion') || '{}');
+    localStorage.setItem('sesion', JSON.stringify({
+      ...sesionActual,
+      planteles: res.datos.planteles ?? [],
+    }));
+
     setShowModalConfig(false);
     await Swal.fire({
       icon: 'success',

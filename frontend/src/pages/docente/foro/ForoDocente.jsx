@@ -9,7 +9,9 @@ import ModalSolicitud from './ModalSolicitud.jsx';
 import styles from './ForoDocente.module.css';
 
 export default function ForoDocente() {
-  const { id_usuario, nombre, iniciales, plantel } = useSesion();
+  const { id_usuario, nombre, iniciales, planteles = [] } = useSesion();
+  // El docente puede estar en varios planteles; usamos el primero como plantel activo para las solicitudes
+  const plantel = planteles[0]?.plantel ?? null;
   const {
     conversaciones,
     idConvActiva,
@@ -66,7 +68,7 @@ export default function ForoDocente() {
       || `Solicitud de espacio para "${datos.titulo}" el ${datos.fecha}.`;
 
     try {
-      await enviarSolicitudBroadcast(id_usuario, textoMensaje, metadatos);
+      await enviarSolicitudBroadcast(id_usuario, textoMensaje, metadatos, plantel?.id ?? null, datos.horaInicio || null);
       await recargarConversaciones();
     } catch {
       setErrorAdmin('No se pudo enviar la solicitud. Intenta de nuevo.');

@@ -40,6 +40,10 @@ export async function guardarConfiguracionPlanteles(selecciones) {
     if (!respuesta.ok) {
         return { exito: false, error: datos.error || 'Error al guardar configuración.' };
     }
+    if (datos.registros_creados === 0) {
+        const detalle = datos.errores?.length ? datos.errores.join(', ') : 'Los planteles seleccionados no existen en el sistema.';
+        return { exito: false, error: detalle };
+    }
 
     return { exito: true, datos };
 }

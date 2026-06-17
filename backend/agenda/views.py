@@ -612,6 +612,26 @@ class SolicitudBroadcastView(APIView):
 
         return Response({'conversaciones': conversacion_ids}, status=status.HTTP_201_CREATED)
 
+class TurnoListView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        turnos = Turno.objects.all().order_by('id_turno')
+        return Response([
+            {'id': t.id_turno, 'nombre': t.nombre_turno}
+            for t in turnos
+        ])
+
+class PlantelListView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        planteles = Plantel.objects.all().order_by('id_plantel')
+        return Response([
+            {'id': p.id_plantel, 'nombre': p.nombre}
+            for p in planteles
+        ])
+
 class GuardarConfiguracionPlantelesView(APIView):
     permission_classes = [permissions.AllowAny]
 
@@ -638,24 +658,31 @@ class GuardarConfiguracionPlantelesView(APIView):
                 
             for turno_nombre, activo in turnos.items():
                 if activo:
-                    try:
-                        # Convertimos "matutino", "vespertino" a capitalizado
-                        turno = Turno.objects.get(nombre_turno__iexact=turno_nombre)
-                        nuevos_registros.append(
-                            UsuarioPlantel(usuario=usuario, plantel=plantel, turno=turno)
-                        )
-                    except Turno.DoesNotExist:
-                        errores.append(f"Turno no encontrado: {turno_nombre}")
-                        continue
+                    # Aseguramos que el turno exista (ej. "Matutino", "Vespertino", "Mixto")
+                    turno, _ = Turno.objects.get_or_create(nombre_turno=turno_nombre.capitalize())
+                    nuevos_registros.append(
+                        UsuarioPlantel(usuario=usuario, plantel=plantel, turno=turno)
+                    )
                         
         if nuevos_registros:
             UsuarioPlantel.objects.bulk_create(nuevos_registros)
-            
+
+        planteles_guardados = (
+            UsuarioPlantel.objects
+            .filter(usuario=usuario)
+            .select_related('plantel', 'turno')
+        )
         return Response({
             'mensaje': 'Configuración procesada',
             'registros_creados': len(nuevos_registros),
             'errores': errores,
-            'selecciones_recibidas': selecciones
+            'planteles': [
+                {
+                    'plantel': {'id': up.plantel.id_plantel, 'nombre': up.plantel.nombre},
+                    'turno':   {'id': up.turno.id_turno,    'nombre': up.turno.nombre_turno},
+                }
+                for up in planteles_guardados
+            ],
         }, status=status.HTTP_200_OK)
 
 

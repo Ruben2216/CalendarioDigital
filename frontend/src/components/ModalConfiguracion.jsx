@@ -8,27 +8,25 @@ export default function ModalConfiguracion({ isOpen, onClose, onSave }) {
   const [busqueda, setBusqueda] = useState('');
   const [cargando, setCargando] = useState(true);
 
-  // Fetch de planteles desde la API (simulado o real)
   useEffect(() => {
     if (!isOpen) return;
-    
-    // Aquí puedes reemplazar con fetch a /api/planteles/ si existe. 
-    // Usaremos un mock por ahora hasta que se conecte el endpoint de planteles.
+
     const fetchPlanteles = async () => {
       try {
-        // Simular fetch, se debe adaptar si hay un endpoint /api/planteles/
-        const data = Array.from({ length: 338 }, (_, i) => ({
-          id: `${i + 1}`,
-          nombre: `Plantel ${String(i + 1).padStart(3, '0')} ${i === 0 ? 'Tuxtla Terán' : i === 12 ? 'Tuxtla Oriente' : i === 32 ? 'Polyforum' : 'Municipio ' + (i + 1)}`
-        }));
-        setPlantelesDisponibles(data);
+        const base = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
+        const res = await fetch(`${base}/api/planteles/`, {
+          headers: { 'Accept': 'application/json', 'ngrok-skip-browser-warning': '1' },
+        });
+        if (!res.ok) throw new Error('Error al cargar planteles');
+        const data = await res.json();
+        setPlantelesDisponibles(data.map(p => ({ id: String(p.id), nombre: p.nombre })));
       } catch (error) {
         console.error("Error cargando planteles", error);
       } finally {
         setCargando(false);
       }
     };
-    
+
     fetchPlanteles();
   }, [isOpen]);
 
