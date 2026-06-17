@@ -578,7 +578,7 @@ button.usuario {
 
 .menu-perfil__datos li {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
   padding: 9px 10px;
@@ -592,17 +592,18 @@ button.usuario {
 
 .menu-perfil__datos span {
   color: var(--muted);
+  flex: none;
 }
 
 .menu-perfil__datos strong {
+  flex: 1;
+  min-width: 0;
   font-family: var(--font-display);
   font-weight: 700;
   color: #15233d;
   text-align: right;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
 }
 
 /* Area de contenido */

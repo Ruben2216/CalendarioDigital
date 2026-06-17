@@ -31,7 +31,7 @@ export const AREAS = [
    En un evento, semestre/grupo/plantel en null (aplica a todos) */
 export const SEMESTRES = [1, 2, 3, 4, 5, 6];
 
-export const GRUPOS = ["A", "B", "C", "D", "E", "F"];
+export const GRUPOS = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"];
 
 export const PLANTELES = [
   "Plantel 01 - Tuxtla",

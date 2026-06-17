@@ -64,7 +64,10 @@ export default function Calendario({ soloLectura = false }) {
   const hoy = useMemo(() => ahoraMexico(), []); // fecha/hora real en zona MX
   const claveHoy = aClaveFecha(hoy);            // "YYYY-MM-DD" de hoy
 
+  // El alumno tiene su datos (semestre/grupo/plantel/turno) fijo en los filtros,
+  // ya que son los datos que la API devuelve. El resto filtra libremente (ej. admin y docente)
   const sesion = useSesion();
+  const esAlumno = sesion.rol === "alumno";
 
   const [tipos, setTipos] = useState(TIPOS);                          // tipos de evento (CRUD)
   const [eventos, setEventos] = useState(() => eventosIniciales());   // eventos (CRUD)
@@ -76,16 +79,16 @@ export default function Calendario({ soloLectura = false }) {
   const [filtroTipo, setFiltroTipo] = useState("todos");
   const [filtroArea, setFiltroArea] = useState("todas");
   const [filtroSemestre, setFiltroSemestre] = useState(
-    () => (soloLectura && sesion.semestre ? String(sesion.semestre) : "")
+    () => (esAlumno && sesion.semestre ? String(sesion.semestre) : "")
   );
   const [filtroGrupo, setFiltroGrupo] = useState(
-    () => (soloLectura && sesion.grupo ? sesion.grupo : "")
+    () => (esAlumno && sesion.grupo ? sesion.grupo : "")
   );
   const [filtroPlantel, setFiltroPlantel] = useState(
-    () => (soloLectura && sesion.plantel?.nombre ? sesion.plantel.nombre : "")
+    () => (esAlumno && sesion.plantel?.nombre ? sesion.plantel.nombre : "")
   );
   const [filtroTurno, setFiltroTurno] = useState(
-    () => (soloLectura && sesion.turno?.nombre ? sesion.turno.nombre : "")
+    () => (esAlumno && sesion.turno?.nombre ? sesion.turno.nombre : "")
   );
   const [filtroFechaDesde, setFiltroFechaDesde] = useState("");
   const [filtroFechaHasta, setFiltroFechaHasta] = useState("");
@@ -272,7 +275,7 @@ export default function Calendario({ soloLectura = false }) {
       : "Selecciona un día";
   const hayFiltros = filtroTipo !== "todos" || filtroArea !== "todas" ||
     filtroFechaDesde !== "" || filtroFechaHasta !== "" ||
-    (!soloLectura && (filtroSemestre !== "" || filtroGrupo !== "" || filtroPlantel !== "" || filtroTurno !== ""));
+    (!esAlumno && (filtroSemestre !== "" || filtroGrupo !== "" || filtroPlantel !== "" || filtroTurno !== ""));
 
   const seleccionarDiaAnual = (clave) => {
     setFechaSeleccionada(clave);
@@ -284,7 +287,7 @@ export default function Calendario({ soloLectura = false }) {
     setFiltroArea("todas");
     setFiltroFechaDesde("");
     setFiltroFechaHasta("");
-    if (!soloLectura) {
+    if (!esAlumno) {
       setFiltroSemestre("");
       setFiltroGrupo("");
       setFiltroPlantel("");
@@ -916,7 +919,7 @@ export default function Calendario({ soloLectura = false }) {
 
               <label className="formulario__campo">
                 <span className="formulario__etiqueta">Semestre</span>
-                <select value={filtroSemestre} disabled={soloLectura} onChange={(e) => setFiltroSemestre(e.target.value)}>
+                <select value={filtroSemestre} disabled={esAlumno} onChange={(e) => setFiltroSemestre(e.target.value)}>
                   <option value="">Todos</option>
                   {SEMESTRES.map((s) => (
                     <option key={s} value={s}>{s}.º</option>
@@ -926,7 +929,7 @@ export default function Calendario({ soloLectura = false }) {
 
               <label className="formulario__campo">
                 <span className="formulario__etiqueta">Grupo</span>
-                <select value={filtroGrupo} disabled={soloLectura} onChange={(e) => setFiltroGrupo(e.target.value)}>
+                <select value={filtroGrupo} disabled={esAlumno} onChange={(e) => setFiltroGrupo(e.target.value)}>
                   <option value="">Todos</option>
                   {GRUPOS.map((g) => (
                     <option key={g} value={g}>{g}</option>
@@ -936,7 +939,7 @@ export default function Calendario({ soloLectura = false }) {
 
               <label className="formulario__campo">
                 <span className="formulario__etiqueta">Plantel</span>
-                {soloLectura ? (
+                {esAlumno ? (
                   <select value={filtroPlantel} disabled>
                     <option value={filtroPlantel}>{filtroPlantel || "Todos"}</option>
                   </select>
@@ -952,7 +955,7 @@ export default function Calendario({ soloLectura = false }) {
 
               <label className="formulario__campo">
                 <span className="formulario__etiqueta">Turno</span>
-                <select value={filtroTurno} disabled={soloLectura} onChange={(e) => setFiltroTurno(e.target.value)}>
+                <select value={filtroTurno} disabled={esAlumno} onChange={(e) => setFiltroTurno(e.target.value)}>
                   <option value="">Todos</option>
                   {TURNOS.map((t) => (
                     <option key={t} value={t}>{t}</option>
