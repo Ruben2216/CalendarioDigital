@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import { useLogout } from "../../hooks/useLogout.js";
-import { Home, Calendar, Menu, Bell, ChevronDown, LogOut, CheckCheck, Trash2 } from "lucide-react";
+import { Home, Calendar, Menu, Bell, ChevronDown, LogOut, CheckCheck, Trash2, Megaphone } from "lucide-react";
 import Modal from "../modal/Modal.jsx";
 import logoCobach from "../../assets/img/logo-cobach.png";
 import { NOTIFICACIONES } from "../../data/avisos.js";
@@ -19,6 +19,7 @@ const ROL_ETIQUETA = {
 const NAV_ALUMNO = [
   { etiqueta: 'Inicio', icono: Home, ruta: '/alumno/inicio' },
   { etiqueta: 'Calendario', icono: Calendar, ruta: '/alumno/calendario' },
+  { etiqueta: 'Anuncios', icono: Megaphone, ruta: '/alumno/anuncios' },
 ];
 
 export default function LayoutAlumno() {

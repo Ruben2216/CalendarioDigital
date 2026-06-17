@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import { useLogout } from "../../hooks/useLogout.js";
-import { Home, Calendar, MessageSquare, Menu, Bell, ChevronDown, LogOut, CheckCheck, Trash2, ShieldCheck } from "lucide-react";
+import { Home, Calendar, MessageSquare, Menu, Bell, ChevronDown, LogOut, CheckCheck, Trash2, ShieldCheck, Megaphone } from "lucide-react";
 import Modal from "../modal/Modal.jsx";
 import SolicitudAdmin from "../solicitud-admin/SolicitudAdmin.jsx";
 import logoCobach from "../../assets/img/logo-cobach.png";
@@ -21,6 +21,7 @@ const ROL_ETIQUETA = {
 const NAV_DOCENTE_BASE = [
   { etiqueta: 'Inicio',     icono: Home,          ruta: '/docente/inicio' },
   { etiqueta: 'Calendario', icono: Calendar,      ruta: '/docente/calendario' },
+  { etiqueta: 'Anuncios',   icono: Megaphone,     ruta: '/docente/anuncios' },
   { etiqueta: 'Foro',       icono: MessageSquare, ruta: '/docente/foro', badgeDinamico: true },
 ];
 

@@ -15,6 +15,7 @@ const ForoDocente      = lazy(() => import("./pages/docente/foro/ForoDocente.jsx
 const DocenteInicio    = lazy(() => import("./pages/docente/inicio.jsx"));
 const AlumnoInicio     = lazy(() => import("./pages/alumno/inicio.jsx"));
 const Alumno           = lazy(() => import("./pages/alumno/alumno.jsx"));
+const AnunciosVista    = lazy(() => import("./components/anuncios/AnunciosVista.jsx"));
 
 function Cargando() {
   return (
@@ -62,6 +63,7 @@ function App() {
           <Route element={<LayoutAlumno />}>
             <Route path="/alumno/inicio"     element={<Suspense fallback={<Cargando />}><AlumnoInicio /></Suspense>} />
             <Route path="/alumno/calendario" element={<Suspense fallback={<Cargando />}><Alumno /></Suspense>} />
+            <Route path="/alumno/anuncios"   element={<Suspense fallback={<Cargando />}><AnunciosVista audiencia="alumnos" /></Suspense>} />
           </Route>
         </Route>
 
@@ -70,6 +72,7 @@ function App() {
           <Route element={<MensajeriaProvider><LayoutDocente /></MensajeriaProvider>}>
             <Route path="/docente/inicio"     element={<Suspense fallback={<Cargando />}><DocenteInicio /></Suspense>} />
             <Route path="/docente/calendario" element={<Suspense fallback={<Cargando />}><Calendario soloLectura /></Suspense>} />
+            <Route path="/docente/anuncios"   element={<Suspense fallback={<Cargando />}><AnunciosVista audiencia="docentes" /></Suspense>} />
             <Route path="/docente/foro"       element={<Suspense fallback={<Cargando />}><ForoDocente /></Suspense>} />
           </Route>
         </Route>

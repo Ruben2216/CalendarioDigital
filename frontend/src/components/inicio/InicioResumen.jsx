@@ -37,7 +37,7 @@ function cuenta(dias) {
 }
 
 // Resumen de inicio (solo lectura) compartido por alumno y docente.
-export default function InicioResumen({ rutaCalendario, audiencia }) {
+export default function InicioResumen({ rutaCalendario, rutaAnuncios, audiencia }) {
   const navigate = useNavigate();
   const { nombre } = useSesion();
   const hoy = useMemo(() => ahoraMexico(), []);
@@ -181,7 +181,18 @@ export default function InicioResumen({ rutaCalendario, audiencia }) {
             </div>
           </TarjetaColapsable>
 
-          <TarjetaColapsable icono={Megaphone} titulo="Anuncios">
+          <TarjetaColapsable
+            icono={Megaphone}
+            titulo="Anuncios"
+            accion={
+              rutaAnuncios && (
+                <button type="button" className="tarjeta__enlace" onClick={() => navigate(rutaAnuncios)}>
+                  Ver todos
+                  <ChevronRight size={14} />
+                </button>
+              )
+            }
+          >
             <ListaAnuncios anuncios={anuncios} />
           </TarjetaColapsable>
         </div>
