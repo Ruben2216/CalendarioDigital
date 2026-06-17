@@ -84,7 +84,7 @@ export default function Mensajeria() {
           idActiva={idConvActiva}
           cargando={cargandoConvs}
           onSeleccionar={seleccionarConversacion}
-          titulo={esSuperadmin ? 'Todos los planteles' : `Docentes · ${plantel?.clave ?? ''}`}
+          titulo={esSuperadmin ? 'Todos los planteles' : `Docentes · ${plantel?.nombre ?? ''}`}
         />
 
         {idConvActiva ? (

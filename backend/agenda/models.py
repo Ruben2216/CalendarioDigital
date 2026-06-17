@@ -27,17 +27,13 @@ class Plantel(models.Model):
 
 class Turno(models.Model):
     id_turno = models.BigAutoField(primary_key=True)
-    plantel = models.ForeignKey(
-        Plantel, on_delete=models.CASCADE, related_name='turnos'
-    )
-    nombre_turno = models.CharField(max_length=30)
+    nombre_turno = models.CharField(max_length=30, unique=True)
 
     class Meta:
         db_table = 'Turno'
-        unique_together = ('plantel', 'nombre_turno')
 
     def __str__(self):
-        return f'{self.nombre_turno} — {self.plantel.nombre}'
+        return self.nombre_turno
 
 
 class Grupo(models.Model):
@@ -60,14 +56,8 @@ class Usuario(models.Model):
     rol = models.ForeignKey(
         Rol, on_delete=models.PROTECT, related_name='usuarios'
     )
-    plantel = models.ForeignKey(
-        Plantel, on_delete=models.SET_NULL,
-        null=True, blank=True, related_name='usuarios'
-    )
-    turno = models.ForeignKey(
-        Turno, on_delete=models.SET_NULL,
-        null=True, blank=True, related_name='usuarios'
-    )
+    # Se removieron plantel y turno directos. 
+    # La relacion ahora es a través de UsuarioPlantel.
     correo = models.CharField(max_length=100, unique=True)
     nombre = models.CharField(max_length=150, null=True, blank=True)
     google_id = models.CharField(max_length=255, unique=True, null=True, blank=True)
@@ -80,13 +70,28 @@ class Usuario(models.Model):
     class Meta:
         db_table = 'Usuario'
 
-    def clean(self):
-        from django.core.exceptions import ValidationError
-        if self.turno_id and self.plantel_id and self.turno.plantel_id != self.plantel_id:
-            raise ValidationError('El turno no pertenece al plantel asignado al usuario.')
-
     def __str__(self):
         return f'{self.correo} ({self.rol.nombre_rol})'
+
+
+class UsuarioPlantel(models.Model):
+    id_usuario_plantel = models.BigAutoField(primary_key=True)
+    usuario = models.ForeignKey(
+        Usuario, on_delete=models.CASCADE, related_name='planteles_asignados'
+    )
+    plantel = models.ForeignKey(
+        Plantel, on_delete=models.CASCADE, related_name='usuarios_asignados'
+    )
+    turno = models.ForeignKey(
+        Turno, on_delete=models.CASCADE, related_name='usuarios_asignados'
+    )
+
+    class Meta:
+        db_table = 'UsuarioPlantel'
+        unique_together = ('usuario', 'plantel', 'turno')
+
+    def __str__(self):
+        return f'{self.usuario.correo} - {self.plantel.nombre} - {self.turno.nombre_turno}'
 
 
 class PermisoEspecial(models.Model):

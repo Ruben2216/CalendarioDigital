@@ -13,6 +13,7 @@ from agenda.views import (
     ResolverSolicitudAdminView,
     SolicitudBroadcastView,
     LogoutView,
+    GuardarConfiguracionPlantelesView,
 )
 
 urlpatterns = [
@@ -24,6 +25,7 @@ urlpatterns = [
     path('api/solicitudes-admin/', SolicitudAdminView.as_view(), name='solicitudes-admin'),
     path('api/solicitudes-admin/mia/', MiSolicitudAdminView.as_view(), name='mi-solicitud-admin'),
     path('api/solicitudes-admin/<int:id_solicitud>/resolver/', ResolverSolicitudAdminView.as_view(), name='resolver-solicitud-admin'),
+    path('api/usuarios/asignar-planteles/', GuardarConfiguracionPlantelesView.as_view(), name='asignar-planteles'),
 
     # Mensajería
     path('api/usuarios/', UsuarioListView.as_view(), name='usuarios-list'),

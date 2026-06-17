@@ -5,7 +5,8 @@ import logoCobach from "../../assets/img/logo-cobach.png";
 import calendarImg from "../../assets/img/imagen-login.jpg";
 import "./login.css";
 import Swal from 'sweetalert2';
-import { loginInstitucional, guardarSesion } from '../../services/authService';
+import { loginInstitucional, guardarSesion, guardarConfiguracionPlanteles } from '../../services/authService';
+import ModalConfiguracion from '../../components/ModalConfiguracion';
 
 const ROLES = [
   { id: "admin", label: "Administrador", icon: ShieldCheck },
@@ -28,6 +29,8 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [role, setRole] = useState("admin");
+  const [showModalConfig, setShowModalConfig] = useState(false);
+  const [pendingRoute, setPendingRoute] = useState(null);
   const navigate = useNavigate();
   const roleRef = useRef(role);
 
@@ -187,6 +190,14 @@ export default function Login() {
         : rolDestino === 'alumno' ? '/alumno/inicio'
           : '/dashboard';
 
+    // Verificar si necesita configurar planteles
+    if ((rolDestino === 'docente' || rolDestino === 'admin') && 
+        (!sesion.planteles || sesion.planteles.length === 0)) {
+      setPendingRoute(rutaDestino);
+      setShowModalConfig(true);
+      return;
+    }
+
     await Swal.fire({
       icon: 'success',
       title: '¡Bienvenido!',
@@ -197,6 +208,34 @@ export default function Login() {
     });
 
     navigate(rutaDestino);
+  };
+
+  const handleSaveConfiguracion = async (selecciones) => {
+    const res = await guardarConfiguracionPlanteles(selecciones);
+    if (!res.exito) {
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: res.error,
+      });
+      return;
+    }
+    
+    setShowModalConfig(false);
+    await Swal.fire({
+      icon: 'success',
+      title: '¡Bienvenido!',
+      text: 'Configuración guardada. Inicio de sesión correcto.',
+      timer: 1600,
+      timerProgressBar: true,
+      showConfirmButton: false,
+    });
+    
+    if (pendingRoute) {
+      navigate(pendingRoute);
+    } else {
+      navigate('/dashboard');
+    }
   };
 
   return (
@@ -363,6 +402,12 @@ export default function Login() {
           </div>
         ))}
       </footer>
+
+      <ModalConfiguracion 
+        isOpen={showModalConfig} 
+        onClose={() => setShowModalConfig(false)}
+        onSave={handleSaveConfiguracion}
+      />
     </div>
   );
 }

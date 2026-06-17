@@ -17,8 +17,7 @@ from .services.mock_institucional import (
     obtener_datos_por_correo,
     es_alumno,
 )
-from .models import Usuario, Rol, Conversacion, Mensaje, LecturaMensaje, SolicitudAdmin
-
+from .models import Usuario, Rol, Conversacion, Mensaje, LecturaMensaje, SolicitudAdmin, UsuarioPlantel, Plantel, Turno
 
 ROLES_EMPLEADO = {'superusuario', 'admin', 'docente'}
 
@@ -91,8 +90,8 @@ class LoginInstitucionalView(APIView):
                     Usuario.objects.filter(pk=usuario.pk).update(nombre=nombre_api)
             usuario = (
                 Usuario.objects
-                .select_related('rol', 'plantel', 'turno')
-                .prefetch_related('permisos_especiales__turno_objetivo')
+                .select_related('rol')
+                .prefetch_related('permisos_especiales__turno_objetivo', 'planteles_asignados__plantel', 'planteles_asignados__turno')
                 .get(pk=usuario.pk, activo=True)
             )
         except Usuario.DoesNotExist:
@@ -135,14 +134,19 @@ class LoginInstitucionalView(APIView):
             'sesion': {
                 'id_usuario': usuario.id_usuario,
                 'rol': usuario.rol.nombre_rol,
-                'plantel': {
-                    'id': usuario.plantel.id_plantel if usuario.plantel else None,
-                    'nombre': usuario.plantel.nombre if usuario.plantel else None,
-                },
-                'turno': {
-                    'id': usuario.turno.id_turno if usuario.turno else None,
-                    'nombre': usuario.turno.nombre_turno if usuario.turno else None,
-                },
+                'planteles': [
+                    {
+                        'plantel': {
+                            'id': up.plantel.id_plantel,
+                            'nombre': up.plantel.nombre,
+                        },
+                        'turno': {
+                            'id': up.turno.id_turno,
+                            'nombre': up.turno.nombre_turno,
+                        }
+                    }
+                    for up in usuario.planteles_asignados.all()
+                ],
                 'permisos_especiales': permisos_extra,
                 'tipoEmpleado': datos_empleado.get('tipoEmpleado', ''),
                 'adscripcion': datos_empleado.get('adscripcion', '') or datos_empleado.get('nombreAdscripcion', ''),
@@ -194,7 +198,8 @@ def _usuario_sesion(request):
     try:
         return (
             Usuario.objects
-            .select_related('rol', 'plantel', 'turno')
+            .select_related('rol')
+            .prefetch_related('planteles_asignados__plantel', 'planteles_asignados__turno')
             .get(pk=int(id_usuario), activo=True)
         )
     except (TypeError, ValueError, Usuario.DoesNotExist):
@@ -212,16 +217,17 @@ class DocentesListView(APIView):
         if usuario.rol.nombre_rol == 'superusuario':
             docentes = Usuario.objects.filter(rol__nombre_rol='docente', activo=True)
         else:
+            planteles_ids = usuario.planteles_asignados.values_list('plantel_id', flat=True)
             docentes = Usuario.objects.filter(
-                rol__nombre_rol='docente', plantel=usuario.plantel, activo=True
-            )
+                rol__nombre_rol='docente', planteles_asignados__plantel_id__in=planteles_ids, activo=True
+            ).distinct()
 
-        docentes = docentes.select_related('rol', 'plantel', 'turno')
+        docentes = docentes.select_related('rol').prefetch_related('planteles_asignados__turno')
         return Response([{
             'id': d.id_usuario,
             'nombre': d.nombre or d.correo,
             'correo': d.correo,
-            'turno': d.turno.nombre_turno if d.turno else None,
+            'turnos': list(set(up.turno.nombre_turno for up in d.planteles_asignados.all())),
         } for d in docentes])
 
 
@@ -237,7 +243,8 @@ class ConversacionListView(APIView):
         if rol == 'superusuario':
             convs = Conversacion.objects.filter(activa=True)
         elif rol == 'admin':
-            convs = Conversacion.objects.filter(activa=True, plantel=usuario.plantel)
+            planteles_ids = usuario.planteles_asignados.values_list('plantel_id', flat=True)
+            convs = Conversacion.objects.filter(activa=True, plantel_id__in=planteles_ids)
         else:
             convs = Conversacion.objects.filter(activa=True).filter(
                 Q(participante_a=usuario) | Q(participante_b=usuario)
@@ -281,23 +288,33 @@ class ConversacionListView(APIView):
 
         id_otro = request.data.get('id_otro_usuario')
         try:
-            otro = Usuario.objects.select_related('plantel').get(pk=int(id_otro), activo=True)
+            otro = Usuario.objects.prefetch_related('planteles_asignados').get(pk=int(id_otro), activo=True)
         except (TypeError, ValueError, Usuario.DoesNotExist):
             return Response({'error': 'Usuario destino no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
 
         if usuario.rol.nombre_rol != 'superusuario':
-            if usuario.plantel != otro.plantel:
+            planteles_usuario = set(usuario.planteles_asignados.values_list('plantel_id', flat=True))
+            planteles_otro = set(otro.planteles_asignados.values_list('plantel_id', flat=True))
+            if not planteles_usuario.intersection(planteles_otro):
                 return Response(
                     {'error': 'No puedes contactar usuarios de otro plantel.'},
                     status=status.HTTP_403_FORBIDDEN,
                 )
 
         id_a, id_b = Conversacion.par_ordenado(usuario.id_usuario, otro.id_usuario)
-        plantel = usuario.plantel or otro.plantel
+        
+        # Encontrar plantel en común para la conversación
+        planteles_usuario = set(usuario.planteles_asignados.values_list('plantel_id', flat=True))
+        planteles_otro = set(otro.planteles_asignados.values_list('plantel_id', flat=True))
+        interseccion = planteles_usuario.intersection(planteles_otro)
+        plantel_id = list(interseccion)[0] if interseccion else None
+        if not plantel_id:
+            plantel_id = list(planteles_usuario)[0] if planteles_usuario else list(planteles_otro)[0] if planteles_otro else Plantel.objects.first().pk
+
         conv, _ = Conversacion.objects.get_or_create(
             participante_a_id=id_a,
             participante_b_id=id_b,
-            defaults={'plantel': plantel},
+            defaults={'plantel_id': plantel_id},
         )
         return Response({'id_conversacion': conv.id_conversacion}, status=status.HTTP_200_OK)
 
@@ -385,12 +402,12 @@ class UsuarioListView(APIView):
         rol = request.query_params.get('rol')
         id_plantel = request.query_params.get('plantel')
 
-        qs = Usuario.objects.select_related('rol', 'plantel', 'turno').filter(activo=True)
+        qs = Usuario.objects.select_related('rol').prefetch_related('planteles_asignados__plantel', 'planteles_asignados__turno').filter(activo=True)
         if rol:
             qs = qs.filter(rol__nombre_rol=rol)
         if id_plantel:
             try:
-                qs = qs.filter(plantel__id_plantel=int(id_plantel))
+                qs = qs.filter(planteles_asignados__plantel_id=int(id_plantel))
             except (TypeError, ValueError):
                 pass
 
@@ -398,8 +415,7 @@ class UsuarioListView(APIView):
             'id':      u.id_usuario,
             'nombre':  u.nombre or u.correo,
             'correo':  u.correo,
-            'plantel': u.plantel.nombre if u.plantel else None,
-            'turno':   u.turno.nombre_turno if u.turno else None,
+            'planteles': [{'plantel': up.plantel.nombre, 'turno': up.turno.nombre_turno} for up in u.planteles_asignados.all()],
             'rol':     u.rol.nombre_rol,
         } for u in qs])
 
@@ -539,19 +555,44 @@ class SolicitudBroadcastView(APIView):
         if not texto:
             return Response({'error': 'El mensaje no puede estar vacío.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        admins = (
-            Usuario.objects
-            .select_related('plantel', 'turno')
-            .filter(rol__nombre_rol='admin', activo=True, plantel=usuario.plantel)
-            .filter(Q(turno=usuario.turno) | Q(turno__isnull=True))
+        id_plantel = request.data.get('id_plantel')
+        hora_evento = request.data.get('hora_evento') # formato "HH:MM" ej "10:30" o "15:00"
+        
+        # Filtros base para los administradores del plantel dado
+        admins_qs = Usuario.objects.filter(
+            rol__nombre_rol='admin', 
+            activo=True,
+            planteles_asignados__plantel_id=id_plantel
         )
+        
+        turno_buscado = None
+        if hora_evento:
+            try:
+                # La lógica de Mixto: corte 13:20
+                horas, minutos = map(int, hora_evento.split(':'))
+                hora_minutos = horas * 60 + minutos
+                if hora_minutos <= 13 * 60 + 20:
+                    turno_buscado = 'Matutino'
+                else:
+                    turno_buscado = 'Vespertino'
+            except ValueError:
+                pass
+
+        # Buscamos admins que coincidan con el turno_buscado o que tengan turno Mixto
+        if turno_buscado:
+            admins_qs = admins_qs.filter(
+                Q(planteles_asignados__turno__nombre_turno=turno_buscado) |
+                Q(planteles_asignados__turno__nombre_turno='Mixto')
+            )
+        
+        admins = list(admins_qs.distinct())
+        
         superadmins = (
             Usuario.objects
-            .select_related('plantel', 'turno')
             .filter(rol__nombre_rol='superusuario', activo=True)
         )
 
-        destinatarios = list(admins) + list(superadmins)
+        destinatarios = admins + list(superadmins)
         if not destinatarios:
             return Response(
                 {'error': 'No hay administradores disponibles.'},
@@ -561,16 +602,61 @@ class SolicitudBroadcastView(APIView):
         conversacion_ids = []
         for dest in destinatarios:
             id_a, id_b = Conversacion.par_ordenado(usuario.id_usuario, dest.id_usuario)
-            plantel = usuario.plantel or dest.plantel
             conv, _ = Conversacion.objects.get_or_create(
                 participante_a_id=id_a,
                 participante_b_id=id_b,
-                defaults={'plantel': plantel},
+                defaults={'plantel_id': id_plantel},
             )
             Mensaje.crear(conv, usuario, texto, metadatos)
             conversacion_ids.append(conv.id_conversacion)
 
         return Response({'conversaciones': conversacion_ids}, status=status.HTTP_201_CREATED)
+
+class GuardarConfiguracionPlantelesView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        usuario = _usuario_sesion(request)
+        if not usuario:
+            return Response({'error': 'No autenticado.'}, status=status.HTTP_401_UNAUTHORIZED)
+            
+        selecciones = request.data.get('selecciones')
+        if not isinstance(selecciones, dict) or not selecciones:
+            return Response({'error': 'Configuración inválida.'}, status=status.HTTP_400_BAD_REQUEST)
+            
+        # Limpiar asignaciones anteriores
+        UsuarioPlantel.objects.filter(usuario=usuario).delete()
+        
+        errores = []
+        nuevos_registros = []
+        for plantel_id, turnos in selecciones.items():
+            try:
+                plantel = Plantel.objects.get(pk=int(plantel_id))
+            except (ValueError, Plantel.DoesNotExist):
+                errores.append(f"Plantel no encontrado: {plantel_id}")
+                continue
+                
+            for turno_nombre, activo in turnos.items():
+                if activo:
+                    try:
+                        # Convertimos "matutino", "vespertino" a capitalizado
+                        turno = Turno.objects.get(nombre_turno__iexact=turno_nombre)
+                        nuevos_registros.append(
+                            UsuarioPlantel(usuario=usuario, plantel=plantel, turno=turno)
+                        )
+                    except Turno.DoesNotExist:
+                        errores.append(f"Turno no encontrado: {turno_nombre}")
+                        continue
+                        
+        if nuevos_registros:
+            UsuarioPlantel.objects.bulk_create(nuevos_registros)
+            
+        return Response({
+            'mensaje': 'Configuración procesada',
+            'registros_creados': len(nuevos_registros),
+            'errores': errores,
+            'selecciones_recibidas': selecciones
+        }, status=status.HTTP_200_OK)
 
 
 class GoogleAuthView(APIView):
