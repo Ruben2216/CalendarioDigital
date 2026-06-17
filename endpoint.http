@@ -6,6 +6,15 @@ Content-Type: application/json
     "Usuario": "PEOR820306JX4",
     "Password": "Cobach123!"
 }
+###
+POST http://192.168.100.5:8087/api/Seguridad/Login HTTP/1.1
+Content-Type: application/json
+
+{
+    "Usuario": "LEAE741024QX0",
+    "Password": "Cobach123!"
+}
+
 
 ### Login Docente/Empleado
 POST http://192.168.100.5:8087/api/Seguridad/Login HTTP/1.1

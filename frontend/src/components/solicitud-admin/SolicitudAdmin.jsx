@@ -17,11 +17,12 @@ function formatoFecha(iso) {
 }
 
 export default function SolicitudAdmin({ abierto, onCerrar }) {
-  const { nombre } = useSesion();
+  const { nombre} = useSesion();
+  
 
   const inicial = () => ({
     nombre: nombre || "",
-    correo: "",
+    correo:   "",
     plantel: PLANTELES[0],
     turno: "matutino",
     motivo: "",
@@ -158,9 +159,7 @@ export default function SolicitudAdmin({ abierto, onCerrar }) {
           <div className={styles["nota"]}>
             <ShieldCheck size={16} />
             <p>
-              Tu solicitud será revisada por un superusuario. Si la aprueba, tu cuenta
-              pasará de <b>Docente</b> a <b>Administrador</b> y podrás gestionar el
-              calendario del plantel indicado.
+              Tu solicitud será revisada por un superusuario. Si la aprueba, tu cuenta pasará de <b>Docente/Administrativo</b> a <b>Administrador</b> y podrás gestionar el calendario correspondiente.
             </p>
           </div>
 
@@ -172,7 +171,9 @@ export default function SolicitudAdmin({ abierto, onCerrar }) {
                 required
                 placeholder="Tu nombre completo"
                 value={form.nombre}
-                onChange={fijar("nombre")}
+                onChange={fijar("nombre")} 
+                //propiedad readOnly para que el usuario no lo edite y siempre exista el mismo nombre
+                  readOnly
               />
             </label>
 
@@ -182,6 +183,7 @@ export default function SolicitudAdmin({ abierto, onCerrar }) {
                 type="email"
                 required
                 placeholder="usuario@cobach.edu.mx"
+                //obtener el correo de la sesion del usuario
                 value={form.correo}
                 onChange={fijar("correo")}
               />
