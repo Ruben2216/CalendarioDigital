@@ -56,17 +56,16 @@ export default function ModalConfiguracion({ isOpen, onClose, onSave }) {
     });
   };
 
-  const toggleTurno = (plantelId, turno) => {
-    setSelecciones(prev => {
-      const nuevas = { ...prev };
-      if (nuevas[plantelId]) {
-        nuevas[plantelId] = {
-          ...nuevas[plantelId],
-          [turno]: !nuevas[plantelId][turno]
-        };
-      }
-      return nuevas;
-    });
+  // Solo un turno activo por plantel: Matutino, Vespertino o Mixto (excluyentes)
+  const seleccionarTurno = (plantelId, turno) => {
+    setSelecciones(prev => ({
+      ...prev,
+      [plantelId]: {
+        matutino:   turno === 'matutino',
+        vespertino: turno === 'vespertino',
+        mixto:      turno === 'mixto',
+      },
+    }));
   };
 
   const limpiar = () => {
@@ -136,30 +135,21 @@ export default function ModalConfiguracion({ isOpen, onClose, onSave }) {
                       
                       {estaSeleccionado && (
                         <div className="plantel-config__turnos">
-                          <label className="checkbox-config__grupo">
-                            <input 
-                              type="checkbox" 
-                              checked={selecciones[plantel.id].matutino || false}
-                              onChange={() => toggleTurno(plantel.id, 'matutino')} 
-                            />
-                            <span className="formulario-config__etiqueta">Matutino</span>
-                          </label>
-                          <label className="checkbox-config__grupo">
-                            <input 
-                              type="checkbox" 
-                              checked={selecciones[plantel.id].vespertino || false}
-                              onChange={() => toggleTurno(plantel.id, 'vespertino')} 
-                            />
-                            <span className="formulario-config__etiqueta">Vespertino</span>
-                          </label>
-                          <label className="checkbox-config__grupo">
-                            <input 
-                              type="checkbox" 
-                              checked={selecciones[plantel.id].mixto || false}
-                              onChange={() => toggleTurno(plantel.id, 'mixto')} 
-                            />
-                            <span className="formulario-config__etiqueta">Mixto</span>
-                          </label>
+                          {[
+                            { valor: 'matutino',   etiqueta: 'Matutino' },
+                            { valor: 'vespertino',  etiqueta: 'Vespertino' },
+                            { valor: 'mixto',       etiqueta: 'Mixto (ambos)' },
+                          ].map(({ valor, etiqueta }) => (
+                            <label key={valor} className="checkbox-config__grupo">
+                              <input
+                                type="radio"
+                                name={`turno-${plantel.id}`}
+                                checked={selecciones[plantel.id][valor] || false}
+                                onChange={() => seleccionarTurno(plantel.id, valor)}
+                              />
+                              <span className="formulario-config__etiqueta">{etiqueta}</span>
+                            </label>
+                          ))}
                         </div>
                       )}
                     </div>

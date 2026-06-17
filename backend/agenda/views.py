@@ -647,6 +647,7 @@ class GuardarConfiguracionPlantelesView(APIView):
         # Limpiar asignaciones anteriores
         UsuarioPlantel.objects.filter(usuario=usuario).delete()
         
+        TURNOS_VALIDOS = {'matutino', 'vespertino', 'mixto'}
         errores = []
         nuevos_registros = []
         for plantel_id, turnos in selecciones.items():
@@ -655,14 +656,17 @@ class GuardarConfiguracionPlantelesView(APIView):
             except (ValueError, Plantel.DoesNotExist):
                 errores.append(f"Plantel no encontrado: {plantel_id}")
                 continue
-                
-            for turno_nombre, activo in turnos.items():
-                if activo:
-                    # Aseguramos que el turno exista (ej. "Matutino", "Vespertino", "Mixto")
-                    turno, _ = Turno.objects.get_or_create(nombre_turno=turno_nombre.capitalize())
-                    nuevos_registros.append(
-                        UsuarioPlantel(usuario=usuario, plantel=plantel, turno=turno)
-                    )
+
+            # Exactamente un turno debe estar activo (Matutino, Vespertino o Mixto son excluyentes)
+            activos = [tn for tn, activo in turnos.items() if activo and tn in TURNOS_VALIDOS]
+            if len(activos) != 1:
+                errores.append(f"Plantel {plantel_id}: debe seleccionarse exactamente un turno.")
+                continue
+
+            turno, _ = Turno.objects.get_or_create(nombre_turno=activos[0].capitalize())
+            nuevos_registros.append(
+                UsuarioPlantel(usuario=usuario, plantel=plantel, turno=turno)
+            )
                         
         if nuevos_registros:
             UsuarioPlantel.objects.bulk_create(nuevos_registros)
