@@ -16,7 +16,7 @@ function iniciales(nombre) {
     .join('');
 }
 
-export default function SelectorDocente({ abierto, onCerrar, onSeleccionar, idPlantel, esSuperadmin, rol = 'docente', titulo = 'Contactar docente' }) {
+export default function SelectorDocente({ abierto, onCerrar, onSeleccionar, idPlantel, esSuperadmin, rol, titulo = 'Contactar personal' }) {
   const [usuarios, setUsuarios] = useState([]);
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState(null);
@@ -26,9 +26,8 @@ export default function SelectorDocente({ abierto, onCerrar, onSeleccionar, idPl
     setCargando(true);
     setError(null);
 
-    const url = esSuperadmin
-      ? `${BACKEND}/api/usuarios/?rol=${rol}`
-      : `${BACKEND}/api/usuarios/?rol=${rol}&plantel=${idPlantel}`;
+    const base = `${BACKEND}/api/usuarios/?excluir=superusuario,alumno${rol ? `&rol=${rol}` : ''}`;
+    const url = esSuperadmin ? base : `${base}&plantel=${idPlantel}`;
 
     fetch(url, { headers: { 'Accept': 'application/json', 'ngrok-skip-browser-warning': '1' } })
       .then((r) => r.json())

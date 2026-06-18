@@ -78,3 +78,9 @@ POST /api/Seguridad/ObtenerDatosPorCorreo?correo=dramos@cobach.edu.mx HTTP/1.1
 Host: 192.168.100.5:8087
 Accept: */*
 Content-Length: 0
+
+###
+POST /api/Seguridad/ObtenerDatosPorCorreo?correo=autenticacion@cobach.edu.mx HTTP/1.1
+Host: 192.168.100.5:8087
+Accept: */*
+Content-Length: 0

@@ -412,6 +412,9 @@ class UsuarioListView(APIView):
                 qs = qs.filter(planteles_asignados__plantel_id=int(id_plantel))
             except (TypeError, ValueError):
                 pass
+        excluir_roles = [r.strip() for r in request.query_params.get('excluir', '').split(',') if r.strip()]
+        if excluir_roles:
+            qs = qs.exclude(rol__nombre_rol__in=excluir_roles)
         if q:
             qs = qs.filter(Q(nombre__icontains=q) | Q(correo__icontains=q))[:20]
 
