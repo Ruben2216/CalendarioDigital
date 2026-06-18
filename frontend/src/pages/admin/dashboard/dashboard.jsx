@@ -9,18 +9,14 @@ import {
   ZONA, NOMBRES_MES, ABREV_MES, ahoraMexico, aClaveFecha, desdeClaveFecha,
   formatoHora, formatoFechaLarga,
 } from "../../../lib/fechas.js";
-import { TIPOS, eventosIniciales } from "../../../data/calendario.js";
 import { NOTIFICACIONES } from "../../../data/avisos.js";
 import ListaAnuncios from "../../../components/anuncios/ListaAnuncios.jsx";
 import TarjetaColapsable from "../../../components/tarjeta-colapsable/TarjetaColapsable.jsx";
+import { useCalendarioEventos } from "../../../hooks/useCalendarioEventos.js";
 import { leerAnuncios } from "../../../lib/anunciosStore.js";
 import styles from "./dashboard.module.css";
 
 const DIAS_MINI = ["D", "L", "M", "M", "J", "V", "S"];
-
-const TIPOS_MAP = Object.fromEntries(TIPOS.map((t) => [t.id, t]));
-const colorTipo = (id) => TIPOS_MAP[id]?.color ?? "gris";
-const etiquetaTipo = (id) => TIPOS_MAP[id]?.etiqueta ?? "Evento";
 
 function saludoPorHora(hora) {
   if (hora < 12) return { texto: "Buenos días" };
@@ -45,7 +41,10 @@ export default function Dashboard() {
   const hoy = useMemo(() => ahoraMexico(), []);
   const claveHoy = aClaveFecha(hoy);
 
-  const eventos = useMemo(() => eventosIniciales(), []);
+  const {
+    eventos, tipos, calendarios, calendarioActivo, setCalendarioActivo,
+    colorTipo, etiquetaTipo,
+  } = useCalendarioEventos();
   const anuncios = useMemo(() => leerAnuncios(), []);
   const [mesVisible, setMesVisible] = useState(
     () => new Date(hoy.getFullYear(), hoy.getMonth(), 1)
@@ -257,10 +256,23 @@ export default function Dashboard() {
       <aside className={styles["lateral-derecho"]}>
         <article className={`tarjeta ${styles["calendario"]}`}>
           <div className={styles["calendario__cabecera"]}>
-            <div className="tarjeta__titulo">
-              <Calendar size={16} />
-              Calendario
-            </div>
+            {calendarios.length > 0 ? (
+              <select
+                className={styles["calendario__selector"]}
+                value={calendarioActivo ?? ""}
+                onChange={(e) => setCalendarioActivo(Number(e.target.value))}
+                aria-label="Seleccionar calendario"
+              >
+                {calendarios.map((c) => (
+                  <option key={c.id} value={c.id}>{c.nombre} · {c.ciclo}</option>
+                ))}
+              </select>
+            ) : (
+              <div className="tarjeta__titulo">
+                <Calendar size={16} />
+                Calendario
+              </div>
+            )}
             <div className={styles["calendario__controles"]}>
               <button type="button" className={styles["calendario__nav"]} onClick={() => irMes(-1)} aria-label="Mes anterior">
                 <ChevronLeft size={14} />
@@ -355,7 +367,7 @@ export default function Dashboard() {
           )}
 
           <div className={styles["calendario__leyenda"]}>
-            {TIPOS.map((t) => (
+            {tipos.map((t) => (
               <span key={t.id} className={styles["leyenda"]}>
                 <span className={`${styles["leyenda__punto"]} ${styles[`leyenda__punto--${t.color}`]}`} />
                 {t.etiqueta}

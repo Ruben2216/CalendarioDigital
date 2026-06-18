@@ -17,7 +17,13 @@ from .services.mock_institucional import (
     obtener_datos_por_correo,
     es_alumno,
 )
-from .models import Usuario, Rol, Conversacion, Mensaje, LecturaMensaje, SolicitudAdmin, UsuarioPlantel, Plantel, Turno
+import re
+from datetime import date as _date, time as _time
+
+from .models import (
+    Usuario, Rol, Conversacion, Mensaje, LecturaMensaje, SolicitudAdmin,
+    UsuarioPlantel, Plantel, Turno, Calendario, TipoEvento, Evento,
+)
 
 ROLES_EMPLEADO = {'superusuario', 'admin', 'docente'}
 
@@ -793,6 +799,242 @@ class GuardarConfiguracionPlantelesView(APIView):
                 for up in planteles_guardados
             ],
         }, status=status.HTTP_200_OK)
+
+
+class CalendarioListView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        calendarios = Calendario.objects.filter(activo=True)
+        return Response([
+            {
+                'id': c.id_calendario,
+                'nombre': c.nombre,
+                'clave': c.clave,
+                'ciclo': c.ciclo,
+                'es_publico': c.es_publico,
+            }
+            for c in calendarios
+        ])
+
+class TipoEventoListView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        tipos = TipoEvento.objects.all()
+        return Response([
+            {'id': str(t.id_tipo_evento), 'etiqueta': t.nombre, 'color': t.color}
+            for t in tipos
+        ])
+
+def _evento_dict(ev, usuario):
+    return {
+        'id': ev.id_evento,
+        'titulo': ev.titulo,
+        'tipo': str(ev.tipo_evento_id),
+        'area': ev.area or '',
+        'fecha': ev.fecha_inicio.isoformat(),
+        'fechaFin': ev.fecha_fin.isoformat() if ev.fecha_fin else None,
+        'horaInicio': ev.hora_inicio.strftime('%H:%M') if ev.hora_inicio else '',
+        'horaFin': ev.hora_fin.strftime('%H:%M') if ev.hora_fin else '',
+        'lugar': ev.lugar or '',
+        'formato': 'punto' if ev.hora_inicio else 'rango',
+        'semestre': ev.semestre,
+        'grupo': ev.grupo,
+        'plantel': ev.plantel.nombre if ev.plantel else None,
+        'turno': ev.turno.nombre_turno if ev.turno else None,
+        'id_calendario': ev.calendario_id,
+        'puede_editar': ev.puede_editar(usuario),
+    }
+
+def _parse_fecha(valor):
+    if not valor:
+        return None
+    try:
+        return _date.fromisoformat(valor[:10])
+    except (ValueError, TypeError):
+        return None
+
+def _parse_hora(valor):
+    if not valor:
+        return None
+    try:
+        horas, minutos = map(int, valor.split(':')[:2])
+        return _time(horas, minutos)
+    except (ValueError, TypeError, AttributeError):
+        return None
+
+def _normalizar_plantel(nombre):
+    """Reduce un nombre de plantel a solo letras/números en minúsculas para
+    comparar cadenas que vienen de distintas fuentes (API institucional vs BD),
+    """
+    return re.sub(r'[^a-z0-9]', '', (nombre or '').lower())
+
+def _planteles_equivalentes(nombre):
+    """IDs de planteles con nombre normalizado que coincide o contiene al buscado."""
+    objetivo = _normalizar_plantel(nombre)
+    if not objetivo:
+        return []
+    ids = []
+    for p in Plantel.objects.all():
+        n = _normalizar_plantel(p.nombre)
+        if n and (n == objetivo or objetivo in n or n in objetivo):
+            ids.append(p.id_plantel)
+    return ids
+
+class EventoListView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        id_calendario = request.query_params.get('id_calendario')
+        try:
+            calendario = Calendario.objects.get(pk=int(id_calendario), activo=True)
+        except (TypeError, ValueError, Calendario.DoesNotExist):
+            return Response({'error': 'Calendario no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
+
+        qs = Evento.objects.filter(calendario=calendario).select_related(
+            'tipo_evento', 'plantel', 'turno', 'creado_por__rol'
+        )
+        usuario = _usuario_sesion(request)
+        plantel_para_todos = Q(plantel__isnull=True)
+        turno_para_todos = Q(turno__isnull=True)
+
+        if usuario:
+            rol = usuario.rol.nombre_rol
+            if rol == 'superusuario':
+                pass
+            elif rol == 'admin':
+                planteles = list(usuario.planteles_asignados.values_list('plantel_id', flat=True))
+                qs = qs.filter(plantel_para_todos | Q(plantel_id__in=planteles))
+            else:
+                planteles = list(usuario.planteles_asignados.values_list('plantel_id', flat=True))
+                turnos = list(usuario.planteles_asignados.values_list('turno_id', flat=True))
+                cond_plantel = plantel_para_todos | Q(plantel_id__in=planteles)
+                cond_turno = turno_para_todos | Q(turno_id__in=turnos)
+                qs = qs.filter(cond_plantel & cond_turno)
+        else:
+            rol = request.query_params.get('rol')
+            plantel_nombre = request.query_params.get('plantel')
+            turno_nombre = request.query_params.get('turno')
+            if rol == 'alumno' and plantel_nombre:
+                ids = _planteles_equivalentes(plantel_nombre)
+                cond_plantel = plantel_para_todos | Q(plantel_id__in=ids)
+                cond_turno = turno_para_todos
+                if turno_nombre:
+                    cond_turno = turno_para_todos | Q(turno__nombre_turno=turno_nombre)
+                qs = qs.filter(cond_plantel & cond_turno)
+            else:
+                if not calendario.es_publico:
+                    return Response([])
+                qs = qs.filter(plantel_para_todos & turno_para_todos)
+
+        return Response([_evento_dict(ev, usuario) for ev in qs])
+
+    def post(self, request):
+        usuario = _usuario_sesion(request)
+        if not usuario:
+            return Response({'error': 'No autenticado.'}, status=status.HTTP_401_UNAUTHORIZED)
+
+        rol = usuario.rol.nombre_rol
+        if rol not in ('admin', 'superusuario'):
+            return Response({'error': 'No autorizado para crear eventos.'}, status=status.HTTP_403_FORBIDDEN)
+
+        datos, error = self._leer_evento(request, usuario, rol)
+        if error:
+            return Response({'error': error}, status=status.HTTP_400_BAD_REQUEST)
+
+        evento = Evento.objects.create(creado_por=usuario, **datos)
+        evento = Evento.objects.select_related('tipo_evento', 'plantel', 'turno', 'creado_por__rol').get(pk=evento.pk)
+        return Response(_evento_dict(evento, usuario), status=status.HTTP_201_CREATED)
+
+    @staticmethod
+    def _leer_evento(request, usuario, rol):
+        d = request.data
+        try:
+            calendario = Calendario.objects.get(pk=int(d.get('id_calendario')), activo=True)
+        except (TypeError, ValueError, Calendario.DoesNotExist):
+            return None, 'Calendario no encontrado.'
+        try:
+            tipo = TipoEvento.objects.get(pk=int(d.get('tipo')))
+        except (TypeError, ValueError, TipoEvento.DoesNotExist):
+            return None, 'Tipo de evento inválido.'
+
+        titulo = (d.get('titulo') or '').strip()
+        fecha_inicio = _parse_fecha(d.get('fecha'))
+        if not titulo or not fecha_inicio:
+            return None, 'Título y fecha son obligatorios.'
+
+        plantel = Plantel.objects.filter(nombre=d.get('plantel')).first() if d.get('plantel') else None
+        turno = Turno.objects.filter(nombre_turno=d.get('turno')).first() if d.get('turno') else None
+
+        if rol == 'admin':
+            if calendario.clave != Calendario.CLAVE_ESCOLARIZADO:
+                return None, 'Solo puedes crear eventos en el calendario escolarizado.'
+            asignaciones = list(usuario.planteles_asignados.select_related('plantel', 'turno').all())
+            if not plantel:
+                return None, 'Debes seleccionar tu plantel.'
+            par_valido = next(
+                (a for a in asignaciones if a.plantel_id == plantel.id_plantel), None
+            )
+            if not par_valido:
+                return None, 'Solo puedes crear eventos en tu plantel asignado.'
+            turno = par_valido.turno
+
+        return {
+            'calendario': calendario,
+            'tipo_evento': tipo,
+            'titulo': titulo,
+            'area': (d.get('area') or '').strip(),
+            'fecha_inicio': fecha_inicio,
+            'fecha_fin': _parse_fecha(d.get('fechaFin')),
+            'hora_inicio': _parse_hora(d.get('horaInicio')),
+            'hora_fin': _parse_hora(d.get('horaFin')),
+            'lugar': (d.get('lugar') or '').strip(),
+            'plantel': plantel,
+            'turno': turno,
+            'semestre': d.get('semestre') or None,
+            'grupo': d.get('grupo') or None,
+        }, None
+
+
+class EventoDetailView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def _obtener(self, request, id_evento):
+        usuario = _usuario_sesion(request)
+        try:
+            evento = Evento.objects.select_related(
+                'tipo_evento', 'plantel', 'turno', 'creado_por__rol', 'calendario'
+            ).get(pk=id_evento)
+        except Evento.DoesNotExist:
+            return None, None
+        return usuario, evento
+
+    def put(self, request, id_evento):
+        usuario, evento = self._obtener(request, id_evento)
+        if not evento:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        if not evento.puede_editar(usuario):
+            return Response({'error': 'No autorizado.'}, status=status.HTTP_403_FORBIDDEN)
+
+        datos, error = EventoListView._leer_evento(request, usuario, usuario.rol.nombre_rol)
+        if error:
+            return Response({'error': error}, status=status.HTTP_400_BAD_REQUEST)
+
+        for campo, valor in datos.items():
+            setattr(evento, campo, valor)
+        evento.save()
+        evento = Evento.objects.select_related('tipo_evento', 'plantel', 'turno', 'creado_por__rol').get(pk=evento.pk)
+        return Response(_evento_dict(evento, usuario))
+
+    def delete(self, request, id_evento):
+        usuario, evento = self._obtener(request, id_evento)
+        if not evento:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        if not evento.puede_editar(usuario):
+            return Response({'error': 'No autorizado.'}, status=status.HTTP_403_FORBIDDEN)
+        evento.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class GoogleAuthView(APIView):

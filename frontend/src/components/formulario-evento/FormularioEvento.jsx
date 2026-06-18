@@ -1,18 +1,22 @@
 import SelectorFecha from '../campos/SelectorFecha.jsx';
 import SelectorHora from '../campos/SelectorHora.jsx';
 import SelectorPlantel from '../selector-plantel/SelectorPlantel.jsx';
-import { AREAS, TIPOS, SEMESTRES, GRUPOS, TURNOS } from '../../data/calendario.js';
+import { AREAS, SEMESTRES, GRUPOS, TURNOS } from '../../data/calendario.js';
 import styles from './FormularioEvento.module.css';
 
 export default function FormularioEvento({
   id = 'form-evento',
   form,
-  tipos = TIPOS,
+  tipos = [],
+  restringido = false,
+  planteles = [],
+  turnos = [],
   onChange,
   onSubmit,
 }) {
   const set = (campo) => (e) => onChange(campo, e.target.value);
   const fij = (campo, valor) => onChange(campo, valor);
+  const turnosVisibles = restringido && turnos.length ? turnos : TURNOS;
 
   return (
     <form id={id} className="formulario" onSubmit={onSubmit}>
@@ -38,8 +42,9 @@ export default function FormularioEvento({
           </select>
         </label>
         <label className="formulario__campo">
-          <span className="formulario__etiqueta">Área</span>
+          <span className="formulario__etiqueta">Área (opcional)</span>
           <select value={form.area} onChange={set('area')}>
+            <option value="">—</option>
             {AREAS.map((a) => (
               <option key={a} value={a}>{a}</option>
             ))}
@@ -104,17 +109,25 @@ export default function FormularioEvento({
       <div className="formulario__fila">
         <label className="formulario__campo">
           <span className="formulario__etiqueta">Plantel</span>
-          <SelectorPlantel
-            value={form.plantel}
-            onChange={(v) => fij('plantel', v)}
-            textoTodos="Todos"
-          />
+          {restringido ? (
+            <select value={form.plantel} onChange={set('plantel')} required>
+              {planteles.map((p) => (
+                <option key={p} value={p}>{p}</option>
+              ))}
+            </select>
+          ) : (
+            <SelectorPlantel
+              value={form.plantel}
+              onChange={(v) => fij('plantel', v)}
+              textoTodos="Todos"
+            />
+          )}
         </label>
         <label className="formulario__campo">
           <span className="formulario__etiqueta">Turno</span>
           <select value={form.turno} onChange={set('turno')}>
-            <option value="">Todos</option>
-            {TURNOS.map((t) => (
+            {!restringido && <option value="">Todos</option>}
+            {turnosVisibles.map((t) => (
               <option key={t} value={t}>{t}</option>
             ))}
           </select>

@@ -35,6 +35,12 @@
   --red-soft: #feeaeb;
   --marino: #1f3b8f;
   --marino-soft: #e8edfb;
+  --yellow: #d99a00;
+  --yellow-soft: #fdf3d6;
+  --pink: #d63384;
+  --pink-soft: #fbe4f0;
+  --cyan: #0c8ec9;
+  --cyan-soft: #e2f3fb;
 
   /* Profundidad y radios */
   --shadow-soft: 0 6px 18px rgba(13, 34, 63, 0.06);

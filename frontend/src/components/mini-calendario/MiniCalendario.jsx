@@ -3,16 +3,21 @@ import { Calendar, ChevronLeft, ChevronRight, Clock, MapPin } from "lucide-react
 import {
   NOMBRES_MES, ahoraMexico, aClaveFecha, desdeClaveFecha, formatoHora, formatoFechaLarga,
 } from "../../lib/fechas.js";
-import { TIPOS } from "../../data/calendario.js";
 import styles from "./MiniCalendario.module.css";
 
 const DIAS_MINI = ["D", "L", "M", "M", "J", "V", "S"];
-const TIPOS_MAP = Object.fromEntries(TIPOS.map((t) => [t.id, t]));
-const colorTipo = (id) => TIPOS_MAP[id]?.color ?? "gris";
-const etiquetaTipo = (id) => TIPOS_MAP[id]?.etiqueta ?? "Evento";
 
-// Mini calendario institucional (solo lectura)
-export default function MiniCalendario({ eventos }) {
+export default function MiniCalendario({
+  eventos = [],
+  tipos = [],
+  calendarios = [],
+  calendarioActivo = null,
+  onCalendario,
+}) {
+  const tiposMap = useMemo(() => Object.fromEntries(tipos.map((t) => [t.id, t])), [tipos]);
+  const colorTipo = (id) => tiposMap[id]?.color ?? "gris";
+  const etiquetaTipo = (id) => tiposMap[id]?.etiqueta ?? "Evento";
+
   const hoy = useMemo(() => ahoraMexico(), []);
   const claveHoy = aClaveFecha(hoy);
 
@@ -68,10 +73,23 @@ export default function MiniCalendario({ eventos }) {
   return (
     <article className={`tarjeta ${styles["calendario"]}`}>
       <div className={styles["calendario__cabecera"]}>
-        <div className="tarjeta__titulo">
-          <Calendar size={16} />
-          Calendario
-        </div>
+        {calendarios.length > 0 && onCalendario ? (
+          <select
+            className={styles["calendario__selector"]}
+            value={calendarioActivo ?? ""}
+            onChange={(e) => onCalendario(Number(e.target.value))}
+            aria-label="Seleccionar calendario"
+          >
+            {calendarios.map((c) => (
+              <option key={c.id} value={c.id}>{c.nombre} · {c.ciclo}</option>
+            ))}
+          </select>
+        ) : (
+          <div className="tarjeta__titulo">
+            <Calendar size={16} />
+            Calendario
+          </div>
+        )}
         <div className={styles["calendario__controles"]}>
           <button type="button" className={styles["calendario__nav"]} onClick={() => irMes(-1)} aria-label="Mes anterior">
             <ChevronLeft size={14} />
@@ -163,7 +181,7 @@ export default function MiniCalendario({ eventos }) {
       )}
 
       <div className={styles["calendario__leyenda"]}>
-        {TIPOS.map((t) => (
+        {tipos.map((t) => (
           <span key={t.id} className={styles["leyenda"]}>
             <span className={`${styles["leyenda__punto"]} ${styles[`leyenda__punto--${t.color}`]}`} />
             {t.etiqueta}

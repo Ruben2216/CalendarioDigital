@@ -47,6 +47,12 @@ function App() {
         <Route path="/"      element={<Login />} />
         <Route path="/login" element={<Login />} />
 
+        {/* Consulta pública del calendario (sin cuenta): solo eventos generales */}
+        <Route
+          path="/consulta"
+          element={<Suspense fallback={<Cargando />}><Calendario publico /></Suspense>}
+        />
+
         {/* Rutas admin / superusuario */}
         <Route element={<ProtectedRoute roles={['admin', 'superusuario']} />}>
           <Route element={<MensajeriaProvider><Layout /></MensajeriaProvider>}>
@@ -64,6 +70,13 @@ function App() {
             <Route path="/alumno/inicio"     element={<Suspense fallback={<Cargando />}><AlumnoInicio /></Suspense>} />
             <Route path="/alumno/calendario" element={<Suspense fallback={<Cargando />}><Alumno /></Suspense>} />
             <Route path="/alumno/anuncios"   element={<Suspense fallback={<Cargando />}><AnunciosVista audiencia="alumnos" /></Suspense>} />
+          </Route>
+        </Route>
+
+        {/* Rutas padre/tutor (solo lectura del calendario general) */}
+        <Route element={<ProtectedRoute roles={['tutor']} />}>
+          <Route element={<LayoutAlumno />}>
+            <Route path="/tutor/calendario" element={<Suspense fallback={<Cargando />}><Calendario soloLectura /></Suspense>} />
           </Route>
         </Route>
 

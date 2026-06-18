@@ -112,6 +112,92 @@ class PermisoEspecial(models.Model):
         db_table = 'PermisoEspecial'
 
 
+class Calendario(models.Model):
+    CLAVE_ESCOLARIZADO = 'escolarizado'
+    CLAVE_SEA = 'sea'
+
+    id_calendario = models.BigAutoField(primary_key=True)
+    nombre = models.CharField(max_length=120)
+    clave = models.CharField(max_length=30, unique=True)
+    ciclo = models.CharField(max_length=20)
+    es_publico = models.BooleanField(default=True)
+    activo = models.BooleanField(default=True)
+    orden = models.IntegerField(default=0)
+
+    class Meta:
+        db_table = 'Calendario'
+        ordering = ['orden', 'id_calendario']
+
+    def __str__(self):
+        return f'{self.nombre} ({self.ciclo})'
+
+
+class TipoEvento(models.Model):
+    id_tipo_evento = models.BigAutoField(primary_key=True)
+    nombre = models.CharField(max_length=80)
+    color = models.CharField(max_length=20)
+    orden = models.IntegerField(default=0)
+
+    class Meta:
+        db_table = 'TipoEvento'
+        ordering = ['orden', 'id_tipo_evento']
+
+    def __str__(self):
+        return self.nombre
+
+
+class Evento(models.Model):
+    id_evento = models.BigAutoField(primary_key=True)
+    calendario = models.ForeignKey(
+        Calendario, on_delete=models.CASCADE, related_name='eventos'
+    )
+    tipo_evento = models.ForeignKey(
+        TipoEvento, on_delete=models.PROTECT, related_name='eventos'
+    )
+    titulo = models.CharField(max_length=200)
+    area = models.CharField(max_length=80, blank=True, default='')
+    fecha_inicio = models.DateField()
+    fecha_fin = models.DateField(null=True, blank=True)
+    hora_inicio = models.TimeField(null=True, blank=True)
+    hora_fin = models.TimeField(null=True, blank=True)
+    lugar = models.CharField(max_length=150, blank=True, default='')
+    plantel = models.ForeignKey(
+        Plantel, on_delete=models.CASCADE, null=True, blank=True, related_name='eventos'
+    )
+    turno = models.ForeignKey(
+        Turno, on_delete=models.CASCADE, null=True, blank=True, related_name='eventos'
+    )
+    semestre = models.IntegerField(null=True, blank=True)
+    grupo = models.CharField(max_length=2, null=True, blank=True)
+    creado_por = models.ForeignKey(
+        Usuario, on_delete=models.SET_NULL, null=True, blank=True, related_name='eventos_creados'
+    )
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'Evento'
+        ordering = ['fecha_inicio', 'hora_inicio']
+
+    def __str__(self):
+        return f'{self.titulo} ({self.fecha_inicio})'
+
+    @property
+    def es_general(self) -> bool:
+        """Evento institucional: sin plantel ni turno, visible para todos."""
+        return self.plantel_id is None and self.turno_id is None
+
+    def puede_editar(self, usuario) -> bool:
+        """Superusuario edita todo; el resto solo lo que creó."""
+        if usuario is None:
+            return False
+        rol = usuario.rol.nombre_rol
+        if rol == 'superusuario':
+            return True
+        if rol == 'admin':
+            return self.creado_por_id == usuario.id_usuario
+        return False
+
+
 class Conversacion(models.Model):
     id_conversacion = models.BigAutoField(primary_key=True)
     participante_a = models.ForeignKey(

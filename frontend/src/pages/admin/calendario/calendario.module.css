@@ -32,6 +32,34 @@
   letter-spacing: 0.04em;
 }
 
+.calendario__titulo-selector {
+  display: block;
+  max-width: 100%;
+  padding: 4px 34px 4px 12px;
+  margin-left: -4px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  font-family: var(--font-display);
+  font-size: 22px;
+  line-height: 1.15;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #0f172a;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.calendario__titulo-selector:hover {
+  background: #f2f5f9;
+  border-color: var(--border);
+}
+
+.calendario__titulo-selector:focus-visible {
+  outline: none;
+  border-color: var(--blue);
+}
+
 /* Barra de herramientas */
 .barra {
   display: flex;
@@ -490,6 +518,9 @@
 .tabla__bolita--teal { background: var(--teal); }
 .tabla__bolita--marino { background: var(--marino); }
 .tabla__bolita--rojo { background: var(--red); }
+.tabla__bolita--amarillo { background: var(--yellow); }
+.tabla__bolita--rosa { background: var(--pink); }
+.tabla__bolita--cian { background: var(--cyan); }
 .tabla__bolita--gris { background: var(--muted-2); }
 
 .tabla__evento {
@@ -565,6 +596,9 @@
 .simbologia__punto--teal { background: var(--teal); }
 .simbologia__punto--marino { background: var(--marino); }
 .simbologia__punto--rojo { background: var(--red); }
+.simbologia__punto--amarillo { background: var(--yellow); }
+.simbologia__punto--rosa { background: var(--pink); }
+.simbologia__punto--cian { background: var(--cyan); }
 .simbologia__punto--gris { background: var(--muted-2); }
 
 .simbologia__texto {
@@ -732,6 +766,9 @@
 .pop-evento__punto--teal { background: var(--teal); }
 .pop-evento__punto--marino { background: var(--marino); }
 .pop-evento__punto--rojo { background: var(--red); }
+.pop-evento__punto--amarillo { background: var(--yellow); }
+.pop-evento__punto--rosa { background: var(--pink); }
+.pop-evento__punto--cian { background: var(--cyan); }
 .pop-evento__punto--gris { background: var(--muted-2); }
 
 .pop-evento__titulo {

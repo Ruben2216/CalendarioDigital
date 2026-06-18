@@ -1,15 +1,15 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Modal from '../../../components/modal/Modal.jsx';
 import FormularioEvento from '../../../components/formulario-evento/FormularioEvento.jsx';
-import { TIPOS } from '../../../data/calendario.js';
+import { listarTipos } from '../../../services/eventosService.js';
 import styles from './ModalSolicitud.module.css';
 
 const RECURSOS = ['Cañón', 'Micrófono', 'Audiovisual', 'Cancha', 'Laboratorio', 'Sala de cómputo'];
 
 const FORM_VACIO = {
   titulo: '',
-  tipo: 'academico',
-  area: 'Académica',
+  tipo: '',
+  area: '',
   fecha: '',
   fechaFin: '',
   horaInicio: '',
@@ -23,6 +23,16 @@ const FORM_VACIO = {
 
 export default function ModalSolicitud({ abierto, onCerrar, onEnviar, plantel }) {
   const [form, setForm] = useState(FORM_VACIO);
+  const [tipos, setTipos] = useState([]);
+
+  useEffect(() => {
+    listarTipos()
+      .then((t) => {
+        setTipos(t);
+        setForm((prev) => (prev.tipo ? prev : { ...prev, tipo: t[0]?.id || '' }));
+      })
+      .catch(() => setTipos([]));
+  }, []);
 
   const handleChange = (campo, valor) =>
     setForm((prev) => ({ ...prev, [campo]: valor }));
@@ -53,7 +63,7 @@ export default function ModalSolicitud({ abierto, onCerrar, onEnviar, plantel })
       plantel:       plantel?.nombre ?? '',
     });
 
-    setForm(FORM_VACIO);
+    setForm({ ...FORM_VACIO, tipo: tipos[0]?.id || '' });
   };
 
   return (
@@ -75,7 +85,7 @@ export default function ModalSolicitud({ abierto, onCerrar, onEnviar, plantel })
       <FormularioEvento
         id="form-solicitud-docente"
         form={form}
-        tipos={TIPOS}
+        tipos={tipos}
         onChange={handleChange}
         onSubmit={handleSubmit}
       />

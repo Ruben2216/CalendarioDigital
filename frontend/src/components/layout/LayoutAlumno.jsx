@@ -14,6 +14,7 @@ const ROL_ETIQUETA = {
   admin: 'Administrador',
   docente: 'Docente',
   alumno: 'Alumno',
+  tutor: 'Padre/Tutor',
 };
 
 const NAV_ALUMNO = [
@@ -22,9 +23,14 @@ const NAV_ALUMNO = [
   { etiqueta: 'Anuncios', icono: Megaphone, ruta: '/alumno/anuncios' },
 ];
 
+const NAV_TUTOR = [
+  { etiqueta: 'Calendario', icono: Calendar, ruta: '/tutor/calendario' },
+];
+
 export default function LayoutAlumno() {
   const cerrarSesion = useLogout();
   const { nombre, iniciales, rol, plantel, turno } = useSesion();
+  const navegacion = rol === 'tutor' ? NAV_TUTOR : NAV_ALUMNO;
 
   const [esMovil, setEsMovil] = useState(
     () => window.matchMedia("(max-width: 920px)").matches
@@ -113,7 +119,7 @@ export default function LayoutAlumno() {
         </div>
 
         <nav className={styles["navegacion"]} aria-label="Navegación principal">
-          {NAV_ALUMNO.map(({ etiqueta, icono: Icono, ruta }) => (
+          {navegacion.map(({ etiqueta, icono: Icono, ruta }) => (
             <NavLink
               key={ruta}
               to={ruta}
@@ -261,7 +267,7 @@ export default function LayoutAlumno() {
             <div className={styles["plantel"]}>
               <div>
                 <small>Plantel</small>
-                <strong>{plantel?.nombre ?? (rol === 'superusuario' ? 'Todos los planteles' : 'Sin plantel')}</strong>
+                <strong>{plantel?.nombre ?? (rol === 'superusuario' ? 'Todos los planteles' : rol === 'tutor' ? 'Acceso general' : 'Sin plantel')}</strong>
               </div>
             </div>
 
