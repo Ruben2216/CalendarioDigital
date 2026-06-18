@@ -6,17 +6,13 @@ import {
 import {
   ZONA, ABREV_MES, ahoraMexico, aClaveFecha, desdeClaveFecha, formatoHora,
 } from "../../lib/fechas.js";
-import { TIPOS, eventosIniciales } from "../../data/calendario.js";
 import { anunciosPara } from "../../lib/anunciosStore.js";
 import { useSesion } from "../../hooks/useSesion.js";
+import { useCalendarioEventos } from "../../hooks/useCalendarioEventos.js";
 import MiniCalendario from "../mini-calendario/MiniCalendario.jsx";
 import ListaAnuncios from "../anuncios/ListaAnuncios.jsx";
 import TarjetaColapsable from "../tarjeta-colapsable/TarjetaColapsable.jsx";
 import styles from "./InicioResumen.module.css";
-
-const TIPOS_MAP = Object.fromEntries(TIPOS.map((t) => [t.id, t]));
-const colorTipo = (id) => TIPOS_MAP[id]?.color ?? "gris";
-const etiquetaTipo = (id) => TIPOS_MAP[id]?.etiqueta ?? "Evento";
 
 function saludoPorHora(h) {
   if (h < 12) return "Buenos días";
@@ -42,7 +38,10 @@ export default function InicioResumen({ rutaCalendario, rutaAnuncios, audiencia 
   const { nombre } = useSesion();
   const hoy = useMemo(() => ahoraMexico(), []);
   const claveHoy = aClaveFecha(hoy);
-  const eventos = useMemo(() => eventosIniciales(), []);
+  const {
+    eventos, tipos, calendarios, calendarioActivo, setCalendarioActivo,
+    colorTipo, etiquetaTipo,
+  } = useCalendarioEventos();
   const anuncios = useMemo(() => anunciosPara(audiencia), [audiencia]);
 
   const saludo = saludoPorHora(hoy.getHours());
@@ -198,7 +197,13 @@ export default function InicioResumen({ rutaCalendario, rutaAnuncios, audiencia 
         </div>
 
         <aside className={styles["lateral"]}>
-          <MiniCalendario eventos={eventos} />
+          <MiniCalendario
+            eventos={eventos}
+            tipos={tipos}
+            calendarios={calendarios}
+            calendarioActivo={calendarioActivo}
+            onCalendario={setCalendarioActivo}
+          />
         </aside>
       </div>
     </section>

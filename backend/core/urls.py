@@ -18,6 +18,10 @@ from agenda.views import (
     PlantelListView,
     CrearAdminView,
     ActualizarAdminView,
+    CalendarioListView,
+    TipoEventoListView,
+    EventoListView,
+    EventoDetailView,
 )
 
 urlpatterns = [
@@ -27,6 +31,12 @@ urlpatterns = [
     
     path('api/planteles/', PlantelListView.as_view(), name='planteles-list'),
     path('api/turnos/', TurnoListView.as_view(), name='turnos-list'),
+
+    # Calendario y eventos
+    path('api/calendarios/', CalendarioListView.as_view(), name='calendarios-list'),
+    path('api/tipos-evento/', TipoEventoListView.as_view(), name='tipos-evento-list'),
+    path('api/eventos/', EventoListView.as_view(), name='eventos'),
+    path('api/eventos/<int:id_evento>/', EventoDetailView.as_view(), name='evento-detail'),
 
     # Solicitudes de acceso de administrador (docente → admin)
     path('api/solicitudes-admin/', SolicitudAdminView.as_view(), name='solicitudes-admin'),

@@ -87,6 +87,9 @@
 .etiqueta--morado { background: var(--purple-soft); color: var(--purple); }
 .etiqueta--rojo { background: var(--red-soft); color: var(--red); }
 .etiqueta--marino { background: var(--marino-soft); color: var(--marino); }
+.etiqueta--amarillo { background: var(--yellow-soft); color: var(--yellow); }
+.etiqueta--rosa { background: var(--pink-soft); color: var(--pink); }
+.etiqueta--cian { background: var(--cyan-soft); color: var(--cyan); }
 .etiqueta--gris { background: #f0f3f8; color: var(--muted); }
 
 /* Tarjeta */

@@ -165,8 +165,8 @@ export default function Login() {
     e.preventDefault();
 
     if (isPublicAccess) {
-      localStorage.setItem("authToken", "tutor-public-token");
-      navigate("/dashboard");
+      guardarSesion("tutor-public-token", { rol: "tutor", nombre: "Padre/Tutor" });
+      navigate("/tutor/calendario");
       return;
     }
 

@@ -10,7 +10,7 @@ import esLocale from "@fullcalendar/core/locales/es";
 
 import {
   CalendarDays, CalendarRange, LayoutGrid, List, ChevronLeft, ChevronRight,
-  ChevronDown, Plus, Download, Pencil, Trash2, Settings2, Filter, Tag,
+  ChevronDown, Plus, Download, Pencil, Trash2, Filter, Tag,
   PanelRight, X, Clock, MapPin, Hourglass,
 } from "lucide-react";
 import Modal from "../../../components/modal/Modal.jsx";
@@ -21,8 +21,13 @@ import {
   NOMBRES_MES, ABREV_MES, aClaveFecha, desdeClaveFecha, sumarDias, minutosDe, formatoHora,
   formatoFechaLarga, calcularSemestre, ahoraMexico,
 } from "../../../lib/fechas.js";
-import { TIPOS, AREAS, COLORES_TIPO, SEMESTRES, GRUPOS, TURNOS, eventosIniciales, alcanceEvento } from "../../../data/calendario.js";
+import { AREAS, SEMESTRES, GRUPOS, TURNOS, alcanceEvento } from "../../../data/calendario.js";
+import {
+  listarCalendarios, listarTipos, listarEventos,
+  crearEvento, actualizarEvento, eliminarEvento,
+} from "../../../services/eventosService.js";
 import SelectorPlantel from "../../../components/selector-plantel/SelectorPlantel.jsx";
+import { avisoError } from "../../../lib/alertas.js";
 import { useSesion } from "../../../hooks/useSesion.js";
 import VistaAnual from "./vistas/VistaAnual.jsx";   
 import VistaLista from "./vistas/VistaLista.jsx";   
@@ -31,7 +36,8 @@ import "./fullcalendar.css";
 
 const COLOR_HEX = {
   azul: "#0147d4", naranja: "#ef7d15", morado: "#7b3fe4", verde: "#2e9d41",
-  teal: "#0f9b8e", marino: "#1f3b8f", rojo: "#e5484d", gris: "#97a3b6",
+  teal: "#0f9b8e", marino: "#1f3b8f", rojo: "#e5484d",
+  amarillo: "#d99a00", rosa: "#d63384", cian: "#0c8ec9", gris: "#97a3b6",
 };
 
 const VISTAS = [
@@ -43,11 +49,10 @@ const VISTAS = [
 
 /* Valores iniciales de los formularios (evento nuevo y tipo nuevo). */
 const FORM_EVENTO_VACIO = {
-  titulo: "", tipo: "academico", area: "Académica", fecha: "", fechaFin: "",
+  titulo: "", tipo: "", area: "", fecha: "", fechaFin: "",
   horaInicio: "", horaFin: "", lugar: "", plantel: "", turno: "", formato: "punto", todoElDia: false,
   especifico: false, semestre: "", grupo: "",
 };
-const FORM_TIPO_VACIO = { id: null, etiqueta: "", color: "azul" };
 
 function duracionTexto(ev) {
   if (!ev.horaInicio || !ev.horaFin) return null;
@@ -60,7 +65,7 @@ function duracionTexto(ev) {
   return `${m} min`;
 }
 
-export default function Calendario({ soloLectura = false }) {
+export default function Calendario({ soloLectura = false, publico = false }) {
 
   const hoy = useMemo(() => ahoraMexico(), []); // fecha/hora real en zona MX
   const claveHoy = aClaveFecha(hoy);            // "YYYY-MM-DD" de hoy
@@ -70,6 +75,20 @@ export default function Calendario({ soloLectura = false }) {
   const sesion = useSesion();
   const esAlumno = sesion.rol === "alumno";
   const esDocente = sesion.rol === "docente";
+  const esSuperusuario = sesion.rol === "superusuario";
+  const esAdmin = sesion.rol === "admin";
+
+  // los roles de solo lectura nunca editan - el admin/superusuario sí.
+  const lectura = soloLectura || publico;
+
+  const misAsignaciones = useMemo(() => {
+    if (!esAdmin) return [];
+    return (sesion.planteles || [])
+      .map((a) => ({ plantel: a.plantel?.nombre, turno: a.turno?.nombre }))
+      .filter((a) => a.plantel);
+  }, []);
+  const misPlanteles = useMemo(() => [...new Set(misAsignaciones.map((a) => a.plantel))], [misAsignaciones]);
+  const misTurnos = useMemo(() => [...new Set(misAsignaciones.map((a) => a.turno).filter(Boolean))], [misAsignaciones]);
 
   // Planteles/turnos a los que el usuario puede filtrar en el calendario: 
   // el alumno tiene 1 fijo;
@@ -86,8 +105,10 @@ export default function Calendario({ soloLectura = false }) {
     return [];
   }, []);
 
-  const [tipos, setTipos] = useState(TIPOS);                          // tipos de evento (CRUD)
-  const [eventos, setEventos] = useState(() => eventosIniciales());   // eventos (CRUD)
+  const [tipos, setTipos] = useState([]);                             // tipos de evento (desde la BD)
+  const [eventos, setEventos] = useState([]);                         // eventos (desde la BD)
+  const [calendarios, setCalendarios] = useState([]);                 // catálogo de calendarios
+  const [calendarioActivo, setCalendarioActivo] = useState(null);     // id del calendario en pantalla
   const [vista, setVista] = useState("mes");                          // vista activa
   const [fechaActual, setFechaActual] = useState(hoy);                // mes/fecha que muestra FC
   const [tituloVista, setTituloVista] = useState("");                 // título que da FC (semana/anual/lista)
@@ -101,12 +122,9 @@ export default function Calendario({ soloLectura = false }) {
   const [filtroGrupo, setFiltroGrupo] = useState(
     () => (esAlumno && sesion.grupo ? sesion.grupo : "")
   );
-  const [filtroPlantel, setFiltroPlantel] = useState(
-    () => (esAlumno && sesion.plantel?.nombre ? sesion.plantel.nombre : "")
-  );
-  const [filtroTurno, setFiltroTurno] = useState(
-    () => (esAlumno && sesion.turno?.nombre ? sesion.turno.nombre : "")
-  );
+  
+  const [filtroPlantel, setFiltroPlantel] = useState("");
+  const [filtroTurno, setFiltroTurno] = useState("");
   const [filtroFechaDesde, setFiltroFechaDesde] = useState("");
   const [filtroFechaHasta, setFiltroFechaHasta] = useState("");
   const [pickerAbierto, setPickerAbierto] = useState(false);            // selector de mes
@@ -123,8 +141,6 @@ export default function Calendario({ soloLectura = false }) {
   const [modalEvento, setModalEvento] = useState(false);
   const [formEvento, setFormEvento] = useState(FORM_EVENTO_VACIO);
   const [eventoEditando, setEventoEditando] = useState(null);
-  const [modalTipo, setModalTipo] = useState(false);
-  const [formTipo, setFormTipo] = useState(FORM_TIPO_VACIO);
 
   // Referencias: a FullCalendar (para controlarlo) y a los desplegables.
   const calendarRef = useRef(null);
@@ -144,6 +160,35 @@ export default function Calendario({ soloLectura = false }) {
 
   // Acceso corto a la API de FullCalendar (prev, next, today, changeView...).
   const api = () => calendarRef.current?.getApi();
+
+  const cargarEventos = useCallback(async (idCal) => {
+    if (!idCal) return;
+    try {
+      setEventos(await listarEventos(idCal, { publico }));
+    } catch (e) {
+      avisoError(e.message || "No se pudieron cargar los eventos.");
+    }
+  }, [publico]);
+
+  useEffect(() => {
+    let activo = true;
+    (async () => {
+      try {
+        const [cals, tps] = await Promise.all([listarCalendarios(), listarTipos()]);
+        if (!activo) return;
+        setCalendarios(cals);
+        setTipos(tps);
+        setCalendarioActivo((prev) => prev ?? (cals[0]?.id ?? null));
+      } catch (e) {
+        if (activo) avisoError(e.message || "No se pudo cargar el calendario.");
+      }
+    })();
+    return () => { activo = false; };
+  }, []);
+
+  useEffect(() => {
+    if (calendarioActivo) cargarEventos(calendarioActivo);
+  }, [calendarioActivo, cargarEventos]);
 
   useEffect(() => {
     const el = lienzoRef.current; 
@@ -201,6 +246,13 @@ export default function Calendario({ soloLectura = false }) {
   // Semestre (A/B) según el mes que se está viendo (insignia del encabezado).
   const semestre = calcularSemestre(fechaActual);
 
+  // El admin solo crea en el escolarizado, el superusuario en cualquiera, el resto no crea
+  const calActivo = useMemo(
+    () => calendarios.find((c) => c.id === calendarioActivo) || null,
+    [calendarios, calendarioActivo]
+  );
+  const puedeCrear = !lectura && (esSuperusuario || (esAdmin && calActivo?.clave === "escolarizado"));
+
   // Eventos visibles tras aplicar los filtros de tipo y área.
   const eventosFiltrados = useMemo(() => {
     return eventos.filter((ev) => {
@@ -208,9 +260,6 @@ export default function Calendario({ soloLectura = false }) {
       if (filtroArea !== "todas" && ev.area !== filtroArea) return false;
       if (filtroSemestre && ev.semestre != null && String(ev.semestre) !== filtroSemestre) return false;
       if (filtroGrupo && ev.grupo != null && ev.grupo !== filtroGrupo) return false;
-      // Restricción por planteles/turnos asignados (alumno / docente).
-      if (plantelesPermitidos.length > 0 && ev.plantel != null && !plantelesPermitidos.includes(ev.plantel)) return false;
-      if (turnosPermitidos.length > 0 && ev.turno != null && !turnosPermitidos.includes(ev.turno)) return false;
       if (filtroPlantel && ev.plantel != null && ev.plantel !== filtroPlantel) return false;
       if (filtroTurno && ev.turno != null && ev.turno !== filtroTurno) return false;
       if (filtroFechaDesde && (ev.fechaFin || ev.fecha) < filtroFechaDesde) return false;
@@ -220,7 +269,6 @@ export default function Calendario({ soloLectura = false }) {
   }, [
     eventos, filtroTipo, filtroArea, filtroSemestre, filtroGrupo,
     filtroPlantel, filtroTurno, filtroFechaDesde, filtroFechaHasta,
-    plantelesPermitidos, turnosPermitidos,
   ]);
 
   const eventosFC = useMemo(() => {
@@ -381,7 +429,7 @@ export default function Calendario({ soloLectura = false }) {
     document.querySelectorAll(".fc-popover").forEach((el) => el.remove());
     if (!original) return;
 
-    if (!soloLectura && arg.jsEvent.detail >= 2) {
+    if (!lectura && original.puede_editar && arg.jsEvent.detail >= 2) {
       clearTimeout(clicTimer.current);
       cerrarPopover();
       setFechaSeleccionada(original.fecha);
@@ -425,14 +473,20 @@ export default function Calendario({ soloLectura = false }) {
   // CRUD
   const abrirNuevoEvento = () => {
     setEventoEditando(null);
-    setFormEvento({ ...FORM_EVENTO_VACIO, fecha: fechaSeleccionada || claveHoy });
+    setFormEvento({
+      ...FORM_EVENTO_VACIO,
+      fecha: fechaSeleccionada || claveHoy,
+      tipo: tipos[0]?.id || "",
+      plantel: esAdmin ? (misAsignaciones[0]?.plantel || "") : "",
+      turno: esAdmin ? (misAsignaciones[0]?.turno || "") : "",
+    });
     setModalEvento(true);
   };
 
   const abrirEditarEvento = (ev) => {
     setEventoEditando(ev.id);
     setFormEvento({
-      titulo: ev.titulo, tipo: ev.tipo, area: ev.area, fecha: ev.fecha,
+      titulo: ev.titulo, tipo: ev.tipo, area: ev.area || "", fecha: ev.fecha,
       fechaFin: ev.fechaFin || "", horaInicio: ev.horaInicio || "",
       horaFin: ev.horaFin || "", lugar: ev.lugar || "", plantel: ev.plantel ?? "",
       turno: ev.turno ?? "", formato: ev.formato || "punto",
@@ -443,41 +497,51 @@ export default function Calendario({ soloLectura = false }) {
     setModalEvento(true);
   };
 
-
-  const guardarEvento = (e) => {
+  const guardarEvento = async (e) => {
     e.preventDefault();
-    if (!formEvento.fecha) return;
-    const { todoElDia, especifico, ...resto } = formEvento;
+    if (!formEvento.fecha || !calendarioActivo) return;
+    const { todoElDia, especifico, formato, ...resto } = formEvento;
     const datos = {
       ...resto,
+      id_calendario: calendarioActivo,
       titulo: formEvento.titulo.trim(),
       lugar: formEvento.lugar.trim(),
+      area: formEvento.area || "",
       fechaFin: formEvento.fechaFin || null,
       horaInicio: todoElDia ? "" : formEvento.horaInicio,
       horaFin: todoElDia ? "" : formEvento.horaFin,
-      formato: todoElDia ? "rango" : "punto",
       plantel: formEvento.plantel || null,
       turno: formEvento.turno || null,
       semestre: especifico && formEvento.semestre ? Number(formEvento.semestre) : null,
       grupo: especifico && formEvento.grupo ? formEvento.grupo : null,
     };
-    if (eventoEditando) {
-      setEventos((prev) => prev.map((ev) => (ev.id === eventoEditando ? { ...ev, ...datos } : ev)));
-    } else {
-      setEventos((prev) => [...prev, { ...datos, id: Date.now() }]);
+    try {
+      if (eventoEditando) {
+        await actualizarEvento(eventoEditando, datos);
+      } else {
+        await crearEvento(datos);
+      }
+      await cargarEventos(calendarioActivo);
+      setFechaSeleccionada(datos.fecha);
+      api()?.gotoDate(datos.fecha);
+      setModalEvento(false);
+      avisoExito(eventoEditando ? "Evento actualizado" : "Evento creado");
+    } catch (err) {
+      avisoError(err.message || "No se pudo guardar el evento.");
     }
-    setFechaSeleccionada(datos.fecha);
-    api()?.gotoDate(datos.fecha);
-    setModalEvento(false);
-    avisoExito(eventoEditando ? "Evento actualizado" : "Evento creado");
   };
 
   const pedirEliminar = async (ev) => {
     cerrarPopover();
     const { isConfirmed } = await confirmarEliminacion(ev.titulo);
     if (!isConfirmed) return;
-    setEventos((prev) => prev.filter((e) => e.id !== ev.id));
-    avisoExito("Evento eliminado");
+    try {
+      await eliminarEvento(ev.id);
+      await cargarEventos(calendarioActivo);
+      avisoExito("Evento eliminado");
+    } catch (err) {
+      avisoError(err.message || "No se pudo eliminar el evento.");
+    }
   };
 
   const eliminarDesdeEdicion = () => {
@@ -486,54 +550,31 @@ export default function Calendario({ soloLectura = false }) {
     if (ev) pedirEliminar(ev);
   };
 
-  // CRUD DE TIPOS DE EVENTO (la simbología y los filtros salen de aquí)
-  const abrirNuevoTipo = () => {
-    setFormTipo(FORM_TIPO_VACIO);
-    setModalTipo(true);
-  };
-
-  const abrirEditarTipo = (tipo) => {
-    setFormTipo({ id: tipo.id, etiqueta: tipo.etiqueta, color: tipo.color });
-    setModalTipo(true);
-  };
-
-  const guardarTipo = (e) => {
-    e.preventDefault();
-    const etiqueta = formTipo.etiqueta.trim();
-    if (!etiqueta) return;
-    if (formTipo.id) {
-      setTipos((prev) =>
-        prev.map((t) => (t.id === formTipo.id ? { ...t, etiqueta, color: formTipo.color } : t))
-      );
-    } else {
-      const id = etiqueta.toLowerCase().replace(/\s+/g, "-") + "-" + Date.now();
-      setTipos((prev) => [...prev, { id, etiqueta, color: formTipo.color }]);
-    }
-    setModalTipo(false);
-  };
-
-  const eliminarTipo = (tipo) => {
-    if (tipos.length <= 1) return;
-    const reemplazo = tipos.find((t) => t.id !== tipo.id);
-    setEventos((prev) =>
-      prev.map((ev) => (ev.tipo === tipo.id ? { ...ev, tipo: reemplazo.id } : ev))
-    );
-    setFiltroTipo((prev) => (prev === tipo.id ? "todos" : prev));
-    setTipos((prev) => prev.filter((t) => t.id !== tipo.id));
-  };
-
-  const tipoEnUso = (id) => eventos.some((ev) => ev.tipo === id);
-
   return (
     <div className={styles["calendario"]}>
-      {/* ENCABEZADO: título + insignia del semestre */}
+      {/* ENCABEZADO: selector de calendario */}
       <header className={styles["calendario__encabezado"]}>
         <div>
-          <h2 className={styles["calendario__titulo"]}>Calendario institucional</h2>
+          {calendarios.length > 0 ? (
+            <select
+              className={styles["calendario__titulo-selector"]}
+              value={calendarioActivo ?? ""}
+              onChange={(e) => setCalendarioActivo(Number(e.target.value))}
+              aria-label="Seleccionar calendario"
+            >
+              {calendarios.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.nombre} · {c.ciclo}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <h2 className={styles["calendario__titulo"]}>Calendario institucional</h2>
+          )}
           <span className={`etiqueta etiqueta--rojo ${styles["calendario__semestre"]}`}>
             SEMESTRE {semestre.ciclo}-{semestre.letra}
           </span>
-          {soloLectura && (
+          {lectura && (
             <AvisoBadge texto="lectura" />
           )}
         </div>
@@ -649,17 +690,17 @@ export default function Calendario({ soloLectura = false }) {
                 )}
               </div>
 
-              {!soloLectura && (
-                <>
-                  <button type="button" className="boton boton--fantasma" disabled title="Disponible próximamente">
-                    <Download size={16} />
-                    Exportar
-                  </button>
-                  <button type="button" className="boton boton--primario" onClick={abrirNuevoEvento}>
-                    <Plus size={16} />
-                    Nuevo evento
-                  </button>
-                </>
+              {!lectura && (
+                <button type="button" className="boton boton--fantasma" disabled title="Disponible próximamente">
+                  <Download size={16} />
+                  Exportar
+                </button>
+              )}
+              {puedeCrear && (
+                <button type="button" className="boton boton--primario" onClick={abrirNuevoEvento}>
+                  <Plus size={16} />
+                  Nuevo evento
+                </button>
               )}
 
               {/* Mostrar/ocultar el panel lateral (simbología, tipos, filtros) */}
@@ -732,7 +773,7 @@ export default function Calendario({ soloLectura = false }) {
               onSeleccionarDia={setFechaSeleccionada}
               onEditar={abrirEditarEvento}
               onEliminar={pedirEliminar}
-              soloLectura={soloLectura}
+              soloLectura={lectura}
             />
           )}
 
@@ -761,7 +802,7 @@ export default function Calendario({ soloLectura = false }) {
                       <th>Área</th>
                       <th>Lugar</th>
                       <th>Tipo</th>
-                      {!soloLectura && <th className={styles["tabla__acciones-col"]}>Acciones</th>}
+                      {!lectura && <th className={styles["tabla__acciones-col"]}>Acciones</th>}
                     </tr>
                   </thead>
                   <tbody>
@@ -784,7 +825,7 @@ export default function Calendario({ soloLectura = false }) {
                           {ev.titulo}
                           <small className={styles["tabla__sub"]}>{alcanceEvento(ev)}</small>
                         </td>
-                        <td className={styles["tabla__tenue"]}>{ev.area}</td>
+                        <td className={styles["tabla__tenue"]}>{ev.area || "—"}</td>
                         <td className={styles["tabla__tenue"]}>
                           {ev.lugar || "—"}
                           <small className={styles["tabla__sub"]}>
@@ -796,8 +837,9 @@ export default function Calendario({ soloLectura = false }) {
                             {etiquetaTipo(ev.tipo)}
                           </span>
                         </td>
-                        {!soloLectura && (
+                        {!lectura && (
                           <td>
+                            {ev.puede_editar && (
                             <div className={styles["tabla__acciones"]}>
                               <button type="button" onClick={() => abrirEditarEvento(ev)} aria-label="Editar" title="Editar">
                                 <Pencil size={15} />
@@ -812,6 +854,7 @@ export default function Calendario({ soloLectura = false }) {
                                 <Trash2 size={15} />
                               </button>
                             </div>
+                            )}
                           </td>
                         )}
                       </tr>
@@ -866,43 +909,6 @@ export default function Calendario({ soloLectura = false }) {
               ))}
             </ul>
           </article>
-
-          {/* Tipos de evento: lista con crear, editar y eliminar — solo admin */}
-          {!soloLectura && (
-            <article className="tarjeta">
-              <div className="tarjeta__cabecera">
-                <div className="tarjeta__titulo">
-                  <Settings2 size={16} />
-                  Tipos de eventos
-                </div>
-                <button type="button" className="tarjeta__enlace" onClick={abrirNuevoTipo}>
-                  <Plus size={14} />
-                  Nuevo tipo
-                </button>
-              </div>
-              <ul className={styles["tipos"]}>
-                {tipos.map((tipo) => (
-                  <li key={tipo.id} className={styles["tipos__item"]}>
-                    <span className={`etiqueta etiqueta--${tipo.color}`}>{tipo.etiqueta}</span>
-                    <div className={styles["tipos__acciones"]}>
-                      <button type="button" onClick={() => abrirEditarTipo(tipo)} aria-label={`Editar ${tipo.etiqueta}`} title="Editar">
-                        <Pencil size={14} />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => eliminarTipo(tipo)}
-                        disabled={tipos.length <= 1}
-                        aria-label={`Eliminar ${tipo.etiqueta}`}
-                        title={tipoEnUso(tipo.id) ? "Los eventos se reasignarán a otro tipo" : "Eliminar"}
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </article>
-          )}
 
           {/* Filtros rápidos */}
           <article className="tarjeta">
@@ -1043,7 +1049,7 @@ export default function Calendario({ soloLectura = false }) {
             <span className={`${styles["pop-evento__punto"]} ${styles[`pop-evento__punto--${colorTipo(popover.ev.tipo)}`]}`} />
             <span className={styles["pop-evento__titulo"]}>{popover.ev.titulo}</span>
             <div className={styles["pop-evento__acciones"]}>
-              {!soloLectura && (
+              {!lectura && popover.ev.puede_editar && (
                 <>
                   <button
                     type="button"
@@ -1128,56 +1134,12 @@ export default function Calendario({ soloLectura = false }) {
           id="form-evento-calendario"
           form={formEvento}
           tipos={tipos}
+          restringido={esAdmin}
+          planteles={misPlanteles}
+          turnos={misTurnos}
           onChange={(campo, valor) => setFormEvento((prev) => ({ ...prev, [campo]: valor }))}
           onSubmit={guardarEvento}
         />
-      </Modal>
-
-      {/* Modal: crear y editar tipo de evento */}
-      <Modal
-        abierto={modalTipo}
-        titulo={formTipo.id ? "Editar tipo de evento" : "Nuevo tipo de evento"}
-        onCerrar={() => setModalTipo(false)}
-        pie={
-          <>
-            <button type="button" className="boton boton--fantasma" onClick={() => setModalTipo(false)}>
-              Cancelar
-            </button>
-            <button type="submit" form="form-tipo" className="boton boton--primario">
-              Guardar
-            </button>
-          </>
-        }
-      >
-        <form id="form-tipo" className="formulario" onSubmit={guardarTipo}>
-          <label className="formulario__campo">
-            <span className="formulario__etiqueta">Nombre</span>
-            <input
-              type="text"
-              required
-              placeholder="Ej. Académico"
-              value={formTipo.etiqueta}
-              onChange={(e) => setFormTipo((prev) => ({ ...prev, etiqueta: e.target.value }))}
-            />
-          </label>
-          <label className="formulario__campo">
-            <span className="formulario__etiqueta">Color</span>
-            <select
-              value={formTipo.color}
-              onChange={(e) => setFormTipo((prev) => ({ ...prev, color: e.target.value }))}
-            >
-              {COLORES_TIPO.map((c) => (
-                <option key={c.valor} value={c.valor}>{c.etiqueta}</option>
-              ))}
-            </select>
-          </label>
-          <div className={styles["tipo-vista-previa"]}>
-            <span className="formulario__etiqueta">Vista previa</span>
-            <span className={`etiqueta etiqueta--${formTipo.color}`}>
-              {formTipo.etiqueta.trim() || "Tipo de evento"}
-            </span>
-          </div>
-        </form>
       </Modal>
     </div>
   );
