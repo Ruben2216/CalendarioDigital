@@ -59,8 +59,14 @@ function App() {
             <Route path="/dashboard"  element={<Suspense fallback={<Cargando />}><Dashboard /></Suspense>} />
             <Route path="/calendario" element={<Suspense fallback={<Cargando />}><Calendario /></Suspense>} />
             <Route path="/mensajeria" element={<Suspense fallback={<Cargando />}><Mensajeria /></Suspense>} />
-            <Route path="/usuarios"   element={<Suspense fallback={<Cargando />}><Usuarios /></Suspense>} />
             <Route path="/anuncios"   element={<Suspense fallback={<Cargando />}><Anuncios /></Suspense>} />
+          </Route>
+        </Route>
+
+        {/* Ruta Usuarios: solo superusuario */}
+        <Route element={<ProtectedRoute roles={['superusuario']} />}>
+          <Route element={<MensajeriaProvider><Layout /></MensajeriaProvider>}>
+            <Route path="/usuarios" element={<Suspense fallback={<Cargando />}><Usuarios /></Suspense>} />
           </Route>
         </Route>
 

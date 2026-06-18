@@ -117,7 +117,7 @@ export default function Layout() {
         </div>
 
         <nav className={styles["navegacion"]} aria-label="Navegación principal">
-          {NAV.map(({ etiqueta, icono: Icono, ruta }) => (
+          {(rol === 'admin' ? NAV.filter(item => item.ruta !== '/usuarios') : NAV).map(({ etiqueta, icono: Icono, ruta }) => (
             <NavLink
               key={ruta}
               to={ruta}
