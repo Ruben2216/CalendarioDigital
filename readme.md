@@ -76,3 +76,17 @@ Se agregó el modelo nuevo, así que hay que correr (dentro de `backend/`, con e
 python manage.py migrate
 ```
 Si Django no detecta la migración: `python manage.py makemigrations agenda` y luego `migrate`.
+
+# Lista eventos visibles según el rol y crea eventos (admin/superusuario)
+
+Regla de visibilidad (plantel y turno se evalúan por separado;
+-  `null` = "paratodos"). 
+- Un evento es visible si:
+  - (plantel del evento es null o es uno de los del usuario)    y (turno del evento es null o coincide con el del usuario)
+
+Matices por rol:
+- superusuario: todos los eventos del calendario.
+- admin: ve ambos turnos de su(s) plantel(es), por eso NO restringe turno.
+- docente / alumno: respetan plantel Y turno (no ven el otro turno).
+- úblico (sin sesión): solo eventos totalmente generales (plantel y turno
+        nulos) de calendarios públicos.
