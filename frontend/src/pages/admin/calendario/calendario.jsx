@@ -69,6 +69,22 @@ export default function Calendario({ soloLectura = false }) {
   // ya que son los datos que la API devuelve. El resto filtra libremente (ej. admin y docente)
   const sesion = useSesion();
   const esAlumno = sesion.rol === "alumno";
+  const esDocente = sesion.rol === "docente";
+
+  // Planteles/turnos a los que el usuario puede filtrar en el calendario: 
+  // el alumno tiene 1 fijo;
+  // el docente los que tenga asignados sea 1 o 2 maximo 
+  // admin/superusuario, sin límite (por ahora)
+  const plantelesPermitidos = useMemo(() => {
+    if (esAlumno) return sesion.plantel?.nombre ? [sesion.plantel.nombre] : [];
+    if (esDocente) return [...new Set((sesion.planteles || []).map((a) => a.plantel?.nombre).filter(Boolean))];
+    return [];
+  }, []);
+  const turnosPermitidos = useMemo(() => {
+    if (esAlumno) return sesion.turno?.nombre ? [sesion.turno.nombre] : [];
+    if (esDocente) return [...new Set((sesion.planteles || []).map((a) => a.turno?.nombre).filter(Boolean))];
+    return [];
+  }, []);
 
   const [tipos, setTipos] = useState(TIPOS);                          // tipos de evento (CRUD)
   const [eventos, setEventos] = useState(() => eventosIniciales());   // eventos (CRUD)
@@ -192,6 +208,9 @@ export default function Calendario({ soloLectura = false }) {
       if (filtroArea !== "todas" && ev.area !== filtroArea) return false;
       if (filtroSemestre && ev.semestre != null && String(ev.semestre) !== filtroSemestre) return false;
       if (filtroGrupo && ev.grupo != null && ev.grupo !== filtroGrupo) return false;
+      // Restricción por planteles/turnos asignados (alumno / docente).
+      if (plantelesPermitidos.length > 0 && ev.plantel != null && !plantelesPermitidos.includes(ev.plantel)) return false;
+      if (turnosPermitidos.length > 0 && ev.turno != null && !turnosPermitidos.includes(ev.turno)) return false;
       if (filtroPlantel && ev.plantel != null && ev.plantel !== filtroPlantel) return false;
       if (filtroTurno && ev.turno != null && ev.turno !== filtroTurno) return false;
       if (filtroFechaDesde && (ev.fechaFin || ev.fecha) < filtroFechaDesde) return false;
@@ -201,6 +220,7 @@ export default function Calendario({ soloLectura = false }) {
   }, [
     eventos, filtroTipo, filtroArea, filtroSemestre, filtroGrupo,
     filtroPlantel, filtroTurno, filtroFechaDesde, filtroFechaHasta,
+    plantelesPermitidos, turnosPermitidos,
   ]);
 
   const eventosFC = useMemo(() => {
@@ -940,10 +960,19 @@ export default function Calendario({ soloLectura = false }) {
 
               <label className="formulario__campo">
                 <span className="formulario__etiqueta">Plantel</span>
-                {esAlumno ? (
-                  <select value={filtroPlantel} disabled>
-                    <option value={filtroPlantel}>{filtroPlantel || "Todos"}</option>
-                  </select>
+                {plantelesPermitidos.length > 0 ? (
+                  plantelesPermitidos.length === 1 ? (
+                    <select value={plantelesPermitidos[0]} disabled>
+                      <option value={plantelesPermitidos[0]}>{plantelesPermitidos[0]}</option>
+                    </select>
+                  ) : (
+                    <select value={filtroPlantel} onChange={(e) => setFiltroPlantel(e.target.value)}>
+                      <option value="">Todos mis planteles</option>
+                      {plantelesPermitidos.map((p) => (
+                        <option key={p} value={p}>{p}</option>
+                      ))}
+                    </select>
+                  )
                 ) : (
                   <SelectorPlantel
                     value={filtroPlantel}
@@ -955,12 +984,27 @@ export default function Calendario({ soloLectura = false }) {
 
               <label className="formulario__campo">
                 <span className="formulario__etiqueta">Turno</span>
-                <select value={filtroTurno} disabled={esAlumno} onChange={(e) => setFiltroTurno(e.target.value)}>
-                  <option value="">Todos</option>
-                  {TURNOS.map((t) => (
-                    <option key={t} value={t}>{t}</option>
-                  ))}
-                </select>
+                {turnosPermitidos.length > 0 ? (
+                  turnosPermitidos.length === 1 ? (
+                    <select value={turnosPermitidos[0]} disabled>
+                      <option value={turnosPermitidos[0]}>{turnosPermitidos[0]}</option>
+                    </select>
+                  ) : (
+                    <select value={filtroTurno} onChange={(e) => setFiltroTurno(e.target.value)}>
+                      <option value="">Todos mis turnos</option>
+                      {turnosPermitidos.map((t) => (
+                        <option key={t} value={t}>{t}</option>
+                      ))}
+                    </select>
+                  )
+                ) : (
+                  <select value={filtroTurno} onChange={(e) => setFiltroTurno(e.target.value)}>
+                    <option value="">Todos</option>
+                    {TURNOS.map((t) => (
+                      <option key={t} value={t}>{t}</option>
+                    ))}
+                  </select>
+                )}
               </label>
 
               <div className="formulario__fila">
