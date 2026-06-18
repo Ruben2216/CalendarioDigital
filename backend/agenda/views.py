@@ -4,7 +4,7 @@ from django.utils import timezone
 
 import requests
 
-from django.db.models import Q
+from django.db.models import Q, Exists, OuterRef
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -402,6 +402,8 @@ class UsuarioListView(APIView):
         rol = request.query_params.get('rol')
         id_plantel = request.query_params.get('plantel')
 
+        q = request.query_params.get('q', '').strip()
+
         qs = Usuario.objects.select_related('rol').prefetch_related('planteles_asignados__plantel', 'planteles_asignados__turno').filter(activo=True)
         if rol:
             qs = qs.filter(rol__nombre_rol=rol)
@@ -410,6 +412,8 @@ class UsuarioListView(APIView):
                 qs = qs.filter(planteles_asignados__plantel_id=int(id_plantel))
             except (TypeError, ValueError):
                 pass
+        if q:
+            qs = qs.filter(Q(nombre__icontains=q) | Q(correo__icontains=q))[:20]
 
         return Response([{
             'id':      u.id_usuario,
@@ -521,6 +525,14 @@ class ResolverSolicitudAdminView(APIView):
             usuario = solicitud.usuario
             usuario.rol = rol_admin
             usuario.save(update_fields=['rol'])
+            # Crear entrada UsuarioPlantel con el plantel/turno de la solicitud
+            if solicitud.plantel:
+                plantel_obj = Plantel.objects.filter(nombre__iexact=solicitud.plantel).first()
+                if plantel_obj:
+                    turno_nombre = solicitud.turno.strip().capitalize() if solicitud.turno else 'Matutino'
+                    turno_obj, _ = Turno.objects.get_or_create(nombre_turno=turno_nombre)
+                    UsuarioPlantel.objects.filter(usuario=usuario).delete()
+                    UsuarioPlantel.objects.create(usuario=usuario, plantel=plantel_obj, turno=turno_obj)
             solicitud.estado = SolicitudAdmin.ESTADO_ACEPTADA
         else:
             solicitud.estado = SolicitudAdmin.ESTADO_RECHAZADA
@@ -530,6 +542,92 @@ class ResolverSolicitudAdminView(APIView):
         solicitud.save(update_fields=['estado', 'resuelta_por', 'fecha_resolucion'])
 
         return Response({'solicitud': _solicitud_dict(solicitud)}, status=status.HTTP_200_OK)
+
+
+class CrearAdminView(APIView):
+    """Superusuario da de alta un admin directamente con plantel y turno."""
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        superadmin = _usuario_sesion(request)
+        if not superadmin or superadmin.rol.nombre_rol != 'superusuario':
+            return Response({'error': 'No autorizado.'}, status=status.HTTP_403_FORBIDDEN)
+
+        correo = (request.data.get('correo') or '').strip()
+        nombre = (request.data.get('nombre') or '').strip()
+        plantel_id = request.data.get('plantel_id')
+        turno_id = request.data.get('turno_id')
+
+        if not correo or not plantel_id or not turno_id:
+            return Response(
+                {'error': 'correo, plantel_id y turno_id son requeridos.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            plantel = Plantel.objects.get(pk=int(plantel_id))
+            turno = Turno.objects.get(pk=int(turno_id))
+        except (Plantel.DoesNotExist, Turno.DoesNotExist, TypeError, ValueError):
+            return Response({'error': 'Plantel o turno no encontrado.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            rol_admin = Rol.objects.get(nombre_rol='admin')
+        except Rol.DoesNotExist:
+            return Response({'error': 'Rol admin no existe en el catálogo.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        usuario, creado = Usuario.objects.get_or_create(
+            correo=correo,
+            defaults={'rol': rol_admin, 'nombre': nombre, 'activo': True},
+        )
+        if not creado:
+            usuario.rol = rol_admin
+            if nombre:
+                usuario.nombre = nombre
+            usuario.save(update_fields=['rol', 'nombre'])
+
+        UsuarioPlantel.objects.filter(usuario=usuario).delete()
+        UsuarioPlantel.objects.create(usuario=usuario, plantel=plantel, turno=turno)
+
+        return Response({
+            'id_usuario': usuario.id_usuario,
+            'nombre': usuario.nombre or '',
+            'correo': usuario.correo,
+            'plantel': plantel.nombre,
+            'turno': turno.nombre_turno.lower(),
+        }, status=status.HTTP_201_CREATED if creado else status.HTTP_200_OK)
+
+
+class ActualizarAdminView(APIView):
+    """Superusuario edita nombre y/o asignación de plantel+turno de un admin."""
+    permission_classes = [permissions.AllowAny]
+
+    def patch(self, request, id_usuario):
+        superadmin = _usuario_sesion(request)
+        if not superadmin or superadmin.rol.nombre_rol != 'superusuario':
+            return Response({'error': 'No autorizado.'}, status=status.HTTP_403_FORBIDDEN)
+
+        try:
+            usuario = Usuario.objects.get(pk=id_usuario, activo=True)
+        except Usuario.DoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
+        plantel_id = request.data.get('plantel_id')
+        turno_id = request.data.get('turno_id')
+        nombre = (request.data.get('nombre') or '').strip()
+
+        if plantel_id and turno_id:
+            try:
+                plantel = Plantel.objects.get(pk=int(plantel_id))
+                turno = Turno.objects.get(pk=int(turno_id))
+            except (Plantel.DoesNotExist, Turno.DoesNotExist, TypeError, ValueError):
+                return Response({'error': 'Plantel o turno no encontrado.'}, status=status.HTTP_400_BAD_REQUEST)
+            UsuarioPlantel.objects.filter(usuario=usuario).delete()
+            UsuarioPlantel.objects.create(usuario=usuario, plantel=plantel, turno=turno)
+
+        if nombre:
+            Usuario.objects.filter(pk=usuario.pk).update(nombre=nombre)
+
+        return Response({'ok': True}, status=status.HTTP_200_OK)
 
 
 class LogoutView(APIView):
@@ -556,36 +654,33 @@ class SolicitudBroadcastView(APIView):
             return Response({'error': 'El mensaje no puede estar vacío.'}, status=status.HTTP_400_BAD_REQUEST)
 
         id_plantel = request.data.get('id_plantel')
-        hora_evento = request.data.get('hora_evento') # formato "HH:MM" ej "10:30" o "15:00"
-        
-        # Filtros base para los administradores del plantel dado
-        admins_qs = Usuario.objects.filter(
-            rol__nombre_rol='admin', 
-            activo=True,
-            planteles_asignados__plantel_id=id_plantel
-        )
-        
+        hora_evento = request.data.get('hora_evento')
+
         turno_buscado = None
         if hora_evento:
             try:
-                # La lógica de Mixto: corte 13:20
                 horas, minutos = map(int, hora_evento.split(':'))
                 hora_minutos = horas * 60 + minutos
-                if hora_minutos <= 13 * 60 + 20:
-                    turno_buscado = 'Matutino'
-                else:
-                    turno_buscado = 'Vespertino'
+                turno_buscado = 'Matutino' if hora_minutos <= 13 * 60 + 20 else 'Vespertino'
             except ValueError:
                 pass
 
-        # Buscamos admins que coincidan con el turno_buscado o que tengan turno Mixto
+        # Subquery garantiza que plantel_id y turno estén en el MISMO registro UsuarioPlantel.
+        up_subq = UsuarioPlantel.objects.filter(
+            usuario=OuterRef('pk'),
+            plantel_id=id_plantel,
+        )
         if turno_buscado:
-            admins_qs = admins_qs.filter(
-                Q(planteles_asignados__turno__nombre_turno=turno_buscado) |
-                Q(planteles_asignados__turno__nombre_turno='Mixto')
+            up_subq = up_subq.filter(
+                Q(turno__nombre_turno=turno_buscado) | Q(turno__nombre_turno='Mixto')
             )
-        
-        admins = list(admins_qs.distinct())
+
+        admins = list(
+            Usuario.objects.filter(
+                rol__nombre_rol='admin',
+                activo=True,
+            ).filter(Exists(up_subq))
+        )
         
         superadmins = (
             Usuario.objects

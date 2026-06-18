@@ -6,21 +6,22 @@ import {
 import Modal from "../../../components/modal/Modal.jsx";
 import { avisoExito, avisoError, confirmarAccion, confirmarEliminacion } from "../../../lib/alertas.js";
 import { ROL, ESTADOS, TURNOS } from "../../../data/usuarios.js";
-import { listarSolicitudes, resolverSolicitud } from "../../../services/solicitudesService.js";
-import { obtenerPlanteles } from "../../../services/authService.js";
+import { listarSolicitudes, resolverSolicitud, crearAdmin, actualizarAdmin } from "../../../services/solicitudesService.js";
+import { obtenerPlanteles, obtenerTurnos } from "../../../services/authService.js";
 import BuscadorPlantelInline from "../../../components/buscador-plantel/BuscadorPlantelInline.jsx";
+import BuscadorUsuarioInline from "../../../components/buscador-usuario/BuscadorUsuarioInline.jsx";
 import styles from "./usuarios.module.css";
 
 const ESTADOS_MAP = Object.fromEntries(ESTADOS.map((e) => [e.id, e]));
 const TURNOS_MAP = Object.fromEntries(TURNOS.map((t) => [t.id, t]));
 
-// Estado del backend (pendiente/aceptada/rechazada) → estado de esta pantalla.
 const ESTADO_BACKEND = { pendiente: "pendiente", aceptada: "activo", rechazada: "rechazado" };
 
 function solicitudAFila(s) {
   return {
     id: `sol-${s.id}`,
     solicitudId: s.id,
+    id_usuario: s.id_usuario,
     origenBackend: true,
     nombre: s.nombre,
     correo: s.correo,
@@ -31,7 +32,7 @@ function solicitudAFila(s) {
   };
 }
 
-const FORM_VACIO = { nombre: "", correo: "", turno: "matutino", planteles: [], estado: "pendiente" };
+const FORM_VACIO = { nombre: "", correo: "", turno: "matutino", planteles: [], usuarioId: null };
 
 function iniciales(nombre) {
   return nombre
@@ -54,20 +55,21 @@ export default function Usuarios() {
   const [cargando, setCargando] = useState(true);
   const [busqueda, setBusqueda] = useState("");
   const [filtroEstado, setFiltroEstado] = useState("todos");
-  const [plantelesDisponibles, setPlantelesDisponibles] = useState([]); // { id, nombre }[]
+  const [plantelesDisponibles, setPlantelesDisponibles] = useState([]);
+  const [turnosDisponibles, setTurnosDisponibles] = useState([]);
 
   const [modalAbierto, setModalAbierto] = useState(false);
   const [form, setForm] = useState(FORM_VACIO);
   const [editando, setEditando] = useState(null);
 
-  // Carga solicitudes y planteles en paralelo al montar el componente.
   useEffect(() => {
     let vigente = true;
-    Promise.all([listarSolicitudes(), obtenerPlanteles()])
-      .then(([lista, planteles]) => {
+    Promise.all([listarSolicitudes(), obtenerPlanteles(), obtenerTurnos()])
+      .then(([lista, planteles, turnos]) => {
         if (!vigente) return;
         setUsuarios(lista.map(solicitudAFila));
         setPlantelesDisponibles(planteles);
+        setTurnosDisponibles(turnos);
       })
       .catch(() => { /* backend no disponible */ })
       .finally(() => { if (vigente) setCargando(false); });
@@ -101,7 +103,6 @@ export default function Usuarios() {
     setFiltroEstado("todos");
   };
 
-  // CRUD
   const abrirNuevo = () => {
     setEditando(null);
     setForm(FORM_VACIO);
@@ -115,7 +116,7 @@ export default function Usuarios() {
       correo: usuario.correo,
       turno: usuario.turno,
       planteles: [...usuario.planteles],
-      estado: usuario.estado,
+      usuarioId: usuario.id_usuario ?? null,
     });
     setModalAbierto(true);
   };
@@ -123,35 +124,85 @@ export default function Usuarios() {
   const fijarCampo = (campo) => (e) =>
     setForm((prev) => ({ ...prev, [campo]: e.target.value }));
 
+  // Un único plantel permitido por admin: seleccionar uno deselecciona el anterior.
   const alternarPlantel = (plantel) =>
     setForm((prev) => ({
       ...prev,
-      planteles: prev.planteles.includes(plantel)
-        ? prev.planteles.filter((p) => p !== plantel)
-        : [...prev.planteles, plantel],
+      planteles: prev.planteles.includes(plantel) ? [] : [plantel],
     }));
 
-  const guardar = (e) => {
-    e.preventDefault();
-    if (form.planteles.length === 0) return;
-    const datos = {
-      ...form,
-      nombre: form.nombre.trim(),
-      correo: form.correo.trim(),
-    };
-    if (editando) {
-      setUsuarios((prev) => prev.map((u) => (u.id === editando ? { ...u, ...datos } : u)));
-    } else {
-      setUsuarios((prev) => [
-        ...prev,
-        { ...datos, id: Date.now(), solicitado: new Date().toISOString().slice(0, 10) },
-      ]);
-    }
-    setModalAbierto(false);
-    avisoExito(editando ? "Usuario actualizado" : "Usuario agregado");
+  const _turnoIdDesdeForm = () => {
+    const nombre = form.turno;
+    return turnosDisponibles.find((t) => t.nombre.toLowerCase() === nombre.toLowerCase())?.id ?? null;
   };
 
-  // Aceptar / Rechazar / Eliminar 
+  const _plantelIdDesdeForm = () => {
+    const nombrePlantel = form.planteles[0];
+    return plantelesDisponibles.find((p) => p.nombre === nombrePlantel)?.id ?? null;
+  };
+
+  const guardar = async (e) => {
+    e.preventDefault();
+    if (form.planteles.length === 0) return;
+
+    const nombre = form.nombre.trim();
+    const correo = form.correo.trim();
+    const plantelId = _plantelIdDesdeForm();
+    const turnoId = _turnoIdDesdeForm();
+
+    if (editando) {
+      const usuarioEditando = usuarios.find((u) => u.id === editando);
+      if (usuarioEditando?.id_usuario && plantelId && turnoId) {
+        try {
+          await actualizarAdmin(usuarioEditando.id_usuario, {
+            nombre,
+            plantel_id: plantelId,
+            turno_id: turnoId,
+          });
+        } catch (err) {
+          avisoError(err.message || "No se pudo actualizar el usuario");
+          return;
+        }
+      }
+      setUsuarios((prev) =>
+        prev.map((u) =>
+          u.id === editando
+            ? { ...u, nombre, turno: form.turno, planteles: [...form.planteles] }
+            : u,
+        ),
+      );
+    } else {
+      if (!plantelId || !turnoId) {
+        avisoError("Plantel o turno no válido. Verifica la conexión con el servidor.");
+        return;
+      }
+      let res;
+      try {
+        res = await crearAdmin({ nombre, correo, plantel_id: plantelId, turno_id: turnoId });
+      } catch (err) {
+        avisoError(err.message || "No se pudo crear el administrador");
+        return;
+      }
+      setUsuarios((prev) => [
+        ...prev,
+        {
+          id: res.id_usuario,
+          id_usuario: res.id_usuario,
+          nombre: res.nombre,
+          correo: res.correo,
+          turno: res.turno,
+          planteles: [res.plantel],
+          estado: "activo",
+          solicitado: new Date().toISOString().slice(0, 10),
+          origenBackend: false,
+        },
+      ]);
+    }
+
+    setModalAbierto(false);
+    avisoExito(editando ? "Usuario actualizado" : "Administrador agregado");
+  };
+
   const aceptar = async (usuario) => {
     const { isConfirmed } = await confirmarAccion({
       icono: "question",
@@ -199,9 +250,13 @@ export default function Usuarios() {
     avisoExito("Usuario eliminado");
   };
 
+  // Opciones de turno: desde BD si cargaron, si no desde TURNOS estáticos.
+  const opcionesTurno = turnosDisponibles.length > 0
+    ? turnosDisponibles.map((t) => ({ id: t.nombre.toLowerCase(), etiqueta: t.nombre }))
+    : TURNOS;
+
   return (
     <section className={styles["pagina"]}>
-      {/* Encabezado */}
       <header className={styles["encabezado"]}>
         <div>
           <h2 className={styles["encabezado__titulo"]}>Usuarios</h2>
@@ -215,7 +270,6 @@ export default function Usuarios() {
         </button>
       </header>
 
-      {/* Indicadores */}
       <div className={styles["indicadores"]}>
         <article className={styles["indicador"]}>
           <span className={`${styles["indicador__icono"]} ${styles["indicador__icono--azul"]}`}>
@@ -246,7 +300,6 @@ export default function Usuarios() {
         </article>
       </div>
 
-      {/* Tarjeta con buscador + filtros + lista */}
       <article className="tarjeta">
         <div className={styles["barra"]}>
           <div className={styles["buscador"]}>
@@ -288,7 +341,7 @@ export default function Usuarios() {
               <thead>
                 <tr>
                   <th>Usuario</th>
-                  <th>Planteles asignados</th>
+                  <th>Plantel asignado</th>
                   <th>Turno</th>
                   <th>Rol</th>
                   <th>Estado</th>
@@ -405,34 +458,38 @@ export default function Usuarios() {
         }
       >
         <form id="form-usuario" className="formulario" onSubmit={guardar}>
-          <label className="formulario__campo">
+          <div className="formulario__campo">
             <span className="formulario__etiqueta">Nombre completo</span>
-            <input type="text" required placeholder="Nombre del administrador" value={form.nombre} onChange={fijarCampo("nombre")} />
-          </label>
+            <BuscadorUsuarioInline
+              value={form.nombre}
+              required
+              onChange={(texto) =>
+                setForm((prev) => ({ ...prev, nombre: texto, usuarioId: null }))
+              }
+              onSeleccionar={(u) =>
+                setForm((prev) => ({
+                  ...prev,
+                  nombre: u.nombre,
+                  correo: u.correo,
+                  usuarioId: u.id,
+                }))
+              }
+            />
+          </div>
 
           <label className="formulario__campo">
             <span className="formulario__etiqueta">Correo institucional</span>
             <input type="email" required placeholder="usuario@cobach.edu.mx" value={form.correo} onChange={fijarCampo("correo")} />
           </label>
 
-          <div className="formulario__fila">
-            <label className="formulario__campo">
-              <span className="formulario__etiqueta">Turno</span>
-              <select value={form.turno} onChange={fijarCampo("turno")}>
-                {TURNOS.map((t) => (
-                  <option key={t.id} value={t.id}>{t.etiqueta}</option>
-                ))}
-              </select>
-            </label>
-            <label className="formulario__campo">
-              <span className="formulario__etiqueta">Estado</span>
-              <select value={form.estado} onChange={fijarCampo("estado")}>
-                {ESTADOS.map((e) => (
-                  <option key={e.id} value={e.id}>{e.etiqueta}</option>
-                ))}
-              </select>
-            </label>
-          </div>
+          <label className="formulario__campo">
+            <span className="formulario__etiqueta">Turno</span>
+            <select value={form.turno} onChange={fijarCampo("turno")}>
+              {opcionesTurno.map((t) => (
+                <option key={t.id} value={t.id}>{t.etiqueta}</option>
+              ))}
+            </select>
+          </label>
 
           <p className={styles["rol-nota"]}>
             <ShieldCheck size={13} />
@@ -441,12 +498,12 @@ export default function Usuarios() {
 
           <div className="formulario__campo">
             <span className="formulario__etiqueta">
-              Planteles donde puede gestionar fechas
+              Plantel donde puede gestionar fechas
             </span>
             <BuscadorPlantelInline
               excluirIds={plantelesDisponibles.filter(p => form.planteles.includes(p.nombre)).map(p => p.id)}
               onSeleccionar={(p) => { if (!form.planteles.includes(p.nombre)) alternarPlantel(p.nombre); }}
-              placeholder="Buscar y agregar plantel…"
+              placeholder="Buscar plantel…"
             />
             <ul className={styles["planteles-check"]}>
               {plantelesDisponibles.map((p) => (
@@ -466,7 +523,7 @@ export default function Usuarios() {
               )}
             </ul>
             {form.planteles.length === 0 && plantelesDisponibles.length > 0 && (
-              <span className={styles["aviso-campo"]}>Selecciona al menos un plantel.</span>
+              <span className={styles["aviso-campo"]}>Selecciona un plantel.</span>
             )}
           </div>
         </form>
@@ -474,14 +531,3 @@ export default function Usuarios() {
     </section>
   );
 }
-{/*La logica de negocio es la siguiente:
-    El docente solicita el rol de administrador a traves de su formulario ya definido en su panel
-    El superusuario recibe la solicitud y puede aprobarla o rechazarla desde el panel de administración
-    El superusuario unicamente puede asignar un plantel en caso de que el superusuario lo haga manualmente la asinacion pero esto sera a futuro
-    El docente solicita acceso a un plantel y el superusuario lo aprueba o no, este debera mostrarse en el panel de usuarios del superadmin
-    El superusuario podra asignar unicamente un turno, el turno deberas reutilizarlo cuando se obtiene de la entidad Turno de la BD, son 3, Matutino, Vespertino y Mixto, el turno se asigna a nivel de usuario, no por plantel, es decir, un usuario no puede tener asignado matutino para un plantel y vespertino para otro, esto ya esta definido en la mayoria
-    Desaparece del modal 'Modal: crear / editar ' la opcion de Estado ya que si se supone que el superadmin esta dando de alta a un nuevo admin es porque no tendra un estado de pendiente o rechazado y sera automaticamente en Activo
-    Todo ese flujo debera ser reflejado en la BD, es decir por ejemplo si el admin acepta la solicitud entonces x usuario cambiara su rol.
-
-
-  */}

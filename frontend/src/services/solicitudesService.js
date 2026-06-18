@@ -46,6 +46,30 @@ export async function listarSolicitudes(estado) {
     return resp.json();
 }
 
+// Superusuario crea un admin directamente con plantel y turno.
+export async function crearAdmin(datos) {
+    const resp = await fetch(`${BASE_URL}/api/usuarios/crear-admin/`, {
+        method: 'POST',
+        headers: headers(),
+        body: JSON.stringify({ ...datos, id_usuario: idUsuario() }),
+    });
+    const res = await resp.json().catch(() => ({}));
+    if (!resp.ok) throw new Error(res.error || 'No se pudo crear el administrador.');
+    return res;
+}
+
+// Superusuario actualiza el plantel/turno (y opcionalmente nombre) de un admin.
+export async function actualizarAdmin(idAdmin, datos) {
+    const resp = await fetch(`${BASE_URL}/api/usuarios/${idAdmin}/actualizar/`, {
+        method: 'PATCH',
+        headers: headers(),
+        body: JSON.stringify({ ...datos, id_usuario: idUsuario() }),
+    });
+    const res = await resp.json().catch(() => ({}));
+    if (!resp.ok) throw new Error(res.error || 'No se pudo actualizar el administrador.');
+    return res;
+}
+
 // Acepta o rechaza una solicitud. Al aceptar, el backend cambia el rol a admin.
 export async function resolverSolicitud(idSolicitud, accion) {
     const resp = await fetch(`${BASE_URL}/api/solicitudes-admin/${idSolicitud}/resolver/`, {

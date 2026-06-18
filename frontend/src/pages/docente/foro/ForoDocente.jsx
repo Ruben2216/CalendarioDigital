@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, UserPlus } from 'lucide-react';
 import { useSesion } from '../../../hooks/useSesion.js';
 import { useMensajeria } from '../../../hooks/useMensajeria.js';
-import { enviarSolicitudBroadcast } from '../../../services/mensajeriaService.js';
+import { enviarSolicitudBroadcast, obtenerOCrearConversacion } from '../../../services/mensajeriaService.js';
 import ConvLista from '../../../components/mensajeria/ConvLista.jsx';
 import ChatPanel from '../../../components/mensajeria/ChatPanel.jsx';
+import SelectorDocente from '../../../components/mensajeria/SelectorDocente.jsx';
 import ModalSolicitud from './ModalSolicitud.jsx';
 import styles from './ForoDocente.module.css';
 
@@ -24,6 +25,7 @@ export default function ForoDocente() {
   } = useMensajeria(id_usuario);
 
   const [modalAbierto, setModalAbierto] = useState(false);
+  const [selectorAdminAbierto, setSelectorAdminAbierto] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const [errorAdmin, setErrorAdmin] = useState(null);
 
@@ -33,6 +35,17 @@ export default function ForoDocente() {
   const iniciarSolicitud = () => {
     setErrorAdmin(null);
     setModalAbierto(true);
+  };
+
+  const handleSeleccionarAdmin = async (idAdmin) => {
+    setSelectorAdminAbierto(false);
+    try {
+      const { id_conversacion } = await obtenerOCrearConversacion(id_usuario, idAdmin);
+      await recargarConversaciones();
+      seleccionarConversacion(id_conversacion);
+    } catch {
+      setErrorAdmin('No se pudo abrir la conversación con el administrador.');
+    }
   };
 
   const handleEnviarSolicitud = async (datos) => {
@@ -85,15 +98,25 @@ export default function ForoDocente() {
           <span className="etiqueta etiqueta--azul">Mensajería interna</span>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
-          <button
-            type="button"
-            className="boton boton--primario"
-            onClick={iniciarSolicitud}
-            disabled={enviando}
-          >
-            <Plus size={16} />
-            {enviando ? 'Enviando…' : 'Nueva solicitud'}
-          </button>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button
+              type="button"
+              className="boton boton--fantasma"
+              onClick={() => setSelectorAdminAbierto(true)}
+            >
+              <UserPlus size={16} />
+              Contactar administrador
+            </button>
+            <button
+              type="button"
+              className="boton boton--primario"
+              onClick={iniciarSolicitud}
+              disabled={enviando}
+            >
+              <Plus size={16} />
+              {enviando ? 'Enviando…' : 'Nueva solicitud'}
+            </button>
+          </div>
           {errorAdmin && (
             <span style={{ fontSize: 11, color: 'var(--red)' }}>{errorAdmin}</span>
           )}
@@ -123,6 +146,16 @@ export default function ForoDocente() {
         onCerrar={() => setModalAbierto(false)}
         onEnviar={handleEnviarSolicitud}
         plantel={plantel}
+      />
+
+      <SelectorDocente
+        abierto={selectorAdminAbierto}
+        onCerrar={() => setSelectorAdminAbierto(false)}
+        onSeleccionar={handleSeleccionarAdmin}
+        idPlantel={plantel?.id ?? null}
+        esSuperadmin={false}
+        rol="admin"
+        titulo="Contactar administrador"
       />
     </div>
   );

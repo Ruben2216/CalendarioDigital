@@ -17,4 +17,5 @@ export const ESTADOS = [
 export const TURNOS = [
   { id: "matutino", etiqueta: "Matutino", color: "naranja" },
   { id: "vespertino", etiqueta: "Vespertino", color: "marino" },
+  { id: "mixto", etiqueta: "Mixto", color: "gris" },
 ];

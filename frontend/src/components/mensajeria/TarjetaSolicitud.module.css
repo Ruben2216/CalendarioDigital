@@ -6,7 +6,7 @@
 }
 
 .tarjeta--enviado {
-  border-color: rgba(255, 255, 255, 0.25);
+  border-color: var(--borde);
 }
 
 .tarjeta--recibido {
@@ -24,12 +24,7 @@
   letter-spacing: 0.04em;
 }
 
-.tarjeta--enviado .tarjeta__cabecera {
-  background: rgba(255, 255, 255, 0.15);
-  color: #fff;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-}
-
+.tarjeta--enviado .tarjeta__cabecera,
 .tarjeta--recibido .tarjeta__cabecera {
   background: var(--blue-soft);
   color: var(--blue);
@@ -43,10 +38,7 @@
   gap: 5px;
 }
 
-.tarjeta--enviado .tarjeta__cuerpo {
-  background: rgba(255, 255, 255, 0.1);
-}
-
+.tarjeta--enviado .tarjeta__cuerpo,
 .tarjeta--recibido .tarjeta__cuerpo {
   background: #fff;
 }
@@ -64,15 +56,7 @@
   flex-shrink: 0;
 }
 
-.tarjeta--enviado .tarjeta__clave {
-  color: rgba(255, 255, 255, 0.65);
-}
-
 .tarjeta__valor {
   color: var(--text-principal);
   font-weight: 500;
-}
-
-.tarjeta--enviado .tarjeta__valor {
-  color: #fff;
 }

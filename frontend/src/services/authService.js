@@ -32,6 +32,22 @@ export async function obtenerPlanteles() {
     return respuesta.json(); // [{ id, nombre }]
 }
 
+export async function obtenerTurnos() {
+    const respuesta = await fetch(`${BASE_URL}/api/turnos/`, {
+        headers: { ...baseHeaders() },
+    });
+    if (!respuesta.ok) throw new Error('Error al cargar turnos');
+    return respuesta.json(); // [{ id, nombre }]
+}
+
+export async function buscarUsuarios(q) {
+    const url = new URL(`${BASE_URL}/api/usuarios/`);
+    url.searchParams.set('q', q);
+    const respuesta = await fetch(url, { headers: baseHeaders() });
+    if (!respuesta.ok) throw new Error('Error al buscar usuarios');
+    return respuesta.json(); // [{ id, nombre, correo, rol, ... }]
+}
+
 export async function guardarConfiguracionPlanteles(selecciones) {
     const token = localStorage.getItem('authToken');
     const sesion = obtenerSesion();
