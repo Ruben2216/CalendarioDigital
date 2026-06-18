@@ -40,12 +40,15 @@ export default function ModalConfiguracion({ isOpen, onClose, onSave }) {
     });
   }, [plantelesDisponibles, busqueda, selecciones]);
 
+  const LIMITE_PLANTELES = 2;
+
   const togglePlantel = (id) => {
     setSelecciones(prev => {
       const nuevas = { ...prev };
       if (nuevas[id]) {
         delete nuevas[id];
       } else {
+        if (Object.keys(nuevas).length >= LIMITE_PLANTELES) return prev; // límite alcanzado
         nuevas[id] = { matutino: false, vespertino: false, mixto: false };
       }
       return nuevas;
@@ -77,7 +80,7 @@ export default function ModalConfiguracion({ isOpen, onClose, onSave }) {
   };
 
   const totalSeleccionados = Object.keys(selecciones).length;
-  // Es válido si hay selección y cada selección tiene al menos un turno
+  const limiteAlcanzado = totalSeleccionados >= LIMITE_PLANTELES;
   const esValido = totalSeleccionados > 0 && Object.values(selecciones).every(
     turnos => turnos.matutino || turnos.vespertino || turnos.mixto
   );
@@ -89,8 +92,8 @@ export default function ModalConfiguracion({ isOpen, onClose, onSave }) {
       <div className="tarjeta-config modal-config__contenedor">
         <div className="tarjeta-config__cabecera">
           <h2 className="tarjeta-config__titulo">Configuración Inicial</h2>
-          <span className="etiqueta-config etiqueta-config--azul" id="contadorSeleccion">
-            {totalSeleccionados} seleccionado{totalSeleccionados !== 1 ? 's' : ''}
+          <span className={`etiqueta-config ${limiteAlcanzado ? 'etiqueta-config--naranja' : 'etiqueta-config--azul'}`} id="contadorSeleccion">
+            {totalSeleccionados}/{LIMITE_PLANTELES} plantel{totalSeleccionados !== 1 ? 'es' : ''}
           </span>
         </div>
         
@@ -98,11 +101,17 @@ export default function ModalConfiguracion({ isOpen, onClose, onSave }) {
           <div className="modal-config__cuerpo">
             <p className="formulario-config__etiqueta">Busca y selecciona tus planteles y turnos:</p>
             
+            {limiteAlcanzado && (
+              <p style={{ fontSize: 12, color: '#c2410c', background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: 8, padding: '6px 10px', margin: '0 0 8px' }}>
+                Límite de {LIMITE_PLANTELES} planteles alcanzado. Desmarca uno para poder elegir otro.
+              </p>
+            )}
+
             <div className="formulario-config__campo">
-              <input 
-                type="text" 
-                id="buscadorPlanteles" 
-                placeholder="Buscar por número o nombre (ej. 33, Terán)..." 
+              <input
+                type="text"
+                id="buscadorPlanteles"
+                placeholder="Buscar por número o nombre (ej. 33, Terán)..."
                 autoComplete="off"
                 value={busqueda}
                 onChange={e => setBusqueda(e.target.value)}
@@ -117,14 +126,16 @@ export default function ModalConfiguracion({ isOpen, onClose, onSave }) {
               ) : (
                 plantelesFiltrados.map(plantel => {
                   const estaSeleccionado = !!selecciones[plantel.id];
-                  
+                  const deshabilitado = !estaSeleccionado && limiteAlcanzado;
+
                   return (
-                    <div key={plantel.id} className={`plantel-config__item ${estaSeleccionado ? 'plantel-config__item--seleccionado' : ''}`}>
+                    <div key={plantel.id} className={`plantel-config__item ${estaSeleccionado ? 'plantel-config__item--seleccionado' : ''} ${deshabilitado ? 'plantel-config__item--deshabilitado' : ''}`}>
                       <label className="plantel-config__header checkbox-config__grupo">
-                        <input 
-                          type="checkbox" 
+                        <input
+                          type="checkbox"
                           checked={estaSeleccionado}
-                          onChange={() => togglePlantel(plantel.id)} 
+                          disabled={deshabilitado}
+                          onChange={() => togglePlantel(plantel.id)}
                         />
                         <span className="formulario-config__etiqueta">{plantel.nombre}</span>
                       </label>

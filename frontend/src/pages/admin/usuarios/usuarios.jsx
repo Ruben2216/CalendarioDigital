@@ -5,8 +5,10 @@ import {
 } from "lucide-react";
 import Modal from "../../../components/modal/Modal.jsx";
 import { avisoExito, avisoError, confirmarAccion, confirmarEliminacion } from "../../../lib/alertas.js";
-import { PLANTELES, ROL, ESTADOS, TURNOS } from "../../../data/usuarios.js";
+import { ROL, ESTADOS, TURNOS } from "../../../data/usuarios.js";
 import { listarSolicitudes, resolverSolicitud } from "../../../services/solicitudesService.js";
+import { obtenerPlanteles } from "../../../services/authService.js";
+import BuscadorPlantelInline from "../../../components/buscador-plantel/BuscadorPlantelInline.jsx";
 import styles from "./usuarios.module.css";
 
 const ESTADOS_MAP = Object.fromEntries(ESTADOS.map((e) => [e.id, e]));
@@ -52,17 +54,20 @@ export default function Usuarios() {
   const [cargando, setCargando] = useState(true);
   const [busqueda, setBusqueda] = useState("");
   const [filtroEstado, setFiltroEstado] = useState("todos");
+  const [plantelesDisponibles, setPlantelesDisponibles] = useState([]); // { id, nombre }[]
 
   const [modalAbierto, setModalAbierto] = useState(false);
   const [form, setForm] = useState(FORM_VACIO);
   const [editando, setEditando] = useState(null);
 
-  // Carga los usuarios/solicitudes reales del backend.
+  // Carga solicitudes y planteles en paralelo al montar el componente.
   useEffect(() => {
     let vigente = true;
-    listarSolicitudes()
-      .then((lista) => {
-        if (vigente) setUsuarios(lista.map(solicitudAFila));
+    Promise.all([listarSolicitudes(), obtenerPlanteles()])
+      .then(([lista, planteles]) => {
+        if (!vigente) return;
+        setUsuarios(lista.map(solicitudAFila));
+        setPlantelesDisponibles(planteles);
       })
       .catch(() => { /* backend no disponible */ })
       .finally(() => { if (vigente) setCargando(false); });
@@ -430,11 +435,6 @@ export default function Usuarios() {
           </div>
 
           <p className={styles["rol-nota"]}>
-            <Clock size={13} />
-            <span>Solo podrá gestionar fechas en el turno <b>{TURNOS_MAP[form.turno]?.etiqueta}</b>, no en ambos.</span>
-          </p>
-
-          <p className={styles["rol-nota"]}>
             <ShieldCheck size={13} />
             <span>Se registrará como <b>{ROL.etiqueta}</b>. {ROL.descripcion}</span>
           </p>
@@ -443,21 +443,29 @@ export default function Usuarios() {
             <span className="formulario__etiqueta">
               Planteles donde puede gestionar fechas
             </span>
+            <BuscadorPlantelInline
+              excluirIds={plantelesDisponibles.filter(p => form.planteles.includes(p.nombre)).map(p => p.id)}
+              onSeleccionar={(p) => { if (!form.planteles.includes(p.nombre)) alternarPlantel(p.nombre); }}
+              placeholder="Buscar y agregar plantel…"
+            />
             <ul className={styles["planteles-check"]}>
-              {PLANTELES.map((p) => (
-                <li key={p}>
+              {plantelesDisponibles.map((p) => (
+                <li key={p.id}>
                   <label className={styles["check"]}>
                     <input
                       type="checkbox"
-                      checked={form.planteles.includes(p)}
-                      onChange={() => alternarPlantel(p)}
+                      checked={form.planteles.includes(p.nombre)}
+                      onChange={() => alternarPlantel(p.nombre)}
                     />
-                    <span className={styles["check__texto"]}>{p}</span>
+                    <span className={styles["check__texto"]}>{p.nombre}</span>
                   </label>
                 </li>
               ))}
+              {plantelesDisponibles.length === 0 && (
+                <li className={styles["aviso-campo"]}>Cargando planteles…</li>
+              )}
             </ul>
-            {form.planteles.length === 0 && (
+            {form.planteles.length === 0 && plantelesDisponibles.length > 0 && (
               <span className={styles["aviso-campo"]}>Selecciona al menos un plantel.</span>
             )}
           </div>
@@ -466,3 +474,14 @@ export default function Usuarios() {
     </section>
   );
 }
+{/*La logica de negocio es la siguiente:
+    El docente solicita el rol de administrador a traves de su formulario ya definido en su panel
+    El superusuario recibe la solicitud y puede aprobarla o rechazarla desde el panel de administración
+    El superusuario unicamente puede asignar un plantel en caso de que el superusuario lo haga manualmente la asinacion pero esto sera a futuro
+    El docente solicita acceso a un plantel y el superusuario lo aprueba o no, este debera mostrarse en el panel de usuarios del superadmin
+    El superusuario podra asignar unicamente un turno, el turno deberas reutilizarlo cuando se obtiene de la entidad Turno de la BD, son 3, Matutino, Vespertino y Mixto, el turno se asigna a nivel de usuario, no por plantel, es decir, un usuario no puede tener asignado matutino para un plantel y vespertino para otro, esto ya esta definido en la mayoria
+    Desaparece del modal 'Modal: crear / editar ' la opcion de Estado ya que si se supone que el superadmin esta dando de alta a un nuevo admin es porque no tendra un estado de pendiente o rechazado y sera automaticamente en Activo
+    Todo ese flujo debera ser reflejado en la BD, es decir por ejemplo si el admin acepta la solicitud entonces x usuario cambiara su rol.
+
+
+  */}

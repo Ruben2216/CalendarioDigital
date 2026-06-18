@@ -1,20 +1,3 @@
-export const PLANTELES = [
-  "COBACH 01 - Tuxtla Terán",
-  "Plantel 02 - Escuintla",
-  "Plantel 03 - Cacahoatán",
-  "Plantel 04 - Pijijiapan",
-  "Plantel 05 - Huehuetan",
-  "Plantel 06 - Reforma",
-  "Plantel 07 - Palenque",
-  "Plantel 08 - Tapachula",
-  "COBACH 09 -Catazaja",
-  "Plantel 10 Comitán",
-  "Plantel 11 San Cristóbal",
-  "Plantel 12 San José Pathuitz",
-  "Plantel 13 Tuxtla Oriente",
-
-
-];
 
 export const ROL = {
   id: "admin",

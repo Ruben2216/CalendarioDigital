@@ -837,6 +837,15 @@ button.usuario {
   text-align: center;
 }
 
+.menu-perfil__limite-aviso {
+  font-size: 11px;
+  color: inherit;
+  border: 1px solid #0a0a54;
+  border-radius: 7px;
+  padding: 5px 9px;
+  margin: 4px 0 2px;
+}
+
 /* Area de contenido */
 .contenido {
   padding: 18px 18px 24px;

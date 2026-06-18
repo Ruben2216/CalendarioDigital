@@ -643,6 +643,13 @@ class GuardarConfiguracionPlantelesView(APIView):
         selecciones = request.data.get('selecciones')
         if not isinstance(selecciones, dict) or not selecciones:
             return Response({'error': 'Configuración inválida.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        LIMITE_PLANTELES = 2
+        if len(selecciones) > LIMITE_PLANTELES:
+            return Response(
+                {'error': f'No puedes tener más de {LIMITE_PLANTELES} planteles asignados.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
             
         # Limpiar asignaciones anteriores
         UsuarioPlantel.objects.filter(usuario=usuario).delete()

@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import { useLogout } from "../../hooks/useLogout.js";
 import { Home, Calendar, MessageSquare, Menu, Bell, ChevronDown, LogOut, CheckCheck, Trash2, ShieldCheck, Megaphone, Pencil, X, Plus } from "lucide-react";
-import { guardarConfiguracionPlanteles, obtenerPlanteles } from "../../services/authService.js";
+import { guardarConfiguracionPlanteles } from "../../services/authService.js";
+import BuscadorPlantelInline from "../buscador-plantel/BuscadorPlantelInline.jsx";
 import Modal from "../modal/Modal.jsx";
 import SolicitudAdmin from "../solicitud-admin/SolicitudAdmin.jsx";
 import logoCobach from "../../assets/img/logo-cobach.png";
@@ -69,11 +70,8 @@ export default function LayoutDocente() {
   const [editando, setEditando] = useState(false);
   const [editState, setEditState] = useState([]);      // [{ plantel:{id,nombre}, turnos: Set<string> }]
   const [buscando, setBuscando] = useState(false);
-  const [busqueda, setBusqueda] = useState('');
-  const [cargandoOpciones, setCargandoOpciones] = useState(false);
   const [guardando, setGuardando] = useState(false);
   const [errorEdit, setErrorEdit] = useState('');
-  const plantelesCache = useRef(null);                 // 338 planteles, se carga una sola vez
 
   const notifRef = useRef(null);
   const perfilRef = useRef(null);
@@ -85,7 +83,7 @@ export default function LayoutDocente() {
       }
       if (perfilRef.current && !perfilRef.current.contains(e.target)) {
         setPerfilAbierto(false);
-        setEditando(false); setEditState([]); setBuscando(false); setBusqueda(''); setErrorEdit('');
+        setEditando(false); setEditState([]); setBuscando(false); setErrorEdit('');
       }
     };
     document.addEventListener("mousedown", alClicar);
@@ -113,8 +111,7 @@ export default function LayoutDocente() {
   // ---- handlers de edición de planteles ----
 
   const resetEdit = () => {
-    setEditando(false); setEditState([]); setBuscando(false);
-    setBusqueda(''); setErrorEdit('');
+    setEditando(false); setEditState([]); setBuscando(false); setErrorEdit('');
   };
 
   const entrarEdit = () => {
@@ -124,13 +121,6 @@ export default function LayoutDocente() {
     })));
     setErrorEdit('');
     setEditando(true);
-    if (!plantelesCache.current) {
-      setCargandoOpciones(true);
-      obtenerPlanteles()
-        .then(data => { plantelesCache.current = data; })
-        .catch(() => {})
-        .finally(() => setCargandoOpciones(false));
-    }
   };
 
   const quitarPlantel = (id) =>
@@ -142,10 +132,17 @@ export default function LayoutDocente() {
       e.plantel.id !== plantelId ? e : { ...e, turnos: new Set([tn]) }
     ));
 
+  const LIMITE_PLANTELES = 2;
+
   const agregarPlantel = (p) => {
     if (editState.some(e => e.plantel.id === p.id)) return;
+    if (editState.length >= LIMITE_PLANTELES) {
+      setErrorEdit(`Límite de ${LIMITE_PLANTELES} planteles. Elimina uno antes de agregar otro.`);
+      setBuscando(false);
+      return;
+    }
     setEditState(prev => [...prev, { plantel: { id: p.id, nombre: p.nombre }, turnos: new Set(['Matutino']) }]);
-    setBusqueda(''); setBuscando(false);
+    setBuscando(false);
   };
 
   const guardarCambios = async () => {
@@ -458,43 +455,20 @@ export default function LayoutDocente() {
                           </div>
                         ))}
 
-                        {/* caso 2: agregar plantel */}
-                        {!buscando
-                          ? (
+                        {editState.length >= LIMITE_PLANTELES ? (
+                          <p className={styles["menu-perfil__limite-aviso"]}>
+                            Máximo {LIMITE_PLANTELES} planteles. Elimina uno para agregar otro.
+                          </p>
+                        ) : !buscando ? (
                             <button type="button" className={styles["menu-perfil__agregar-btn"]} onClick={() => setBuscando(true)}>
                               <Plus size={12} />Agregar plantel
                             </button>
                           ) : (
                             <div className={styles["menu-perfil__buscar-wrap"]}>
-                              <input
-                                autoFocus
-                                type="text"
-                                className={styles["menu-perfil__buscar-input"]}
-                                placeholder="Buscar por nombre o número…"
-                                value={busqueda}
-                                onChange={e => setBusqueda(e.target.value)}
+                              <BuscadorPlantelInline
+                                excluirIds={editState.map(e => e.plantel.id)}
+                                onSeleccionar={agregarPlantel}
                               />
-                              {busqueda.length >= 1 && (
-                                <div className={styles["menu-perfil__resultados"]}>
-                                  {cargandoOpciones
-                                    ? <div className={styles["menu-perfil__resultado-vacio"]}>Cargando…</div>
-                                    : (() => {
-                                        const q = busqueda.toLowerCase();
-                                        const lista = (plantelesCache.current || [])
-                                          .filter(p => !editState.some(e => e.plantel.id === p.id) &&
-                                            (p.nombre.toLowerCase().includes(q) || String(p.id).includes(q)))
-                                          .slice(0, 6);
-                                        return lista.length
-                                          ? lista.map(p => (
-                                            <button key={p.id} type="button" className={styles["menu-perfil__resultado-item"]} onClick={() => agregarPlantel(p)}>
-                                              {p.nombre}
-                                            </button>
-                                          ))
-                                          : <div className={styles["menu-perfil__resultado-vacio"]}>Sin resultados</div>;
-                                      })()
-                                  }
-                                </div>
-                              )}
                             </div>
                           )
                         }
