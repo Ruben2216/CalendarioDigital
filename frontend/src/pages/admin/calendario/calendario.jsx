@@ -125,6 +125,9 @@ export default function Calendario({ soloLectura = false, publico = false }) {
   
   const [filtroPlantel, setFiltroPlantel] = useState("");
   const [filtroTurno, setFiltroTurno] = useState("");
+  // Buscador del superusuario = solo calendario general: nombre = generales + ese plantel.
+  // (no aparecen todos los eventos) para no saturar el calendario
+  const [vistaPlantel, setVistaPlantel] = useState("");
   const [filtroFechaDesde, setFiltroFechaDesde] = useState("");
   const [filtroFechaHasta, setFiltroFechaHasta] = useState("");
   const [pickerAbierto, setPickerAbierto] = useState(false);            // selector de mes
@@ -164,11 +167,11 @@ export default function Calendario({ soloLectura = false, publico = false }) {
   const cargarEventos = useCallback(async (idCal) => {
     if (!idCal) return;
     try {
-      setEventos(await listarEventos(idCal, { publico }));
+      setEventos(await listarEventos(idCal, { publico, plantelFiltro: vistaPlantel }));
     } catch (e) {
       avisoError(e.message || "No se pudieron cargar los eventos.");
     }
-  }, [publico]);
+  }, [publico, vistaPlantel]);
 
   useEffect(() => {
     let activo = true;
@@ -581,6 +584,19 @@ export default function Calendario({ soloLectura = false, publico = false }) {
             <AvisoBadge texto="lectura" />
           )}
         </div>
+
+        {/* Buscador del superusuario: por defecto tiene el "Calendario general": al elegir un
+            plantel se suman sus eventos a los generales */}
+        {esSuperusuario && (
+          <div className={styles["calendario__vista-plantel"]}>
+            <span>Mostrar</span>
+            <SelectorPlantel
+              value={vistaPlantel}
+              onChange={setVistaPlantel}
+              textoTodos="Calendario general"
+            />
+          </div>
+        )}
       </header>
 
       {/* CUERPO: columna principal (toolbar + calendario + panel) y aside derecho */}
@@ -967,6 +983,8 @@ export default function Calendario({ soloLectura = false, publico = false }) {
                 </select>
               </label>
 
+              {/* El superusuario filtra por plantel desde el buscador */}
+              {!esSuperusuario && (
               <label className="formulario__campo">
                 <span className="formulario__etiqueta">Plantel</span>
                 {plantelesPermitidos.length > 0 ? (
@@ -990,6 +1008,7 @@ export default function Calendario({ soloLectura = false, publico = false }) {
                   />
                 )}
               </label>
+              )}
 
               <label className="formulario__campo">
                 <span className="formulario__etiqueta">Turno</span>

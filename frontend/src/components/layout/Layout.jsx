@@ -6,7 +6,8 @@ import Modal from "../modal/Modal.jsx";
 import logoCobach from "../../assets/img/logo-cobach.png";
 import { NOTIFICACIONES } from "../../data/avisos.js";
 import { ZONA } from "../../lib/fechas.js";
-import { useSesion } from "../../hooks/useSesion.js";
+import { leerSesion } from "../../hooks/useSesion.js";
+import { refrescarSesion } from "../../services/authService.js";
 import { useMensajeriaCtx } from "../../context/MensajeriaContext.jsx";
 import styles from "./Layout.module.css";
 
@@ -27,8 +28,13 @@ const NAV = [
 
 export default function Layout() {
   const cerrarSesion = useLogout();
-  const { nombre, iniciales, rol, plantel, turno, tipoEmpleado, adscripcion } = useSesion();
+  const [sesion, setSesion] = useState(leerSesion);
+  const { nombre, iniciales, rol, plantel, turno, tipoEmpleado, adscripcion } = sesion;
   const { totalSinLeer } = useMensajeriaCtx();
+
+  useEffect(() => {
+    refrescarSesion().then(() => setSesion(leerSesion()));
+  }, []);
 
   const [esMovil, setEsMovil] = useState(
     () => window.matchMedia("(max-width: 920px)").matches
@@ -270,7 +276,6 @@ export default function Layout() {
                 <small>{tipoEmpleado === 'Administrativo' ? 'Departamento' : 'Plantel'}</small>
                 <strong>{adscripcion || (plantel?.nombre ?? (rol === 'superusuario' ? 'Todos los planteles' : 'Sin plantel'))}</strong>
               </div>
-              <ChevronDown size={14} />
             </div>
 
             <div className={styles["menu-perfil"]} ref={perfilRef}>

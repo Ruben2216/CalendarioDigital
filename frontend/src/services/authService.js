@@ -49,7 +49,6 @@ export async function buscarUsuarios(q) {
 }
 
 export async function guardarConfiguracionPlanteles(selecciones) {
-    const token = localStorage.getItem('authToken');
     const sesion = obtenerSesion();
     const respuesta = await fetch(`${BASE_URL}/api/usuarios/asignar-planteles/`, {
         method: 'POST',
@@ -70,6 +69,30 @@ export async function guardarConfiguracionPlanteles(selecciones) {
     }
 
     return { exito: true, datos };
+}
+
+export async function refrescarSesion() {
+    const sesion = obtenerSesion();
+    if (!sesion?.id_usuario || sesion.rol === 'alumno' || sesion.rol === 'tutor') {
+        return sesion;
+    }
+    try {
+        const url = new URL(`${BASE_URL}/api/auth/sesion/`);
+        url.searchParams.set('id_usuario', sesion.id_usuario);
+        const respuesta = await fetch(url, { headers: baseHeaders() });
+        if (!respuesta.ok) return sesion;
+        const datos = await respuesta.json();
+        const actualizada = {
+            ...sesion,
+            rol: datos.rol,
+            nombre: datos.nombre || sesion.nombre,
+            planteles: datos.planteles,
+        };
+        localStorage.setItem('sesion', JSON.stringify(actualizada));
+        return actualizada;
+    } catch {
+        return sesion;
+    }
 }
 
 export function guardarSesion(token, sesion) {

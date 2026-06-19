@@ -7,6 +7,7 @@ import logoCobach from "../../assets/img/logo-cobach.png";
 import { NOTIFICACIONES } from "../../data/avisos.js";
 import { ZONA } from "../../lib/fechas.js";
 import { useSesion } from "../../hooks/useSesion.js";
+import { useAnunciosNoLeidos } from "../../hooks/useAnunciosNoLeidos.js";
 import styles from "./Layout.module.css";
 
 const ROL_ETIQUETA = {
@@ -20,7 +21,7 @@ const ROL_ETIQUETA = {
 const NAV_ALUMNO = [
   { etiqueta: 'Inicio', icono: Home, ruta: '/alumno/inicio' },
   { etiqueta: 'Calendario', icono: Calendar, ruta: '/alumno/calendario' },
-  { etiqueta: 'Anuncios', icono: Megaphone, ruta: '/alumno/anuncios' },
+  { etiqueta: 'Anuncios', icono: Megaphone, ruta: '/alumno/anuncios', badgeAnuncios: true },
 ];
 
 const NAV_TUTOR = [
@@ -30,6 +31,7 @@ const NAV_TUTOR = [
 export default function LayoutAlumno() {
   const cerrarSesion = useLogout();
   const { nombre, iniciales, rol, plantel, turno } = useSesion();
+  const anunciosNoLeidos = useAnunciosNoLeidos();
   const navegacion = rol === 'tutor' ? NAV_TUTOR : NAV_ALUMNO;
 
   const [esMovil, setEsMovil] = useState(
@@ -119,7 +121,7 @@ export default function LayoutAlumno() {
         </div>
 
         <nav className={styles["navegacion"]} aria-label="Navegación principal">
-          {navegacion.map(({ etiqueta, icono: Icono, ruta }) => (
+          {navegacion.map(({ etiqueta, icono: Icono, ruta, badgeAnuncios }) => (
             <NavLink
               key={ruta}
               to={ruta}
@@ -132,6 +134,9 @@ export default function LayoutAlumno() {
             >
               <Icono size={18} />
               {etiqueta}
+              {badgeAnuncios && anunciosNoLeidos > 0 && (
+                <span className={styles["navegacion__badge"]}>{anunciosNoLeidos}</span>
+              )}
             </NavLink>
           ))}
         </nav>

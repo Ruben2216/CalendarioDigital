@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSesion } from '../../../hooks/useSesion.js';
 import { useNavigate } from "react-router-dom";
 import {
@@ -13,7 +13,7 @@ import { NOTIFICACIONES } from "../../../data/avisos.js";
 import ListaAnuncios from "../../../components/anuncios/ListaAnuncios.jsx";
 import TarjetaColapsable from "../../../components/tarjeta-colapsable/TarjetaColapsable.jsx";
 import { useCalendarioEventos } from "../../../hooks/useCalendarioEventos.js";
-import { leerAnuncios } from "../../../lib/anunciosStore.js";
+import { listarAnuncios } from "../../../services/anunciosService.js";
 import styles from "./dashboard.module.css";
 
 const DIAS_MINI = ["D", "L", "M", "M", "J", "V", "S"];
@@ -45,7 +45,14 @@ export default function Dashboard() {
     eventos, tipos, calendarios, calendarioActivo, setCalendarioActivo,
     colorTipo, etiquetaTipo,
   } = useCalendarioEventos();
-  const anuncios = useMemo(() => leerAnuncios(), []);
+  const [anuncios, setAnuncios] = useState([]);
+  useEffect(() => {
+    let vigente = true;
+    listarAnuncios()
+      .then((lista) => { if (vigente) setAnuncios(lista); })
+      .catch(() => { if (vigente) setAnuncios([]); });
+    return () => { vigente = false; };
+  }, []);
   const [mesVisible, setMesVisible] = useState(
     () => new Date(hoy.getFullYear(), hoy.getMonth(), 1)
   );

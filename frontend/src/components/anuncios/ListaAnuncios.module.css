@@ -84,6 +84,24 @@
   flex: none;
 }
 
+.anuncio__punto {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--blue);
+  flex: none;
+  margin-top: 9px;
+}
+
+.anuncio__titulo--resumen {
+  font-weight: 500;
+}
+
+.anuncio--no-leido .anuncio__titulo--resumen {
+  font-weight: 800;
+  color: #0b1324;
+}
+
 .anuncio__fecha {
   margin-left: auto;
   color: #8a97ab;

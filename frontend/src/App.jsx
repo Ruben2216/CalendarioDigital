@@ -75,7 +75,7 @@ function App() {
           <Route element={<LayoutAlumno />}>
             <Route path="/alumno/inicio"     element={<Suspense fallback={<Cargando />}><AlumnoInicio /></Suspense>} />
             <Route path="/alumno/calendario" element={<Suspense fallback={<Cargando />}><Alumno /></Suspense>} />
-            <Route path="/alumno/anuncios"   element={<Suspense fallback={<Cargando />}><AnunciosVista audiencia="alumnos" /></Suspense>} />
+            <Route path="/alumno/anuncios"   element={<Suspense fallback={<Cargando />}><AnunciosVista /></Suspense>} />
           </Route>
         </Route>
 
@@ -91,7 +91,7 @@ function App() {
           <Route element={<MensajeriaProvider><LayoutDocente /></MensajeriaProvider>}>
             <Route path="/docente/inicio"     element={<Suspense fallback={<Cargando />}><DocenteInicio /></Suspense>} />
             <Route path="/docente/calendario" element={<Suspense fallback={<Cargando />}><Calendario soloLectura /></Suspense>} />
-            <Route path="/docente/anuncios"   element={<Suspense fallback={<Cargando />}><AnunciosVista audiencia="docentes" /></Suspense>} />
+            <Route path="/docente/anuncios"   element={<Suspense fallback={<Cargando />}><AnunciosVista /></Suspense>} />
             <Route path="/docente/foro"       element={<Suspense fallback={<Cargando />}><ForoDocente /></Suspense>} />
           </Route>
         </Route>

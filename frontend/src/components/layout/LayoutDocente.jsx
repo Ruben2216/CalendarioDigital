@@ -10,6 +10,7 @@ import logoCobach from "../../assets/img/logo-cobach.png";
 import { NOTIFICACIONES } from "../../data/avisos.js";
 import { ZONA } from "../../lib/fechas.js";
 import { useSesion } from "../../hooks/useSesion.js";
+import { useAnunciosNoLeidos } from "../../hooks/useAnunciosNoLeidos.js";
 import { useMensajeriaCtx } from "../../context/MensajeriaContext.jsx";
 import styles from "./Layout.module.css";
 
@@ -25,13 +26,14 @@ const ROL_ETIQUETA = {
 const NAV_DOCENTE_BASE = [
   { etiqueta: 'Inicio',     icono: Home,          ruta: '/docente/inicio' },
   { etiqueta: 'Calendario', icono: Calendar,      ruta: '/docente/calendario' },
-  { etiqueta: 'Anuncios',   icono: Megaphone,     ruta: '/docente/anuncios' },
+  { etiqueta: 'Anuncios',   icono: Megaphone,     ruta: '/docente/anuncios', badgeAnuncios: true },
   { etiqueta: 'Foro',       icono: MessageSquare, ruta: '/docente/foro', badgeDinamico: true },
 ];
 
 export default function LayoutDocente() {
   const cerrarSesion = useLogout();
   const { nombre, iniciales, rol, planteles = [], tipoEmpleado, adscripcion } = useSesion();
+  const anunciosNoLeidos = useAnunciosNoLeidos();
 
   // Agrupar por plantel (un docente puede tener Matutino+Vespertino en el mismo plantel)
   const plantelesAgrupados = Object.values(
@@ -208,8 +210,8 @@ export default function LayoutDocente() {
         </div>
 
         <nav className={styles["navegacion"]} aria-label="Navegación principal">
-          {NAV_DOCENTE_BASE.map(({ etiqueta, icono: Icono, ruta, badgeDinamico }) => {
-            const badge = badgeDinamico ? totalSinLeer : 0;
+          {NAV_DOCENTE_BASE.map(({ etiqueta, icono: Icono, ruta, badgeDinamico, badgeAnuncios }) => {
+            const badge = badgeDinamico ? totalSinLeer : badgeAnuncios ? anunciosNoLeidos : 0;
             return (
             <NavLink
               key={ruta}

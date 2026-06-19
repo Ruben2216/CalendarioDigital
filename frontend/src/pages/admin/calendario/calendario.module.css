@@ -32,6 +32,20 @@
   letter-spacing: 0.04em;
 }
 
+.calendario__vista-plantel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 240px;
+}
+
+.calendario__vista-plantel > span {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
 .calendario__titulo-selector {
   display: block;
   max-width: 100%;

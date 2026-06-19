@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Calendar, Clock, MapPin, CalendarDays, CalendarCheck, ChevronRight, Hourglass, Megaphone,
@@ -6,7 +6,7 @@ import {
 import {
   ZONA, ABREV_MES, ahoraMexico, aClaveFecha, desdeClaveFecha, formatoHora,
 } from "../../lib/fechas.js";
-import { anunciosPara } from "../../lib/anunciosStore.js";
+import { listarAnuncios } from "../../services/anunciosService.js";
 import { useSesion } from "../../hooks/useSesion.js";
 import { useCalendarioEventos } from "../../hooks/useCalendarioEventos.js";
 import MiniCalendario from "../mini-calendario/MiniCalendario.jsx";
@@ -33,7 +33,7 @@ function cuenta(dias) {
 }
 
 // Resumen de inicio (solo lectura) compartido por alumno y docente.
-export default function InicioResumen({ rutaCalendario, rutaAnuncios, audiencia }) {
+export default function InicioResumen({ rutaCalendario, rutaAnuncios }) {
   const navigate = useNavigate();
   const { nombre } = useSesion();
   const hoy = useMemo(() => ahoraMexico(), []);
@@ -42,7 +42,15 @@ export default function InicioResumen({ rutaCalendario, rutaAnuncios, audiencia 
     eventos, tipos, calendarios, calendarioActivo, setCalendarioActivo,
     colorTipo, etiquetaTipo,
   } = useCalendarioEventos();
-  const anuncios = useMemo(() => anunciosPara(audiencia), [audiencia]);
+
+  const [anuncios, setAnuncios] = useState([]);
+  useEffect(() => {
+    let vigente = true;
+    listarAnuncios()
+      .then((lista) => { if (vigente) setAnuncios(lista); })
+      .catch(() => { if (vigente) setAnuncios([]); });
+    return () => { vigente = false; };
+  }, []);
 
   const saludo = saludoPorHora(hoy.getHours());
 
@@ -192,7 +200,7 @@ export default function InicioResumen({ rutaCalendario, rutaAnuncios, audiencia 
               )
             }
           >
-            <ListaAnuncios anuncios={anuncios} />
+            <ListaAnuncios anuncios={anuncios} soloTitulo />
           </TarjetaColapsable>
         </div>
 

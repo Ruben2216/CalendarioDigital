@@ -22,7 +22,7 @@ from datetime import date as _date, time as _time
 
 from .models import (
     Usuario, Rol, Conversacion, Mensaje, LecturaMensaje, SolicitudAdmin,
-    UsuarioPlantel, Plantel, Turno, Calendario, TipoEvento, Evento,
+    UsuarioPlantel, Plantel, Turno, Calendario, TipoEvento, Evento, Anuncio,
 )
 
 ROLES_EMPLEADO = {'superusuario', 'admin', 'docente'}
@@ -649,6 +649,27 @@ class LogoutView(APIView):
         return Response(status=status.HTTP_200_OK)
 
 
+class SesionActualView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        usuario = _usuario_sesion(request)
+        if not usuario:
+            return Response({'error': 'No autenticado.'}, status=status.HTTP_401_UNAUTHORIZED)
+        return Response({
+            'id_usuario': usuario.id_usuario,
+            'rol': usuario.rol.nombre_rol,
+            'nombre': usuario.nombre or '',
+            'planteles': [
+                {
+                    'plantel': {'id': up.plantel.id_plantel, 'nombre': up.plantel.nombre},
+                    'turno': {'id': up.turno.id_turno, 'nombre': up.turno.nombre_turno},
+                }
+                for up in usuario.planteles_asignados.all()
+            ],
+        })
+
+
 class SolicitudBroadcastView(APIView):
     permission_classes = [permissions.AllowAny]
 
@@ -902,7 +923,13 @@ class EventoListView(APIView):
         if usuario:
             rol = usuario.rol.nombre_rol
             if rol == 'superusuario':
-                pass
+                # Por defecto solo eventos generales (evita saturar el calendario)
+                # Con plantel_filtro: generales + los de ese plantel en específico
+                nombre_filtro = request.query_params.get('plantel_filtro')
+                if nombre_filtro:
+                    qs = qs.filter(plantel_para_todos | Q(plantel__nombre=nombre_filtro))
+                else:
+                    qs = qs.filter(plantel_para_todos)
             elif rol == 'admin':
                 planteles = list(usuario.planteles_asignados.values_list('plantel_id', flat=True))
                 qs = qs.filter(plantel_para_todos | Q(plantel_id__in=planteles))
@@ -1034,6 +1061,146 @@ class EventoDetailView(APIView):
         if not evento.puede_editar(usuario):
             return Response({'error': 'No autorizado.'}, status=status.HTTP_403_FORBIDDEN)
         evento.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+AUDIENCIAS_ANUNCIO = {'todos', 'admin', 'docente', 'alumno'}
+
+def _anuncio_dict(an, usuario):
+    return {
+        'id': an.id_anuncio,
+        'titulo': an.titulo,
+        'descripcion': an.descripcion,
+        'color': an.color,
+        'audiencia': an.audiencia,
+        'plantel': an.plantel.nombre if an.plantel else None,
+        'fecha': an.fecha_creacion.date().isoformat(),
+        'puede_editar': an.puede_editar(usuario),
+    }
+
+class AnuncioListView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        qs = Anuncio.objects.select_related('plantel', 'creado_por__rol')
+        usuario = _usuario_sesion(request)
+        plantel_para_todos = Q(plantel__isnull=True)
+
+        if usuario:
+            rol = usuario.rol.nombre_rol
+            if rol == 'superusuario':
+                # Lo mismo que calendario por defecto solo anuncios generales; con plantel_filtro añade los
+                # de ese plantel
+                nombre_filtro = request.query_params.get('plantel_filtro')
+                if nombre_filtro:
+                    qs = qs.filter(plantel_para_todos | Q(plantel__nombre=nombre_filtro))
+                else:
+                    qs = qs.filter(plantel_para_todos)
+            elif rol == 'admin':
+                planteles = list(usuario.planteles_asignados.values_list('plantel_id', flat=True))
+                qs = qs.filter(plantel_para_todos | Q(plantel_id__in=planteles))
+            else:
+                planteles = list(usuario.planteles_asignados.values_list('plantel_id', flat=True))
+                qs = qs.filter(
+                    (plantel_para_todos | Q(plantel_id__in=planteles))
+                    & Q(audiencia__in=[Anuncio.AUDIENCIA_TODOS, rol])
+                )
+        else:
+            rol = request.query_params.get('rol')
+            plantel_nombre = request.query_params.get('plantel')
+            if rol == 'alumno' and plantel_nombre:
+                ids = _planteles_equivalentes(plantel_nombre)
+                qs = qs.filter(
+                    (plantel_para_todos | Q(plantel_id__in=ids))
+                    & Q(audiencia__in=[Anuncio.AUDIENCIA_TODOS, 'alumno'])
+                )
+            else:
+                qs = qs.filter(plantel_para_todos & Q(audiencia=Anuncio.AUDIENCIA_TODOS))
+
+        return Response([_anuncio_dict(a, usuario) for a in qs])
+
+    def post(self, request):
+        usuario = _usuario_sesion(request)
+        if not usuario:
+            return Response({'error': 'No autenticado.'}, status=status.HTTP_401_UNAUTHORIZED)
+
+        rol = usuario.rol.nombre_rol
+        if rol not in ('admin', 'superusuario'):
+            return Response({'error': 'No autorizado para crear anuncios.'}, status=status.HTTP_403_FORBIDDEN)
+
+        datos, error = self._leer_anuncio(request, usuario, rol)
+        if error:
+            return Response({'error': error}, status=status.HTTP_400_BAD_REQUEST)
+
+        anuncio = Anuncio.objects.create(creado_por=usuario, **datos)
+        anuncio = Anuncio.objects.select_related('plantel', 'creado_por__rol').get(pk=anuncio.pk)
+        return Response(_anuncio_dict(anuncio, usuario), status=status.HTTP_201_CREATED)
+
+    @staticmethod
+    def _leer_anuncio(request, usuario, rol):
+        d = request.data
+        titulo = (d.get('titulo') or '').strip()
+        descripcion = (d.get('descripcion') or '').strip()
+        if not titulo or not descripcion:
+            return None, 'Título y descripción son obligatorios.'
+
+        audiencia = (d.get('audiencia') or Anuncio.AUDIENCIA_TODOS).strip()
+        if audiencia not in AUDIENCIAS_ANUNCIO:
+            return None, 'Audiencia inválida.'
+
+        color = (d.get('color') or 'azul').strip()
+        plantel = Plantel.objects.filter(nombre=d.get('plantel')).first() if d.get('plantel') else None
+
+        if rol == 'admin':
+            # El admin no crea anuncios generales: se fuerza a su plantel asignado
+            asignaciones = list(usuario.planteles_asignados.select_related('plantel').all())
+            if not plantel:
+                return None, 'Debes seleccionar tu plantel.'
+            if not any(a.plantel_id == plantel.id_plantel for a in asignaciones):
+                return None, 'Solo puedes publicar anuncios en tu plantel asignado.'
+
+        return {
+            'titulo': titulo,
+            'descripcion': descripcion,
+            'audiencia': audiencia,
+            'color': color,
+            'plantel': plantel,
+        }, None
+
+class AnuncioDetailView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def _obtener(self, request, id_anuncio):
+        usuario = _usuario_sesion(request)
+        try:
+            anuncio = Anuncio.objects.select_related('plantel', 'creado_por__rol').get(pk=id_anuncio)
+        except Anuncio.DoesNotExist:
+            return usuario, None
+        return usuario, anuncio
+
+    def put(self, request, id_anuncio):
+        usuario, anuncio = self._obtener(request, id_anuncio)
+        if not anuncio:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        if not anuncio.puede_editar(usuario):
+            return Response({'error': 'No autorizado.'}, status=status.HTTP_403_FORBIDDEN)
+
+        datos, error = AnuncioListView._leer_anuncio(request, usuario, usuario.rol.nombre_rol)
+        if error:
+            return Response({'error': error}, status=status.HTTP_400_BAD_REQUEST)
+
+        for campo, valor in datos.items():
+            setattr(anuncio, campo, valor)
+        anuncio.save()
+        anuncio = Anuncio.objects.select_related('plantel', 'creado_por__rol').get(pk=anuncio.pk)
+        return Response(_anuncio_dict(anuncio, usuario))
+
+    def delete(self, request, id_anuncio):
+        usuario, anuncio = self._obtener(request, id_anuncio)
+        if not anuncio:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        if not anuncio.puede_editar(usuario):
+            return Response({'error': 'No autorizado.'}, status=status.HTTP_403_FORBIDDEN)
+        anuncio.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 

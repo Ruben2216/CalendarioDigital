@@ -5,7 +5,7 @@ import { AUDIENCIAS, COLORES_ANUNCIO } from "../../data/anuncios.js";
 import SelectorPlantel from "../selector-plantel/SelectorPlantel.jsx";
 import styles from "./ModalAnuncio.module.css";
 
-export default function ModalAnuncio({ anuncio, onCerrar, onGuardar }) {
+export default function ModalAnuncio({ anuncio, esAdmin = false, plantelesAdmin = [], onCerrar, onGuardar }) {
   const [form, setForm] = useState(() =>
     anuncio
       ? {
@@ -15,7 +15,13 @@ export default function ModalAnuncio({ anuncio, onCerrar, onGuardar }) {
           plantel: anuncio.plantel || "",
           color: anuncio.color,
         }
-      : { titulo: "", descripcion: "", audiencia: "todos", plantel: "", color: "azul" }
+      : {
+          titulo: "",
+          descripcion: "",
+          audiencia: "todos",
+          plantel: esAdmin ? plantelesAdmin[0] || "" : "",
+          color: "azul",
+        }
   );
 
   const fijar = (campo) => (e) => setForm((prev) => ({ ...prev, [campo]: e.target.value }));
@@ -89,11 +95,23 @@ export default function ModalAnuncio({ anuncio, onCerrar, onGuardar }) {
 
         <label className="formulario__campo">
           <span className="formulario__etiqueta">Alcance</span>
-          <SelectorPlantel
-            value={form.plantel}
-            onChange={(v) => setForm((prev) => ({ ...prev, plantel: v }))}
-            textoTodos="General (todos los planteles)"
-          />
+          {esAdmin ? (
+            plantelesAdmin.length > 1 ? (
+              <select value={form.plantel} onChange={fijar("plantel")} required>
+                {plantelesAdmin.map((nombre) => (
+                  <option key={nombre} value={nombre}>{nombre}</option>
+                ))}
+              </select>
+            ) : (
+              <input type="text" value={form.plantel} disabled readOnly />
+            )
+          ) : (
+            <SelectorPlantel
+              value={form.plantel}
+              onChange={(v) => setForm((prev) => ({ ...prev, plantel: v }))}
+              textoTodos="General (todos los planteles)"
+            />
+          )}
         </label>
 
         <div className={styles["previa"]}>

@@ -1,21 +1,53 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Plus } from "lucide-react";
 import ListaAnuncios from "../../../components/anuncios/ListaAnuncios.jsx";
 import ModalAnuncio from "../../../components/anuncios/ModalAnuncio.jsx";
 import { AUDIENCIAS } from "../../../data/anuncios.js";
-import { leerAnuncios, crearAnuncio, actualizarAnuncio, eliminarAnuncio } from "../../../lib/anunciosStore.js";
-import { avisoExito, confirmarAccion } from "../../../lib/alertas.js";
+import {
+  listarAnuncios,
+  crearAnuncio,
+  actualizarAnuncio,
+  eliminarAnuncio,
+} from "../../../services/anunciosService.js";
+import { obtenerSesion } from "../../../services/authService.js";
+import SelectorPlantel from "../../../components/selector-plantel/SelectorPlantel.jsx";
+import { avisoExito, avisoError, confirmarAccion } from "../../../lib/alertas.js";
 import styles from "./anuncios.module.css";
 
 export default function Anuncios() {
-  const [anuncios, setAnuncios] = useState(() => leerAnuncios());
+  const sesion = obtenerSesion();
+  const esAdmin = sesion?.rol === "admin";
+  const esSuperusuario = sesion?.rol === "superusuario";
+  // Planteles asignados al admin (un admin no crea anuncios generales).
+  const plantelesAdmin = (sesion?.planteles || [])
+    .map((p) => p.plantel?.nombre)
+    .filter(Boolean);
+
+  const [anuncios, setAnuncios] = useState([]);
+  const [cargando, setCargando] = useState(true);
   const [filtro, setFiltro] = useState("todas");
   const [modalAbierto, setModalAbierto] = useState(false);
   const [editando, setEditando] = useState(null);
+  // Buscador del superusuario
+  const [vistaPlantel, setVistaPlantel] = useState("");
 
-  const filtrados = filtro === "todas"
-    ? anuncios
-    : anuncios.filter((a) => a.audiencia === filtro);
+  const recargar = () =>
+    listarAnuncios({ plantelFiltro: vistaPlantel })
+      .then(setAnuncios)
+      .catch((e) => avisoError(e.message))
+      .finally(() => setCargando(false));
+
+  useEffect(() => {
+    let vigente = true;
+    listarAnuncios({ plantelFiltro: vistaPlantel })
+      .then((lista) => { if (vigente) setAnuncios(lista); })
+      .catch((e) => { if (vigente) avisoError(e.message); })
+      .finally(() => { if (vigente) setCargando(false); });
+    return () => { vigente = false; };
+  }, [vistaPlantel]);
+
+  const filtrados =
+    filtro === "todas" ? anuncios : anuncios.filter((a) => a.audiencia === filtro);
 
   const abrirNuevo = () => {
     setEditando(null);
@@ -27,15 +59,20 @@ export default function Anuncios() {
     setModalAbierto(true);
   };
 
-  const guardar = (datos) => {
-    if (editando) {
-      setAnuncios(actualizarAnuncio(editando.id, datos));
-      avisoExito("Anuncio actualizado");
-    } else {
-      setAnuncios(crearAnuncio(datos));
-      avisoExito("Anuncio publicado");
+  const guardar = async (datos) => {
+    try {
+      if (editando) {
+        await actualizarAnuncio(editando.id, datos);
+        avisoExito("Anuncio actualizado");
+      } else {
+        await crearAnuncio(datos);
+        avisoExito("Anuncio publicado");
+      }
+      setModalAbierto(false);
+      recargar();
+    } catch (e) {
+      avisoError(e.message);
     }
-    setModalAbierto(false);
   };
 
   const eliminar = async (anuncio) => {
@@ -46,8 +83,13 @@ export default function Anuncios() {
       peligro: true,
     });
     if (!isConfirmed) return;
-    setAnuncios(eliminarAnuncio(anuncio.id));
-    avisoExito("Anuncio eliminado");
+    try {
+      await eliminarAnuncio(anuncio.id);
+      avisoExito("Anuncio eliminado");
+      recargar();
+    } catch (e) {
+      avisoError(e.message);
+    }
   };
 
   return (
@@ -56,7 +98,9 @@ export default function Anuncios() {
         <div>
           <h2 className={styles["encabezado__titulo"]}>Anuncios</h2>
           <p className={styles["encabezado__subtitulo"]}>
-            Publica comunicados para administrativos, docentes, alumnos o toda la comunidad.
+            {esAdmin
+              ? "Publica comunicados para tu plantel dirigidos a administrativos, docentes o alumnos."
+              : "Publica comunicados para administrativos, docentes, alumnos o toda la comunidad."}
           </p>
         </div>
         <button type="button" className="boton boton--primario" onClick={abrirNuevo}>
@@ -86,22 +130,41 @@ export default function Anuncios() {
               </button>
             ))}
           </div>
-          <span className={styles["conteo"]}>
-            {filtrados.length} {filtrados.length === 1 ? "anuncio" : "anuncios"}
-          </span>
+          <div className={styles["barra__derecha"]}>
+            {/* Buscador del superusuario */}
+            {esSuperusuario && (
+              <div className={styles["vista-plantel"]}>
+                <span>Mostrar</span>
+                <SelectorPlantel
+                  value={vistaPlantel}
+                  onChange={setVistaPlantel}
+                  textoTodos="Solo generales"
+                />
+              </div>
+            )}
+            <span className={styles["conteo"]}>
+              {filtrados.length} {filtrados.length === 1 ? "anuncio" : "anuncios"}
+            </span>
+          </div>
         </div>
 
-        <ListaAnuncios
-          anuncios={filtrados}
-          onEditar={abrirEditar}
-          onEliminar={eliminar}
-          mostrarAudiencia
-        />
+        {cargando ? (
+          <p className={styles["conteo"]}>Cargando…</p>
+        ) : (
+          <ListaAnuncios
+            anuncios={filtrados}
+            onEditar={abrirEditar}
+            onEliminar={eliminar}
+            mostrarAudiencia
+          />
+        )}
       </article>
 
       {modalAbierto && (
         <ModalAnuncio
           anuncio={editando}
+          esAdmin={esAdmin}
+          plantelesAdmin={plantelesAdmin}
           onCerrar={() => setModalAbierto(false)}
           onGuardar={guardar}
         />

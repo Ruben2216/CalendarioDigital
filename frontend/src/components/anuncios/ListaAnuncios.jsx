@@ -1,6 +1,7 @@
 import { Megaphone, MapPin, Pencil, Trash2 } from "lucide-react";
 import { ABREV_MES } from "../../lib/fechas.js";
 import { AUDIENCIAS } from "../../data/anuncios.js";
+import { idsLeidos } from "../../lib/anunciosLeidos.js";
 import styles from "./ListaAnuncios.module.css";
 
 const AUDIENCIA_MAP = Object.fromEntries(AUDIENCIAS.map((a) => [a.id, a]));
@@ -11,16 +12,35 @@ function fechaCorta(iso) {
   return `${d} ${ABREV_MES[m - 1]}`;
 }
 
-export default function ListaAnuncios({ anuncios, onEditar, onEliminar, mostrarAudiencia = false }) {
+export default function ListaAnuncios({ anuncios, onEditar, onEliminar, mostrarAudiencia = false, soloTitulo = false }) {
   if (!anuncios || anuncios.length === 0) {
     return <p className={styles["vacio"]}>No hay anuncios.</p>;
   }
 
   const conAcciones = Boolean(onEditar || onEliminar);
+  const leidos = soloTitulo ? idsLeidos() : null;
 
   return (
     <div className={styles["lista"]}>
       {anuncios.map((a) => {
+        if (soloTitulo) {
+          const noLeido = !leidos.has(a.id);
+          return (
+            <div
+              key={a.id}
+              className={`${styles["anuncio"]} ${noLeido ? styles["anuncio--no-leido"] : ""}`}
+            >
+              <span className={`${styles["anuncio__icono"]} ${styles[`anuncio__icono--${a.color}`]}`}>
+                <Megaphone size={14} />
+              </span>
+              <div className={styles["anuncio__copia"]}>
+                <h3 className={`${styles["anuncio__titulo"]} ${styles["anuncio__titulo--resumen"]}`}>{a.titulo}</h3>
+              </div>
+              {noLeido && <span className={styles["anuncio__punto"]} title="No leído" />}
+              <span className={styles["anuncio__fecha"]}>{fechaCorta(a.fecha)}</span>
+            </div>
+          );
+        }
         const aud = AUDIENCIA_MAP[a.audiencia];
         return (
           <div key={a.id} className={styles["anuncio"]}>

@@ -136,11 +136,10 @@ class TipoEvento(models.Model):
     id_tipo_evento = models.BigAutoField(primary_key=True)
     nombre = models.CharField(max_length=80)
     color = models.CharField(max_length=20)
-    orden = models.IntegerField(default=0)
 
     class Meta:
         db_table = 'TipoEvento'
-        ordering = ['orden', 'id_tipo_evento']
+        ordering = ['id_tipo_evento']
 
     def __str__(self):
         return self.nombre
@@ -188,6 +187,50 @@ class Evento(models.Model):
 
     def puede_editar(self, usuario) -> bool:
         """Superusuario edita todo; el resto solo lo que creó."""
+        if usuario is None:
+            return False
+        rol = usuario.rol.nombre_rol
+        if rol == 'superusuario':
+            return True
+        if rol == 'admin':
+            return self.creado_por_id == usuario.id_usuario
+        return False
+
+
+class Anuncio(models.Model):
+    AUDIENCIA_TODOS = 'todos'
+    AUDIENCIAS = [
+        (AUDIENCIA_TODOS, 'Todos'),
+        ('admin', 'Administrativo'),
+        ('docente', 'Docentes'),
+        ('alumno', 'Alumnos'),
+    ]
+
+    id_anuncio = models.BigAutoField(primary_key=True)
+    titulo = models.CharField(max_length=200)
+    descripcion = models.TextField()
+    color = models.CharField(max_length=20, default='azul')
+    audiencia = models.CharField(max_length=20, choices=AUDIENCIAS, default=AUDIENCIA_TODOS)
+    plantel = models.ForeignKey(
+        Plantel, on_delete=models.CASCADE, null=True, blank=True, related_name='anuncios'
+    )
+    creado_por = models.ForeignKey(
+        Usuario, on_delete=models.SET_NULL, null=True, blank=True, related_name='anuncios_creados'
+    )
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'Anuncio'
+        ordering = ['-fecha_creacion']
+
+    def __str__(self):
+        return self.titulo
+
+    @property
+    def es_general(self) -> bool:
+        return self.plantel_id is None
+
+    def puede_editar(self, usuario) -> bool:
         if usuario is None:
             return False
         rol = usuario.rol.nombre_rol

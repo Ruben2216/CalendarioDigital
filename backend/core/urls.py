@@ -13,6 +13,7 @@ from agenda.views import (
     ResolverSolicitudAdminView,
     SolicitudBroadcastView,
     LogoutView,
+    SesionActualView,
     GuardarConfiguracionPlantelesView,
     TurnoListView,
     PlantelListView,
@@ -22,6 +23,8 @@ from agenda.views import (
     TipoEventoListView,
     EventoListView,
     EventoDetailView,
+    AnuncioListView,
+    AnuncioDetailView,
 )
 
 urlpatterns = [
@@ -37,6 +40,10 @@ urlpatterns = [
     path('api/tipos-evento/', TipoEventoListView.as_view(), name='tipos-evento-list'),
     path('api/eventos/', EventoListView.as_view(), name='eventos'),
     path('api/eventos/<int:id_evento>/', EventoDetailView.as_view(), name='evento-detail'),
+
+    # Anuncios
+    path('api/anuncios/', AnuncioListView.as_view(), name='anuncios'),
+    path('api/anuncios/<int:id_anuncio>/', AnuncioDetailView.as_view(), name='anuncio-detail'),
 
     # Solicitudes de acceso de administrador (docente → admin)
     path('api/solicitudes-admin/', SolicitudAdminView.as_view(), name='solicitudes-admin'),
@@ -54,4 +61,5 @@ urlpatterns = [
     path('api/mensajeria/conversaciones/<int:id_conv>/leer/', MarcarLeidoView.as_view(), name='marcar-leido'),
     path('api/mensajeria/solicitudes/', SolicitudBroadcastView.as_view(), name='solicitud-broadcast'),
     path('api/auth/logout/', LogoutView.as_view(), name='logout'),
+    path('api/auth/sesion/', SesionActualView.as_view(), name='sesion-actual'),
 ]
