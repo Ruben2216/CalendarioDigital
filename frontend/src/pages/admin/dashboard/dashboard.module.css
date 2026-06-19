@@ -197,71 +197,11 @@
 }
 
 /*  Anuncio */
-.promo-anuncios {
+.tarjetas-inferiores {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 16px;
-}
-
-.promo {
-  background:
-    radial-gradient(ellipse at 75% 10%, #0a2060 0%, #021138 60%),
-    #021138;
-  border: 0;
-  min-height: 168px;
-  padding: 22px 20px;
-  position: relative;
-  overflow: hidden;
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.promo::before {
-  content: "";
-  position: absolute;
-  width: 170px;
-  height: 170px;
-  top: -40px;
-  right: -42px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.06);
-}
-
-.promo__copia {
-  color: #fff;
-  position: relative;
-  z-index: 1;
-  flex: 1;
-}
-
-.promo__copia h3 {
-  margin: 0;
-  font-family: var(--font-display);
-  font-size: 18px;
-  line-height: 1.24;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-}
-
-.promo__copia p {
-  margin: 8px 0 0;
-  color: rgba(255, 255, 255, 0.7);
-  font-size: 12px;
-}
-
-.promo__figura {
-  position: relative;
-  z-index: 1;
-  flex: none;
-  width: 96px;
-  height: 96px;
-  border-radius: 18px;
-  display: grid;
-  place-items: center;
-  color: #fff;
-  background: rgba(255, 255, 255, 0.12);
-  box-shadow: 0 18px 28px rgba(4, 17, 41, 0.22);
+  align-items: start;
 }
 
 .anuncios {
@@ -692,7 +632,7 @@
 }
 
 @media (max-width: 1080px) {
-  .promo-anuncios {
+  .tarjetas-inferiores {
     grid-template-columns: 1fr;
   }
 }

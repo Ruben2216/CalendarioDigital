@@ -3,7 +3,7 @@ import { useSesion } from '../../../hooks/useSesion.js';
 import { useNavigate } from "react-router-dom";
 import {
   Calendar, Clock, Users, Bell, ChevronLeft, ChevronRight, MapPin,
-  GraduationCap, Megaphone, TrendingUp, AlertCircle,
+  Megaphone, TrendingUp, AlertCircle,
 } from "lucide-react";
 import {
   ZONA, NOMBRES_MES, ABREV_MES, ahoraMexico, aClaveFecha, desdeClaveFecha,
@@ -226,25 +226,7 @@ export default function Dashboard() {
           </div>
         </TarjetaColapsable>
 
-        <div className={styles["promo-anuncios"]}>
-          <article className={`tarjeta ${styles["promo"]}`}>
-            <div className={styles["promo__copia"]}>
-              <h3>
-                Transformamos
-                <br />
-                el presente,
-                <br />
-                construimos
-                <br />
-                el futuro.
-              </h3>
-              <p>Colegio de Bachilleres de Chiapas</p>
-            </div>
-            <span className={styles["promo__figura"]} aria-hidden="true">
-              <GraduationCap size={56} />
-            </span>
-          </article>
-
+        <div className={styles["tarjetas-inferiores"]}>
           <TarjetaColapsable
             icono={Megaphone}
             titulo="Anuncios"
@@ -256,6 +238,33 @@ export default function Dashboard() {
             }
           >
             <ListaAnuncios anuncios={anuncios.slice(0, 4)} mostrarAudiencia />
+          </TarjetaColapsable>
+
+          <TarjetaColapsable
+            icono={Bell}
+            titulo="Notificaciones"
+            accion={
+              notifSinLeer > 0 ? (
+                <span className="etiqueta etiqueta--azul">{notifSinLeer} nuevas</span>
+              ) : null
+            }
+          >
+            <div className={styles["notif-lista"]}>
+              {NOTIFICACIONES.slice(0, 5).map(({ id, icono: Icono, color, titulo, subtitulo, sinLeer }) => (
+                <div
+                  key={id}
+                  className={`${styles["notif-fila"]} ${sinLeer ? styles["notif-fila--sin-leer"] : ""}`}
+                >
+                  <span className={`${styles["notif-fila__icono"]} ${styles[`notif-fila__icono--${color}`]}`}>
+                    <Icono size={15} />
+                  </span>
+                  <div className={styles["notif-fila__copia"]}>
+                    <p className={styles["notif-fila__titulo"]}>{titulo}</p>
+                    <span className={styles["notif-fila__subtitulo"]}>{subtitulo}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
           </TarjetaColapsable>
         </div>
       </div>
@@ -382,33 +391,6 @@ export default function Dashboard() {
             ))}
           </div>
         </article>
-
-        <TarjetaColapsable
-          icono={Bell}
-          titulo="Notificaciones"
-          accion={
-            notifSinLeer > 0 ? (
-              <span className="etiqueta etiqueta--azul">{notifSinLeer} nuevas</span>
-            ) : null
-          }
-        >
-          <div className={styles["notif-lista"]}>
-            {NOTIFICACIONES.slice(0, 5).map(({ id, icono: Icono, color, titulo, subtitulo, sinLeer }) => (
-              <div
-                key={id}
-                className={`${styles["notif-fila"]} ${sinLeer ? styles["notif-fila--sin-leer"] : ""}`}
-              >
-                <span className={`${styles["notif-fila__icono"]} ${styles[`notif-fila__icono--${color}`]}`}>
-                  <Icono size={15} />
-                </span>
-                <div className={styles["notif-fila__copia"]}>
-                  <p className={styles["notif-fila__titulo"]}>{titulo}</p>
-                  <span className={styles["notif-fila__subtitulo"]}>{subtitulo}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </TarjetaColapsable>
       </aside>
     </section>
   );
