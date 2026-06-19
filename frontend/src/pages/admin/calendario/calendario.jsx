@@ -457,7 +457,10 @@ export default function Calendario({ soloLectura = false, publico = false }) {
   const alSalirEvento = useCallback(() => {
     if (fijoRef.current) return;
     clearTimeout(cierreHoverTimer.current);
-    cierreHoverTimer.current = setTimeout(cerrarPopover, 280);
+    cierreHoverTimer.current = setTimeout(() => {
+      if (popoverRef.current?.matches(':hover')) return;
+      cerrarPopover();
+    }, 280);
   }, [cerrarPopover]);
 
   const claseDiaSeleccionado = useCallback(
