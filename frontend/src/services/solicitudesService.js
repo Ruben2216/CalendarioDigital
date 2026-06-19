@@ -46,6 +46,14 @@ export async function listarSolicitudes(estado) {
     return resp.json();
 }
 
+export async function listarAdministradores() {
+    const url = new URL(`${BASE_URL}/api/usuarios/`);
+    url.searchParams.set('rol', 'admin');
+    const resp = await fetch(url, { headers: headers() });
+    if (!resp.ok) throw new Error('No se pudieron cargar los administradores.');
+    return resp.json(); // [{ id, nombre, correo, planteles: [{plantel, turno}], rol }]
+}
+
 // Superusuario crea un admin directamente con plantel y turno.
 export async function crearAdmin(datos) {
     const resp = await fetch(`${BASE_URL}/api/usuarios/crear-admin/`, {

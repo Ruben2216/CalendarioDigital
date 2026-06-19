@@ -6,7 +6,7 @@ import {
 import Modal from "../../../components/modal/Modal.jsx";
 import { avisoExito, avisoError, confirmarAccion, confirmarEliminacion } from "../../../lib/alertas.js";
 import { ROL, ESTADOS, TURNOS } from "../../../data/usuarios.js";
-import { listarSolicitudes, resolverSolicitud, crearAdmin, actualizarAdmin } from "../../../services/solicitudesService.js";
+import { listarSolicitudes, listarAdministradores, resolverSolicitud, crearAdmin, actualizarAdmin } from "../../../services/solicitudesService.js";
 import { obtenerPlanteles, obtenerTurnos } from "../../../services/authService.js";
 import BuscadorPlantelInline from "../../../components/buscador-plantel/BuscadorPlantelInline.jsx";
 import BuscadorUsuarioInline from "../../../components/buscador-usuario/BuscadorUsuarioInline.jsx";
@@ -29,6 +29,21 @@ function solicitudAFila(s) {
     planteles: s.plantel ? [s.plantel] : [],
     estado: ESTADO_BACKEND[s.estado] || "pendiente",
     solicitado: (s.fecha_solicitud || "").slice(0, 10),
+  };
+}
+
+function adminAFila(u) {
+  const primera = u.planteles?.[0];
+  return {
+    id: `adm-${u.id}`,
+    id_usuario: u.id,
+    origenBackend: false,
+    nombre: u.nombre,
+    correo: u.correo,
+    turno: (primera?.turno || "matutino").toLowerCase(),
+    planteles: (u.planteles || []).map((p) => p.plantel).filter(Boolean),
+    estado: "activo",
+    solicitado: "",
   };
 }
 
@@ -64,10 +79,17 @@ export default function Usuarios() {
 
   useEffect(() => {
     let vigente = true;
-    Promise.all([listarSolicitudes(), obtenerPlanteles(), obtenerTurnos()])
-      .then(([lista, planteles, turnos]) => {
+    Promise.all([listarSolicitudes(), listarAdministradores(), obtenerPlanteles(), obtenerTurnos()])
+      .then(([solicitudes, admins, planteles, turnos]) => {
         if (!vigente) return;
-        setUsuarios(lista.map(solicitudAFila));
+        // Los admins activos (creados directo o por solicitud aceptada) vienen de
+        // /api/usuarios?rol=admin. Las solicitudes aceptadas ya son admins, así que
+        // de las solicitudes solo se conservan las pendientes/rechazadas (sin duplicar).
+        const correosAdmin = new Set(admins.map((a) => a.correo));
+        const filasSolicitudes = solicitudes
+          .filter((s) => !correosAdmin.has(s.correo))
+          .map(solicitudAFila);
+        setUsuarios([...filasSolicitudes, ...admins.map(adminAFila)]);
         setPlantelesDisponibles(planteles);
         setTurnosDisponibles(turnos);
       })
