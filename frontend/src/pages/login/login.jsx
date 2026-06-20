@@ -9,8 +9,8 @@ import { loginInstitucional, guardarSesion, guardarConfiguracionPlanteles } from
 import ModalConfiguracion from '../../components/ModalConfiguracion';
 
 const ROLES = [
-  { id: "admin", label: "Administrador", icon: ShieldCheck },
-  { id: "docente", label: "Docente", icon: Monitor },
+  { id: "admin", label: "Admin", icon: ShieldCheck },
+  { id: "docente", label: "Docente/administrativo", icon: Monitor },
   { id: "alumno", label: "Alumno", icon: User },
   { id: "tutor", label: "Padre/Tutor", icon: Home },
 ];

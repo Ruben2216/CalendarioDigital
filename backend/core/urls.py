@@ -21,6 +21,7 @@ from agenda.views import (
     ActualizarAdminView,
     CalendarioListView,
     TipoEventoListView,
+    TipoEventoDetailView,
     EventoListView,
     EventoDetailView,
     AnuncioListView,
@@ -38,6 +39,7 @@ urlpatterns = [
     # Calendario y eventos
     path('api/calendarios/', CalendarioListView.as_view(), name='calendarios-list'),
     path('api/tipos-evento/', TipoEventoListView.as_view(), name='tipos-evento-list'),
+    path('api/tipos-evento/<int:id_tipo>/', TipoEventoDetailView.as_view(), name='tipos-evento-detail'),
     path('api/eventos/', EventoListView.as_view(), name='eventos'),
     path('api/eventos/<int:id_evento>/', EventoDetailView.as_view(), name='evento-detail'),
 

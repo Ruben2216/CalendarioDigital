@@ -134,12 +134,15 @@ class Calendario(models.Model):
 
 class TipoEvento(models.Model):
     id_tipo_evento = models.BigAutoField(primary_key=True)
-    nombre = models.CharField(max_length=80)
-    color = models.CharField(max_length=20)
+    nombre = models.CharField(max_length=120)
+    color_hex = models.CharField(max_length=7, default='#64748B')
+    plantel = models.ForeignKey(
+        'Plantel', on_delete=models.CASCADE, null=True, blank=True, related_name='tipos_evento'
+    )
 
     class Meta:
         db_table = 'TipoEvento'
-        ordering = ['id_tipo_evento']
+        ordering = ['plantel', 'id_tipo_evento']
 
     def __str__(self):
         return self.nombre

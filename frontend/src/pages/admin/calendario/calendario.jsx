@@ -11,7 +11,7 @@ import esLocale from "@fullcalendar/core/locales/es";
 import {
   CalendarDays, CalendarRange, LayoutGrid, List, ChevronLeft, ChevronRight,
   ChevronDown, Plus, Download, Pencil, Trash2, Filter, Tag,
-  PanelRight, X, Clock, MapPin, Hourglass,
+  PanelRight, X, Clock, MapPin, Hourglass, Check,
 } from "lucide-react";
 import Modal from "../../../components/modal/Modal.jsx";
 import AvisoBadge from "../../../components/aviso-badge/AvisoBadge.jsx";
@@ -25,6 +25,7 @@ import { AREAS, SEMESTRES, GRUPOS, TURNOS, alcanceEvento } from "../../../data/c
 import {
   listarCalendarios, listarTipos, listarEventos,
   crearEvento, actualizarEvento, eliminarEvento,
+  crearTipo, actualizarTipo, eliminarTipo,
 } from "../../../services/eventosService.js";
 import SelectorPlantel from "../../../components/selector-plantel/SelectorPlantel.jsx";
 import { avisoError } from "../../../lib/alertas.js";
@@ -34,11 +35,7 @@ import VistaLista from "./vistas/VistaLista.jsx";
 import styles from "./calendario.module.css";
 import "./fullcalendar.css";
 
-const COLOR_HEX = {
-  azul: "#0147d4", naranja: "#ef7d15", morado: "#7b3fe4", verde: "#2e9d41",
-  teal: "#0f9b8e", marino: "#1f3b8f", rojo: "#e5484d",
-  amarillo: "#d99a00", rosa: "#d63384", cian: "#0c8ec9", gris: "#97a3b6",
-};
+const COLOR_GRIS = "#97a3b6";
 
 const VISTAS = [
   { id: "mes", etiqueta: "Mes", icono: CalendarDays, fc: "dayGridMonth" },
@@ -145,6 +142,15 @@ export default function Calendario({ soloLectura = false, publico = false }) {
   const [formEvento, setFormEvento] = useState(FORM_EVENTO_VACIO);
   const [eventoEditando, setEventoEditando] = useState(null);
 
+  // Gestión de tipos de evento (simbología)
+  const [tipoEditandoId, setTipoEditandoId] = useState(null);
+  const [editNombre, setEditNombre] = useState("");
+  const [editColor, setEditColor] = useState("#64748B");
+  const [formTipoVisible, setFormTipoVisible] = useState(false);
+  const [nuevoNombre, setNuevoNombre] = useState("");
+  const [nuevoColor, setNuevoColor] = useState("#64748B");
+  const [nuevoPlantelId, setNuevoPlantelId] = useState("");
+
   // Referencias: a FullCalendar (para controlarlo) y a los desplegables.
   const calendarRef = useRef(null);
   const lienzoRef = useRef(null);
@@ -243,7 +249,7 @@ export default function Calendario({ soloLectura = false, publico = false }) {
     return mapa;
   }, [tipos]);
 
-  const colorTipo = useCallback((id) => tiposPorId.get(id)?.color ?? "gris", [tiposPorId]);
+  const colorTipo = useCallback((id) => tiposPorId.get(id)?.color ?? COLOR_GRIS, [tiposPorId]);
   const etiquetaTipo = useCallback((id) => tiposPorId.get(id)?.etiqueta ?? "Sin tipo", [tiposPorId]);
 
   // Semestre (A/B) según el mes que se está viendo (insignia del encabezado).
@@ -254,7 +260,8 @@ export default function Calendario({ soloLectura = false, publico = false }) {
     () => calendarios.find((c) => c.id === calendarioActivo) || null,
     [calendarios, calendarioActivo]
   );
-  const puedeCrear = !lectura && (esSuperusuario || (esAdmin && calActivo?.clave === "escolarizado"));
+  const tienesTipos = tipos.length > 0;
+  const puedeCrear = !lectura && tienesTipos && (esSuperusuario || (esAdmin && calActivo?.clave === "escolarizado"));
 
   // Eventos visibles tras aplicar los filtros de tipo y área.
   const eventosFiltrados = useMemo(() => {
@@ -276,7 +283,7 @@ export default function Calendario({ soloLectura = false, publico = false }) {
 
   const eventosFC = useMemo(() => {
     return eventosFiltrados.map((ev) => {
-      const color = COLOR_HEX[colorTipo(ev.tipo)] || COLOR_HEX.gris;
+      const color = colorTipo(ev.tipo);
       const base = {
         id: String(ev.id),
         title: ev.titulo,
@@ -556,6 +563,57 @@ export default function Calendario({ soloLectura = false, publico = false }) {
     if (ev) pedirEliminar(ev);
   };
 
+  // CRUD de tipos de evento
+  const puedeGestionarTipos = !lectura && (esSuperusuario || esAdmin);
+
+  const iniciarEdicionTipo = (t) => {
+    setTipoEditandoId(t.id);
+    setEditNombre(t.etiqueta);
+    setEditColor(t.color);
+    setFormTipoVisible(false);
+  };
+
+  const guardarEdicionTipo = async (id) => {
+    try {
+      const actualizado = await actualizarTipo(id, { nombre: editNombre.trim(), color_hex: editColor });
+      setTipos((prev) => prev.map((t) => t.id === id
+        ? { ...t, etiqueta: actualizado.etiqueta, color: actualizado.color }
+        : t
+      ));
+      setTipoEditandoId(null);
+    } catch (err) {
+      avisoError(err.message || "No se pudo actualizar el tipo.");
+    }
+  };
+
+  const pedirEliminarTipo = async (t) => {
+    const { isConfirmed } = await confirmarEliminacion(t.etiqueta);
+    if (!isConfirmed) return;
+    try {
+      await eliminarTipo(t.id);
+      setTipos((prev) => prev.filter((x) => x.id !== t.id));
+    } catch (err) {
+      avisoError(err.message || "No se pudo eliminar el tipo.");
+    }
+  };
+
+  const guardarNuevoTipo = async () => {
+    if (!nuevoNombre.trim()) return;
+    try {
+      const plantel_id = esAdmin
+        ? (nuevoPlantelId || (sesion.planteles?.[0]?.plantel?.id ?? null))
+        : undefined;
+      const nuevo = await crearTipo({ nombre: nuevoNombre.trim(), color_hex: nuevoColor, plantel_id });
+      setTipos((prev) => [...prev, nuevo]);
+      setNuevoNombre("");
+      setNuevoColor("#64748B");
+      setNuevoPlantelId("");
+      setFormTipoVisible(false);
+    } catch (err) {
+      avisoError(err.message || "No se pudo crear el tipo.");
+    }
+  };
+
   return (
     <div className={styles["calendario"]}>
       {/* ENCABEZADO: selector de calendario */}
@@ -721,6 +779,11 @@ export default function Calendario({ soloLectura = false, publico = false }) {
                   Nuevo evento
                 </button>
               )}
+              {!lectura && esAdmin && calActivo?.clave === "escolarizado" && !tienesTipos && (
+                <span className={styles["aviso-sin-tipos"]}>
+                  Agrega tipos de evento en Simbología para poder crear eventos
+                </span>
+              )}
 
               {/* Mostrar/ocultar el panel lateral (simbología, tipos, filtros) */}
               <button
@@ -829,7 +892,7 @@ export default function Calendario({ soloLectura = false, publico = false }) {
                       <tr key={ev.id}>
                         <td>
                           <span className={styles["tabla__hora"]}>
-                            <span className={`${styles["tabla__bolita"]} ${styles[`tabla__bolita--${colorTipo(ev.tipo)}`]}`} />
+                            <span className={styles["tabla__bolita"]} style={{ backgroundColor: colorTipo(ev.tipo) }} />
                             <span>
                               {ev.horaInicio ? formatoHora(ev.horaInicio) : "Todo el día"}
                               {mostrarMes && (
@@ -852,7 +915,7 @@ export default function Calendario({ soloLectura = false, publico = false }) {
                           </small>
                         </td>
                         <td>
-                          <span className={`etiqueta etiqueta--${colorTipo(ev.tipo)}`}>
+                          <span className="etiqueta" style={{ backgroundColor: colorTipo(ev.tipo) + '20', color: colorTipo(ev.tipo) }}>
                             {etiquetaTipo(ev.tipo)}
                           </span>
                         </td>
@@ -911,22 +974,115 @@ export default function Calendario({ soloLectura = false, publico = false }) {
             </button>
           </div>
 
-          {/* Simbología: leyenda de colores (sale de los tipos de evento) */}
+          {/* Simbología: catálogo de tipos de evento */}
           <article className="tarjeta">
             <div className="tarjeta__cabecera">
               <div className="tarjeta__titulo">
                 <Tag size={16} />
                 Simbología
               </div>
+              {puedeGestionarTipos && !formTipoVisible && (
+                <button
+                  type="button"
+                  className="tarjeta__enlace"
+                  onClick={() => { setFormTipoVisible(true); setTipoEditandoId(null); }}
+                >
+                  + Nuevo
+                </button>
+              )}
             </div>
             <ul className={styles["simbologia"]}>
               {tipos.map((t) => (
                 <li key={t.id} className={styles["simbologia__item"]}>
-                  <span className={`${styles["simbologia__punto"]} ${styles[`simbologia__punto--${t.color}`]}`} />
-                  <span className={styles["simbologia__texto"]}>{t.etiqueta}</span>
+                  {tipoEditandoId === t.id ? (
+                    <div className={styles["simbologia__edit"]}>
+                      <input
+                        type="color"
+                        className={styles["simbologia__color-input"]}
+                        value={editColor}
+                        onChange={(e) => setEditColor(e.target.value)}
+                        title="Elegir color"
+                      />
+                      <input
+                        type="text"
+                        className={styles["simbologia__nombre-input"]}
+                        value={editNombre}
+                        onChange={(e) => setEditNombre(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === 'Enter') guardarEdicionTipo(t.id); if (e.key === 'Escape') setTipoEditandoId(null); }}
+                        autoFocus
+                      />
+                      <div className={styles["simbologia__edit-acciones"]}>
+                        <button type="button" title="Guardar" onClick={() => guardarEdicionTipo(t.id)}>
+                          <Check size={13} />
+                        </button>
+                        <button type="button" title="Cancelar" onClick={() => setTipoEditandoId(null)}>
+                          <X size={13} />
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <span className={styles["simbologia__punto"]} style={{ backgroundColor: t.color }} />
+                      <span className={styles["simbologia__texto"]}>{t.etiqueta}</span>
+                      {puedeGestionarTipos && (esSuperusuario || !t.es_global) && (
+                        <div className={styles["simbologia__acciones"]}>
+                          <button type="button" title="Editar" onClick={() => iniciarEdicionTipo(t)}>
+                            <Pencil size={12} />
+                          </button>
+                          <button type="button" title="Eliminar" className={styles["simbologia__borrar"]} onClick={() => pedirEliminarTipo(t)}>
+                            <Trash2 size={12} />
+                          </button>
+                        </div>
+                      )}
+                    </>
+                  )}
                 </li>
               ))}
             </ul>
+
+            {/* Formulario para añadir nuevo tipo */}
+            {formTipoVisible && (
+              <div className={styles["simbologia__nuevo"]}>
+                <div className={styles["simbologia__nuevo-fila"]}>
+                  <input
+                    type="color"
+                    className={styles["simbologia__color-input"]}
+                    value={nuevoColor}
+                    onChange={(e) => setNuevoColor(e.target.value)}
+                    title="Elegir color"
+                  />
+                  <input
+                    type="text"
+                    className={styles["simbologia__nombre-input"]}
+                    placeholder="Nombre del tipo..."
+                    value={nuevoNombre}
+                    onChange={(e) => setNuevoNombre(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') guardarNuevoTipo(); if (e.key === 'Escape') setFormTipoVisible(false); }}
+                    autoFocus
+                  />
+                </div>
+                {esAdmin && (sesion.planteles?.length ?? 0) > 1 && (
+                  <select
+                    className={styles["simbologia__plantel-select"]}
+                    value={nuevoPlantelId}
+                    onChange={(e) => setNuevoPlantelId(e.target.value)}
+                  >
+                    <option value="">Plantel...</option>
+                    {sesion.planteles?.map((a) => (
+                      <option key={a.plantel.id} value={a.plantel.id}>{a.plantel.nombre}</option>
+                    ))}
+                  </select>
+                )}
+                <div className={styles["simbologia__nuevo-acciones"]}>
+                  <button type="button" onClick={guardarNuevoTipo} disabled={!nuevoNombre.trim()}>
+                    Guardar
+                  </button>
+                  <button type="button" onClick={() => setFormTipoVisible(false)}>
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            )}
           </article>
 
           {/* Filtros rápidos */}
@@ -1068,7 +1224,7 @@ export default function Calendario({ soloLectura = false, publico = false }) {
           }}
         >
           <div className={styles["pop-evento__cab"]}>
-            <span className={`${styles["pop-evento__punto"]} ${styles[`pop-evento__punto--${colorTipo(popover.ev.tipo)}`]}`} />
+            <span className={styles["pop-evento__punto"]} style={{ backgroundColor: colorTipo(popover.ev.tipo) }} />
             <span className={styles["pop-evento__titulo"]}>{popover.ev.titulo}</span>
             <div className={styles["pop-evento__acciones"]}>
               {!lectura && popover.ev.puede_editar && (
@@ -1117,7 +1273,7 @@ export default function Calendario({ soloLectura = false, publico = false }) {
             )}
             <li>
               <Tag size={14} />
-              <span className={`etiqueta etiqueta--${colorTipo(popover.ev.tipo)}`}>
+              <span className="etiqueta" style={{ backgroundColor: colorTipo(popover.ev.tipo) + '20', color: colorTipo(popover.ev.tipo) }}>
                 {etiquetaTipo(popover.ev.tipo)}
               </span>
             </li>

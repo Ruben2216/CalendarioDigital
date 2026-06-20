@@ -842,11 +842,108 @@ class TipoEventoListView(APIView):
     permission_classes = [permissions.AllowAny]
 
     def get(self, request):
-        tipos = TipoEvento.objects.all()
+        usuario = _usuario_sesion(request)
+        if usuario is None:
+            tipos = TipoEvento.objects.filter(plantel__isnull=True)
+        else:
+            rol = usuario.rol.nombre_rol
+            if rol == 'superusuario':
+                tipos = TipoEvento.objects.select_related('plantel').all()
+            elif rol == 'admin':
+                ids = list(usuario.planteles_asignados.values_list('plantel_id', flat=True))
+                tipos = TipoEvento.objects.filter(plantel_id__in=ids)
+            else:
+                ids = list(usuario.planteles_asignados.values_list('plantel_id', flat=True))
+                tipos = TipoEvento.objects.filter(
+                    Q(plantel__isnull=True) | Q(plantel_id__in=ids)
+                )
         return Response([
-            {'id': str(t.id_tipo_evento), 'etiqueta': t.nombre, 'color': t.color}
+            {'id': str(t.id_tipo_evento), 'etiqueta': t.nombre, 'color': t.color_hex,
+             'es_global': t.plantel_id is None}
             for t in tipos
         ])
+
+    def post(self, request):
+        usuario = _usuario_sesion(request)
+        if not usuario:
+            return Response({'error': 'No autenticado.'}, status=status.HTTP_401_UNAUTHORIZED)
+        rol = usuario.rol.nombre_rol
+        if rol not in ('superusuario', 'admin'):
+            return Response({'error': 'No autorizado.'}, status=status.HTTP_403_FORBIDDEN)
+
+        nombre = (request.data.get('nombre') or '').strip()
+        color_hex = (request.data.get('color_hex') or '#64748B').strip()
+        if not nombre:
+            return Response({'error': 'El nombre es obligatorio.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if rol == 'superusuario':
+            plantel = None
+        else:
+            plantel_id = request.data.get('plantel_id')
+            ids = list(usuario.planteles_asignados.values_list('plantel_id', flat=True))
+            try:
+                plantel_id = int(plantel_id)
+            except (TypeError, ValueError):
+                return Response({'error': 'Plantel inválido.'}, status=status.HTTP_400_BAD_REQUEST)
+            if plantel_id not in ids:
+                return Response({'error': 'No tienes acceso a ese plantel.'}, status=status.HTTP_403_FORBIDDEN)
+            plantel = Plantel.objects.get(pk=plantel_id)
+
+        tipo = TipoEvento.objects.create(nombre=nombre, color_hex=color_hex, plantel=plantel)
+        return Response(
+            {'id': str(tipo.id_tipo_evento), 'etiqueta': tipo.nombre, 'color': tipo.color_hex,
+             'es_global': tipo.plantel_id is None},
+            status=status.HTTP_201_CREATED,
+        )
+
+
+class TipoEventoDetailView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def _obtener_autorizado(self, request, id_tipo):
+        usuario = _usuario_sesion(request)
+        if not usuario:
+            return None, None, Response({'error': 'No autenticado.'}, status=status.HTTP_401_UNAUTHORIZED)
+        try:
+            tipo = TipoEvento.objects.select_related('plantel').get(pk=id_tipo)
+        except TipoEvento.DoesNotExist:
+            return None, None, Response(status=status.HTTP_404_NOT_FOUND)
+
+        rol = usuario.rol.nombre_rol
+        if rol == 'superusuario':
+            return usuario, tipo, None
+        if rol == 'admin':
+            if tipo.plantel_id is None:
+                return None, None, Response(
+                    {'error': 'No puedes modificar tipos de evento globales.'},
+                    status=status.HTTP_403_FORBIDDEN,
+                )
+            ids = list(usuario.planteles_asignados.values_list('plantel_id', flat=True))
+            if tipo.plantel_id not in ids:
+                return None, None, Response({'error': 'No autorizado.'}, status=status.HTTP_403_FORBIDDEN)
+            return usuario, tipo, None
+        return None, None, Response({'error': 'No autorizado.'}, status=status.HTTP_403_FORBIDDEN)
+
+    def put(self, request, id_tipo):
+        usuario, tipo, err = self._obtener_autorizado(request, id_tipo)
+        if err:
+            return err
+        nombre = (request.data.get('nombre') or '').strip()
+        color_hex = (request.data.get('color_hex') or '').strip()
+        if nombre:
+            tipo.nombre = nombre
+        if color_hex:
+            tipo.color_hex = color_hex
+        tipo.save()
+        return Response({'id': str(tipo.id_tipo_evento), 'etiqueta': tipo.nombre, 'color': tipo.color_hex,
+                         'es_global': tipo.plantel_id is None})
+
+    def delete(self, request, id_tipo):
+        usuario, tipo, err = self._obtener_autorizado(request, id_tipo)
+        if err:
+            return err
+        tipo.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 def _evento_dict(ev, usuario):
     return {
@@ -982,14 +1079,14 @@ class EventoListView(APIView):
         except (TypeError, ValueError, Calendario.DoesNotExist):
             return None, 'Calendario no encontrado.'
         try:
-            tipo = TipoEvento.objects.get(pk=int(d.get('tipo')))
+            tipo = TipoEvento.objects.select_related('plantel').get(pk=int(d.get('tipo')))
         except (TypeError, ValueError, TipoEvento.DoesNotExist):
             return None, 'Tipo de evento inválido.'
 
-        titulo = (d.get('titulo') or '').strip()
+        titulo = (d.get('titulo') or '').strip() or tipo.nombre
         fecha_inicio = _parse_fecha(d.get('fecha'))
-        if not titulo or not fecha_inicio:
-            return None, 'Título y fecha son obligatorios.'
+        if not fecha_inicio:
+            return None, 'La fecha es obligatoria.'
 
         plantel = Plantel.objects.filter(nombre=d.get('plantel')).first() if d.get('plantel') else None
         turno = Turno.objects.filter(nombre_turno=d.get('turno')).first() if d.get('turno') else None
@@ -1005,6 +1102,11 @@ class EventoListView(APIView):
             )
             if not par_valido:
                 return None, 'Solo puedes crear eventos en tu plantel asignado.'
+            ids_plantel = [a.plantel_id for a in asignaciones]
+            if tipo.plantel_id is None:
+                return None, 'Los tipos de evento del calendario general no se pueden usar aquí. Crea tus propios tipos desde el panel de Simbología.'
+            if tipo.plantel_id not in ids_plantel:
+                return None, 'El tipo de evento no pertenece a tu catálogo de plantel.'
             turno = par_valido.turno
 
         return {
