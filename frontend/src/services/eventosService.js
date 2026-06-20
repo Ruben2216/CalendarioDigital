@@ -75,3 +75,36 @@ export async function eliminarEvento(idEvento) {
         throw new Error(cuerpo.error || 'No se pudo eliminar el evento.');
     }
 }
+
+export async function crearTipo({ nombre, color_hex, plantel_id }) {
+    const resp = await fetch(`${BASE_URL}/api/tipos-evento/`, {
+        method: 'POST',
+        headers: headers(),
+        body: JSON.stringify({ nombre, color_hex, plantel_id, id_usuario: idUsuario() }),
+    });
+    const cuerpo = await resp.json().catch(() => ({}));
+    if (!resp.ok) throw new Error(cuerpo.error || 'No se pudo crear el tipo.');
+    return cuerpo;
+}
+
+export async function actualizarTipo(idTipo, { nombre, color_hex }) {
+    const resp = await fetch(`${BASE_URL}/api/tipos-evento/${idTipo}/`, {
+        method: 'PUT',
+        headers: headers(),
+        body: JSON.stringify({ nombre, color_hex, id_usuario: idUsuario() }),
+    });
+    const cuerpo = await resp.json().catch(() => ({}));
+    if (!resp.ok) throw new Error(cuerpo.error || 'No se pudo actualizar el tipo.');
+    return cuerpo;
+}
+
+export async function eliminarTipo(idTipo) {
+    const resp = await fetch(`${BASE_URL}/api/tipos-evento/${idTipo}/?id_usuario=${idUsuario()}`, {
+        method: 'DELETE',
+        headers: headers(),
+    });
+    if (!resp.ok && resp.status !== 204) {
+        const cuerpo = await resp.json().catch(() => ({}));
+        throw new Error(cuerpo.error || 'No se pudo eliminar el tipo.');
+    }
+}

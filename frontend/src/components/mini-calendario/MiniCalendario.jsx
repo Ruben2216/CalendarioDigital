@@ -180,14 +180,7 @@ export default function MiniCalendario({
         </div>
       )}
 
-      <div className={styles["calendario__leyenda"]}>
-        {tipos.map((t) => (
-          <span key={t.id} className={styles["leyenda"]}>
-            <span className={`${styles["leyenda__punto"]} ${styles[`leyenda__punto--${t.color}`]}`} />
-            {t.etiqueta}
-          </span>
-        ))}
-      </div>
+
     </article>
   );
 }

@@ -22,11 +22,10 @@ export default function FormularioEvento({
     <form id={id} className="formulario" onSubmit={onSubmit}>
 
       <label className="formulario__campo">
-        <span className="formulario__etiqueta">Título</span>
+        <span className="formulario__etiqueta">Título <span style={{ fontWeight: 400, color: 'var(--muted)' }}>(opcional)</span></span>
         <input
           type="text"
-          required
-          placeholder="Nombre del evento"
+          placeholder={tipos.find((t) => String(t.id) === String(form.tipo))?.etiqueta || 'Nombre del evento'}
           value={form.titulo}
           onChange={set('titulo')}
         />

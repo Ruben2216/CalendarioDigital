@@ -191,9 +191,11 @@ export default function Dashboard() {
                     <div className={styles["evento__copia"]}>
                       <h3 className={styles["evento__titulo"]}>{evento.titulo}</h3>
                       <div className={styles["evento__meta"]}>
-                        <span className={`etiqueta etiqueta--${colorTipo(evento.tipo)}`}>
-                          {etiquetaTipo(evento.tipo)}
-                        </span>
+                        {etiquetaTipo(evento.tipo) !== evento.titulo && (
+                          <span className={`etiqueta etiqueta--${colorTipo(evento.tipo)}`}>
+                            {etiquetaTipo(evento.tipo)}
+                          </span>
+                        )}
                         {evento.horaInicio && (
                           <span className={styles["meta"]}>
                             <Clock size={11} />
@@ -341,9 +343,11 @@ export default function Dashboard() {
                       <div className={styles["dia-eventos__copia"]}>
                         <p className={styles["dia-eventos__nombre"]}>{evento.titulo}</p>
                         <div className={styles["dia-eventos__meta"]}>
-                          <span className={`etiqueta etiqueta--${colorTipo(evento.tipo)}`}>
-                            {etiquetaTipo(evento.tipo)}
-                          </span>
+                          {etiquetaTipo(evento.tipo) !== evento.titulo && (
+                            <span className={`etiqueta etiqueta--${colorTipo(evento.tipo)}`}>
+                              {etiquetaTipo(evento.tipo)}
+                            </span>
+                          )}
                           {evento.horaInicio && (
                             <span className={styles["meta"]}>
                               <Clock size={11} />
@@ -366,14 +370,7 @@ export default function Dashboard() {
             </div>
           )}
 
-          <div className={styles["calendario__leyenda"]}>
-            {tipos.map((t) => (
-              <span key={t.id} className={styles["leyenda"]}>
-                <span className={`${styles["leyenda__punto"]} ${styles[`leyenda__punto--${t.color}`]}`} />
-                {t.etiqueta}
-              </span>
-            ))}
-          </div>
+          
         </article>
 
         <TarjetaColapsable
