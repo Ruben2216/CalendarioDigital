@@ -5,7 +5,7 @@ import styles from "./VistaAnual.module.css";
 const DIAS_MINI = ["D", "L", "M", "M", "J", "V", "S"];
 
 /* Construye las celdas (numeros de dia) de un mes */
-function construirMes(anio, mes, eventosPorDia, claveHoy, colorTipo) {
+function construirMes(anio, mes, eventosPorDia, claveHoy) {
   const primerDiaSemana = new Date(anio, mes, 1).getDay();
   const diasEnMes = new Date(anio, mes + 1, 0).getDate();
   const total = Math.ceil((primerDiaSemana + diasEnMes) / 7) * 7;
@@ -20,8 +20,8 @@ function construirMes(anio, mes, eventosPorDia, claveHoy, colorTipo) {
       dia: fecha.getDate(),
       delMes: fecha.getMonth() === mes,
       esHoy: clave === claveHoy,
-      finde: fecha.getDay() === 0 || fecha.getDay() === 6, 
-      color: evs.length ? colorTipo(evs[0].tipo) : null,
+      finde: fecha.getDay() === 0 || fecha.getDay() === 6,
+      evs,
     };
   });
 }
@@ -49,10 +49,10 @@ export default function VistaAnual({
         mes,
         anio,
         semestreA: k < 6, // primeros 6 = semestre A
-        celdas: construirMes(anio, mes, eventosPorDia, claveHoy, colorTipo),
+        celdas: construirMes(anio, mes, eventosPorDia, claveHoy),
       };
     });
-  }, [anioCiclo, eventosPorDia, claveHoy, colorTipo]);
+  }, [anioCiclo, eventosPorDia, claveHoy]);
 
   return (
     <div className={`tarjeta ${styles["anual"]}`}>
@@ -102,9 +102,21 @@ export default function VistaAnual({
                     celda.delMes && celda.finde ? styles["mini__dia--finde"] : ""
                   } ${celda.esHoy ? styles["mini__dia--hoy"] : ""} ${
                     celda.clave === fechaSeleccionada ? styles["mini__dia--sel"] : ""
-                  } ${celda.color ? styles[`mini__dia--${celda.color}`] : ""}`}
+                  }`}
                 >
-                  {celda.dia}
+                  <span className={styles["mini__num"]}>{celda.dia}</span>
+                  {celda.delMes && celda.evs.length > 0 && (
+                    <span className={styles["mini__puntos"]}>
+                      {celda.evs.slice(0, 3).map((ev) => (
+                        <span
+                          key={ev.id}
+                          className={styles["mini__punto-ev"]}
+                          style={{ backgroundColor: colorTipo(ev.tipo) }}
+                          title={ev.titulo}
+                        />
+                      ))}
+                    </span>
+                  )}
                 </button>
               ))}
             </div>

@@ -49,7 +49,6 @@
   box-shadow: inset 0 0 0 2px #fff, inset 0 0 0 4px rgba(255, 255, 255, 0.45);
 }
 
-/* Semestre A: azul (oscuro) - Semestre B: azul más claro */
 .mini__cabecera--a {
   background: linear-gradient(180deg, #0a2060 0%, #021138 100%);
 }
@@ -73,7 +72,7 @@
 
 .mini__rejilla {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: 2px;
   padding: 8px;
 }
@@ -89,49 +88,79 @@
 }
 
 .mini__dia {
-  aspect-ratio: 1;
-  display: grid;
-  place-items: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 1px;
   border: 0;
-  border-radius: 50%;
+  border-radius: 4px;
   background: transparent;
-  font-family: var(--font-display);
-  font-size: 11px;
-  font-weight: 700;
-  color: #334155;
   cursor: pointer;
   transition: background-color 0.12s ease, box-shadow 0.12s ease;
+  min-width: 0;
 }
 
 .mini__dia:hover {
   background: #eef2f8;
 }
 
-.mini__dia--fuera {
+/* Número del día */
+.mini__num {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  color: #334155;
+  flex-shrink: 0;
+}
+
+/* Fila de círculos de eventos */
+.mini__puntos {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 2px;
+  padding-bottom: 2px;
+}
+
+/* Círculo de color por evento (máx. 3 visibles) */
+.mini__punto-ev {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* Días fuera del mes */
+.mini__dia--fuera .mini__num {
   color: #cbd3df;
 }
 
-.mini__dia--finde {
+.mini__dia--fuera .mini__puntos {
+  display: none;
+}
+
+/* Fin de semana */
+.mini__dia--finde .mini__num {
   color: var(--red);
 }
 
+/* Hoy: círculo azul sobre el número */
+.mini__dia--hoy .mini__num {
+  background: var(--blue);
+  color: #fff !important;
+}
+
+/* Seleccionado: borde azul */
 .mini__dia--sel {
-  box-shadow: inset 0 0 0 2px var(--blue);
+  box-shadow: inset 0 0 0 1.5px var(--blue);
 }
-
-.mini__dia--hoy {
-  background: var(--blue) !important;
-  color: #fff;
-}
-
-.mini__dia--azul { background: var(--blue); color: #fff; }
-.mini__dia--naranja { background: var(--orange); color: #fff; }
-.mini__dia--morado { background: var(--purple); color: #fff; }
-.mini__dia--verde { background: var(--green); color: #fff; }
-.mini__dia--teal { background: var(--teal); color: #fff; }
-.mini__dia--marino { background: var(--marino); color: #fff; }
-.mini__dia--rojo { background: var(--red); color: #fff; }
-.mini__dia--gris { background: var(--muted-2); color: #fff; }
 
 @media (max-width: 520px) {
   .anual {
