@@ -2,8 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useSesion } from '../../../hooks/useSesion.js';
 import { useNavigate } from "react-router-dom";
 import {
-  Calendar, Clock, Users, Bell, ChevronLeft, ChevronRight, MapPin,
-  Megaphone, TrendingUp, AlertCircle,
+  Calendar, Clock, Users, Bell, ChevronLeft, ChevronRight, ChevronDown, MapPin,
+  Megaphone, TrendingUp, AlertCircle, Tag,
 } from "lucide-react";
 import {
   ZONA, NOMBRES_MES, ABREV_MES, ahoraMexico, aClaveFecha, desdeClaveFecha,
@@ -57,6 +57,7 @@ export default function Dashboard() {
     () => new Date(hoy.getFullYear(), hoy.getMonth(), 1)
   );
   const [fechaSeleccionada, setFechaSeleccionada] = useState(null);
+  const [simbologiaAbierta, setSimbologiaAbierta] = useState(false);
 
   const { nombre } = useSesion();
   const saludo = saludoPorHora(hoy.getHours());
@@ -129,19 +130,19 @@ export default function Dashboard() {
 
   return (
     <section className={styles["rejilla"]}>
-      <div className={styles["columna"]}>
-        <section className={styles["encabezado"]}>
-          <div>
-            <h2 className={styles["encabezado__saludo"]}>{saludo.texto}{nombre ? `, ${nombre.split(' ')[0]}` : ''}</h2>
-            <div className={styles["encabezado__subtitulo"]}>
-              <Calendar size={13} />
-              <span>{fechaLarga}</span>
-              <span>·</span>
-              <span>Ciclo {ciclo}</span>
-            </div>
+      <section className={styles["encabezado"]}>
+        <div>
+          <h2 className={styles["encabezado__saludo"]}>{saludo.texto}{nombre ? `, ${nombre.split(' ')[0]}` : ''}</h2>
+          <div className={styles["encabezado__subtitulo"]}>
+            <Calendar size={13} />
+            <span>{fechaLarga}</span>
+            <span>·</span>
+            <span>Ciclo {ciclo}</span>
           </div>
-        </section>
+        </div>
+      </section>
 
+      <div className={styles["columna"]}>
         <section className={styles["indicadores"]}>
           <article className={styles["indicador"]}>
             <span className={`${styles["indicador__icono"]} ${styles["indicador__icono--naranja"]}`}>
@@ -199,7 +200,7 @@ export default function Dashboard() {
                       <h3 className={styles["evento__titulo"]}>{evento.titulo}</h3>
                       <div className={styles["evento__meta"]}>
                         {etiquetaTipo(evento.tipo) !== evento.titulo && (
-                          <span className={`etiqueta etiqueta--${colorTipo(evento.tipo)}`}>
+                          <span className="etiqueta" style={{ backgroundColor: colorTipo(evento.tipo) + '20', color: colorTipo(evento.tipo) }}>
                             {etiquetaTipo(evento.tipo)}
                           </span>
                         )}
@@ -322,11 +323,12 @@ export default function Dashboard() {
                   key={celda.clave}
                   onClick={() => manejarClickDia(celda)}
                   aria-pressed={fechaSeleccionada === celda.clave}
+                  style={celda.color ? { "--punto-color": celda.color } : undefined}
                   className={`${styles["dia"]} ${
                     celda.delMes ? "" : styles["dia--apagado"]
                   } ${celda.esHoy ? styles["dia--hoy"] : ""} ${
-                    celda.color ? styles[`dia--${celda.color}`] : ""
-                  } ${fechaSeleccionada === celda.clave ? styles["dia--seleccionado"] : ""}`}
+                    fechaSeleccionada === celda.clave ? styles["dia--seleccionado"] : ""
+                  }`}
                 >
                   {celda.dia}
                 </button>
@@ -355,12 +357,12 @@ export default function Dashboard() {
                 <ul className={styles["dia-eventos__lista"]}>
                   {eventosDelDia.map((evento) => (
                     <li key={evento.id} className={styles["dia-eventos__item"]}>
-                      <span className={`${styles["dia-eventos__marca"]} ${styles[`dia-eventos__marca--${colorTipo(evento.tipo)}`]}`} />
+                      <span className={styles["dia-eventos__marca"]} style={{ backgroundColor: colorTipo(evento.tipo) }} />
                       <div className={styles["dia-eventos__copia"]}>
                         <p className={styles["dia-eventos__nombre"]}>{evento.titulo}</p>
                         <div className={styles["dia-eventos__meta"]}>
                           {etiquetaTipo(evento.tipo) !== evento.titulo && (
-                            <span className={`etiqueta etiqueta--${colorTipo(evento.tipo)}`}>
+                            <span className="etiqueta" style={{ backgroundColor: colorTipo(evento.tipo) + '20', color: colorTipo(evento.tipo) }}>
                               {etiquetaTipo(evento.tipo)}
                             </span>
                           )}
@@ -386,7 +388,33 @@ export default function Dashboard() {
             </div>
           )}
 
-          
+          <div className={styles["simbologia"]}>
+            <button
+              type="button"
+              className={styles["simbologia__toggle"]}
+              onClick={() => setSimbologiaAbierta((v) => !v)}
+              aria-expanded={simbologiaAbierta}
+            >
+              <span className={styles["simbologia__titulo"]}>
+                <Tag size={14} />
+                Simbología
+              </span>
+              <ChevronDown
+                size={15}
+                className={`${styles["simbologia__chevron"]} ${simbologiaAbierta ? styles["simbologia__chevron--abierto"] : ""}`}
+              />
+            </button>
+            {simbologiaAbierta && (
+              <ul className={styles["simbologia__lista"]}>
+                {tipos.map((t) => (
+                  <li key={t.id} className={styles["simbologia__item"]}>
+                    <span className={styles["simbologia__punto"]} style={{ backgroundColor: t.color }} />
+                    {t.etiqueta}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </article>
       </aside>
     </section>

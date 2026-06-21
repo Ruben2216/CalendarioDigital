@@ -160,7 +160,7 @@ export default function InicioResumen({ rutaCalendario, rutaAnuncios }) {
                       <div className={styles["evento__copia"]}>
                         <h3 className={styles["evento__titulo"]}>{ev.titulo}</h3>
                         <div className={styles["evento__meta"]}>
-                          <span className={`etiqueta etiqueta--${colorTipo(ev.tipo)}`}>
+                          <span className="etiqueta" style={{ backgroundColor: colorTipo(ev.tipo) + '20', color: colorTipo(ev.tipo) }}>
                             {etiquetaTipo(ev.tipo)}
                           </span>
                           {ev.horaInicio && (

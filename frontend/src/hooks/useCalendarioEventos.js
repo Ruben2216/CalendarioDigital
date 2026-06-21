@@ -12,7 +12,7 @@ export function useCalendarioEventos() {
     for (const t of tipos) mapa.set(t.id, t);
     return mapa;
   }, [tipos]);
-  const colorTipo = useCallback((id) => tiposPorId.get(id)?.color ?? "gris", [tiposPorId]);
+  const colorTipo = useCallback((id) => tiposPorId.get(id)?.color ?? "#64748b", [tiposPorId]);
   const etiquetaTipo = useCallback((id) => tiposPorId.get(id)?.etiqueta ?? "Evento", [tiposPorId]);
 
   const recargar = useCallback(async (idCal) => {

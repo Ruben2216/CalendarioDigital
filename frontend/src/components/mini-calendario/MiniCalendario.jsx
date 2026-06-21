@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Calendar, ChevronLeft, ChevronRight, Clock, MapPin } from "lucide-react";
+import { Calendar, ChevronLeft, ChevronRight, ChevronDown, Clock, MapPin, Tag } from "lucide-react";
 import {
   NOMBRES_MES, ahoraMexico, aClaveFecha, desdeClaveFecha, formatoHora, formatoFechaLarga,
 } from "../../lib/fechas.js";
@@ -15,7 +15,7 @@ export default function MiniCalendario({
   onCalendario,
 }) {
   const tiposMap = useMemo(() => Object.fromEntries(tipos.map((t) => [t.id, t])), [tipos]);
-  const colorTipo = (id) => tiposMap[id]?.color ?? "gris";
+  const colorTipo = (id) => tiposMap[id]?.color ?? "#64748b";
   const etiquetaTipo = (id) => tiposMap[id]?.etiqueta ?? "Evento";
 
   const hoy = useMemo(() => ahoraMexico(), []);
@@ -25,6 +25,7 @@ export default function MiniCalendario({
     () => new Date(hoy.getFullYear(), hoy.getMonth(), 1)
   );
   const [fechaSeleccionada, setFechaSeleccionada] = useState(null);
+  const [simbologiaAbierta, setSimbologiaAbierta] = useState(false);
 
   const eventosPorFecha = useMemo(() => {
     const mapa = new Map();
@@ -119,11 +120,10 @@ export default function MiniCalendario({
               key={celda.clave}
               onClick={() => manejarClickDia(celda)}
               aria-pressed={fechaSeleccionada === celda.clave}
+              style={celda.color ? { "--punto-color": celda.color } : undefined}
               className={`${styles["dia"]} ${celda.delMes ? "" : styles["dia--apagado"]} ${
                 celda.esHoy ? styles["dia--hoy"] : ""
-              } ${celda.color ? styles[`dia--${celda.color}`] : ""} ${
-                fechaSeleccionada === celda.clave ? styles["dia--seleccionado"] : ""
-              }`}
+              } ${fechaSeleccionada === celda.clave ? styles["dia--seleccionado"] : ""}`}
             >
               {celda.dia}
             </button>
@@ -152,11 +152,11 @@ export default function MiniCalendario({
             <ul className={styles["dia-eventos__lista"]}>
               {eventosDelDia.map((ev) => (
                 <li key={ev.id} className={styles["dia-eventos__item"]}>
-                  <span className={`${styles["dia-eventos__marca"]} ${styles[`dia-eventos__marca--${colorTipo(ev.tipo)}`]}`} />
+                  <span className={styles["dia-eventos__marca"]} style={{ backgroundColor: colorTipo(ev.tipo) }} />
                   <div className={styles["dia-eventos__copia"]}>
                     <p className={styles["dia-eventos__nombre"]}>{ev.titulo}</p>
                     <div className={styles["dia-eventos__meta"]}>
-                      <span className={`etiqueta etiqueta--${colorTipo(ev.tipo)}`}>
+                      <span className="etiqueta" style={{ backgroundColor: colorTipo(ev.tipo) + '20', color: colorTipo(ev.tipo) }}>
                         {etiquetaTipo(ev.tipo)}
                       </span>
                       {ev.horaInicio && (
@@ -180,7 +180,33 @@ export default function MiniCalendario({
         </div>
       )}
 
-
+      <div className={styles["simbologia"]}>
+        <button
+          type="button"
+          className={styles["simbologia__toggle"]}
+          onClick={() => setSimbologiaAbierta((v) => !v)}
+          aria-expanded={simbologiaAbierta}
+        >
+          <span className={styles["simbologia__titulo"]}>
+            <Tag size={14} />
+            Simbología
+          </span>
+          <ChevronDown
+            size={15}
+            className={`${styles["simbologia__chevron"]} ${simbologiaAbierta ? styles["simbologia__chevron--abierto"] : ""}`}
+          />
+        </button>
+        {simbologiaAbierta && (
+          <ul className={styles["simbologia__lista"]}>
+            {tipos.map((t) => (
+              <li key={t.id} className={styles["simbologia__item"]}>
+                <span className={styles["simbologia__punto"]} style={{ backgroundColor: t.color }} />
+                {t.etiqueta}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
     </article>
   );
 }
