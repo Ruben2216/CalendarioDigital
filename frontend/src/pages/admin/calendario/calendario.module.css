@@ -2,10 +2,11 @@
    Calendario institucional - estilos de página (toolbar, aside, panel del día).
    Los estilos propios de cada vista están en vistas/VistaMes y vistas/VistaSemana.
 */
-
 .calendario {
   display: grid;
   gap: 16px;
+  min-width: 0;
+  max-width: 100%;
 }
 
 /* Encabezado */
@@ -15,6 +16,9 @@
   justify-content: space-between;
   gap: 12px;
   flex-wrap: wrap;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .calendario__titulo {
@@ -36,7 +40,8 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  min-width: 240px;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .calendario__vista-plantel > span {
@@ -48,8 +53,10 @@
 
 .calendario__titulo-selector {
   display: block;
+  min-width: 0;
   max-width: 100%;
-  padding: 4px 34px 4px 12px;
+  width: auto;
+  padding: 4px 28px 4px 8px;
   margin-left: -4px;
   border: 1px solid transparent;
   border-radius: 10px;
@@ -62,6 +69,9 @@
   color: #0f172a;
   cursor: pointer;
   transition: background 0.15s ease, border-color 0.15s ease;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
 }
 
 .calendario__titulo-selector:hover {
@@ -322,6 +332,8 @@
 .calendario__cuerpo {
   display: flex;
   align-items: flex-start;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .calendario__principal {
@@ -353,6 +365,9 @@
 /* Lienzo que contiene FullCalendar */
 .lienzo {
   padding: 0;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
 }
 
 /* Encabezado del panel lateral (con botón de cerrar) */
@@ -1119,9 +1134,22 @@
   }
 }
 
+@media (max-width: 760px) {
+  .calendario__titulo,
+  .calendario__titulo-selector {
+    font-size: 18px;
+    letter-spacing: -0.01em;
+  }
+}
+
+.mes-movil__evento{
+  max-width: 100%;
+}
+
 @media (max-width: 520px) {
-  .calendario__titulo {
-    font-size: 19px;
+  .calendario__titulo,
+  .calendario__titulo-selector {
+    font-size: 16px;
   }
 
   .barra__mes-boton,

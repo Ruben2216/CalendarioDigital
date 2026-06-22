@@ -118,7 +118,19 @@
 @media (max-width: 620px) {
   .lista__fila {
     flex-wrap: wrap;
-    gap: 8px 12px;
+    gap: 6px 12px;
+    padding: 12px 14px;
+  }
+
+  .lista__hora {
+    width: auto;
+    font-size: 12px;
+    order: 1;
+  }
+
+  .lista__tipo {
+    order: 2;
+    margin-left: auto;
   }
 
   .lista__info {
@@ -126,12 +138,18 @@
     order: 3;
   }
 
-  .lista__tipo {
-    order: 4;
+  .lista__sub {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: unset;
   }
 
   .lista__acciones {
-    order: 5;
-    margin-left: auto;
+    order: 4;
+    width: 100%;
+    justify-content: flex-end;
+    padding-top: 4px;
+    border-top: 1px solid #f0f3f8;
+    margin-top: 2px;
   }
 }

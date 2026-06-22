@@ -30,8 +30,9 @@ import {
 import SelectorPlantel from "../../../components/selector-plantel/SelectorPlantel.jsx";
 import { avisoError } from "../../../lib/alertas.js";
 import { useSesion } from "../../../hooks/useSesion.js";
-import VistaAnual from "./vistas/VistaAnual.jsx";   
-import VistaLista from "./vistas/VistaLista.jsx";   
+import VistaAnual from "./vistas/VistaAnual.jsx";
+import VistaLista from "./vistas/VistaLista.jsx";
+import VistaMesMovil from "./vistas/VistaMesMovil.jsx";
 import styles from "./calendario.module.css";
 import "./fullcalendar.css";
 
@@ -132,6 +133,10 @@ export default function Calendario({ soloLectura = false, publico = false }) {
   const [vistaMenu, setVistaMenu] = useState(false);                    // menú desplegable de vista
   
   const [panelAbierto, setPanelAbierto] = useState(false);
+  const [filtrosModalAbierto, setFiltrosModalAbierto] = useState(false);
+  const [esMobil, setEsMobil] = useState(
+    () => typeof window !== "undefined" && window.matchMedia("(max-width: 760px)").matches
+  );
 
   // Info rápida
   const [popover, setPopover] = useState(null);         
@@ -166,6 +171,13 @@ export default function Calendario({ soloLectura = false, publico = false }) {
       asideRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   }, [panelAbierto]);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 760px)");
+    const handler = (e) => setEsMobil(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
 
   // Acceso corto a la API de FullCalendar (prev, next, today, changeView...).
   const api = () => calendarRef.current?.getApi();
@@ -785,7 +797,19 @@ export default function Calendario({ soloLectura = false, publico = false }) {
                 </span>
               )}
 
-              {/* Mostrar/ocultar el panel lateral (simbología, tipos, filtros) */}
+              {/* Filtros rápidos — abre modal */}
+              <button
+                type="button"
+                className={`boton boton--fantasma ${styles["barra__panel-btn"]}`}
+                onClick={() => setFiltrosModalAbierto(true)}
+                title="Filtros rápidos"
+              >
+                <Filter size={16} />
+                Filtros
+                {hayFiltros && <span className={styles["barra__panel-punto"]} />}
+              </button>
+
+              {/* Mostrar/ocultar el panel lateral (simbología) */}
               <button
                 type="button"
                 className={`boton boton--fantasma ${styles["barra__panel-btn"]}`}
@@ -795,7 +819,6 @@ export default function Calendario({ soloLectura = false, publico = false }) {
               >
                 <PanelRight size={16} />
                 Panel
-                {hayFiltros && !panelAbierto && <span className={styles["barra__panel-punto"]} />}
               </button>
             </div>
           </div>
@@ -804,6 +827,22 @@ export default function Calendario({ soloLectura = false, publico = false }) {
                Mes y Semana las dibuja FullCalendar; Anual y Lista son
                componentes propios */}
           {esVistaFC ? (
+            esMobil && vista === "mes" ? (
+              <div className={styles["lienzo"]}>
+                <VistaMesMovil
+                  fechaActual={fechaActual}
+                  eventosPorDia={eventosPorDia}
+                  colorTipo={colorTipo}
+                  etiquetaTipo={etiquetaTipo}
+                  claveHoy={claveHoy}
+                  fechaSeleccionada={fechaSeleccionada}
+                  onSeleccionarDia={setFechaSeleccionada}
+                  soloLectura={lectura}
+                  onEditar={abrirEditarEvento}
+                  onEliminar={pedirEliminar}
+                />
+              </div>
+            ) : (
             <div className={`tarjeta ${styles["lienzo"]}`} ref={lienzoRef}>
               <div className="cal-fc">
                 <FullCalendar
@@ -835,6 +874,7 @@ export default function Calendario({ soloLectura = false, publico = false }) {
                 />
               </div>
             </div>
+            )
           ) : vista === "anual" ? (
             <VistaAnual
               fechaActual={fechaActual}
@@ -860,8 +900,9 @@ export default function Calendario({ soloLectura = false, publico = false }) {
           )}
 
           {/* PANEL DE EVENTOS DEL DÍA SELECCIONADO.
-              En la vista Lista no se muestra: la lista ya detalla los eventos. */}
-          {vista !== "lista" && (
+              En la vista Lista no se muestra: la lista ya detalla los eventos.
+              En mobile vista mes tampoco: VistaMesMovil lo maneja internamente. */}
+          {vista !== "lista" && !(esMobil && vista === "mes") && (
           <div className={`tarjeta ${styles["panel-dia"]}`}>
             <div className={styles["panel-dia__cabecera"]}>
               <h3 className={styles["panel-dia__titulo"]}>{tituloPanel}</h3>
@@ -1085,124 +1126,6 @@ export default function Calendario({ soloLectura = false, publico = false }) {
             )}
           </article>
 
-          {/* Filtros rápidos */}
-          <article className="tarjeta">
-            <div className="tarjeta__cabecera">
-              <div className="tarjeta__titulo">
-                <Filter size={16} />
-                Filtros rápidos
-              </div>
-              {hayFiltros && (
-                <button type="button" className="tarjeta__enlace" onClick={limpiarFiltros}>
-                  Limpiar filtros
-                </button>
-              )}
-            </div>
-            <div className={styles["filtros"]}>
-              <label className="formulario__campo">
-                <span className="formulario__etiqueta">Tipo de evento</span>
-                <select value={filtroTipo} onChange={(e) => setFiltroTipo(e.target.value)}>
-                  <option value="todos">Todos</option>
-                  {tipos.map((t) => (
-                    <option key={t.id} value={t.id}>{t.etiqueta}</option>
-                  ))}
-                </select>
-              </label>
-
-              <label className="formulario__campo">
-                <span className="formulario__etiqueta">Área</span>
-                <select value={filtroArea} onChange={(e) => setFiltroArea(e.target.value)}>
-                  <option value="todas">Todas</option>
-                  {AREAS.map((a) => (
-                    <option key={a} value={a}>{a}</option>
-                  ))}
-                </select>
-              </label>
-
-              <label className="formulario__campo">
-                <span className="formulario__etiqueta">Semestre</span>
-                <select value={filtroSemestre} disabled={esAlumno} onChange={(e) => setFiltroSemestre(e.target.value)}>
-                  <option value="">Todos</option>
-                  {SEMESTRES.map((s) => (
-                    <option key={s} value={s}>{s}.º</option>
-                  ))}
-                </select>
-              </label>
-
-              <label className="formulario__campo">
-                <span className="formulario__etiqueta">Grupo</span>
-                <select value={filtroGrupo} disabled={esAlumno} onChange={(e) => setFiltroGrupo(e.target.value)}>
-                  <option value="">Todos</option>
-                  {GRUPOS.map((g) => (
-                    <option key={g} value={g}>{g}</option>
-                  ))}
-                </select>
-              </label>
-
-              {/* El superusuario filtra por plantel desde el buscador */}
-              {!esSuperusuario && (
-              <label className="formulario__campo">
-                <span className="formulario__etiqueta">Plantel</span>
-                {plantelesPermitidos.length > 0 ? (
-                  plantelesPermitidos.length === 1 ? (
-                    <select value={plantelesPermitidos[0]} disabled>
-                      <option value={plantelesPermitidos[0]}>{plantelesPermitidos[0]}</option>
-                    </select>
-                  ) : (
-                    <select value={filtroPlantel} onChange={(e) => setFiltroPlantel(e.target.value)}>
-                      <option value="">Todos mis planteles</option>
-                      {plantelesPermitidos.map((p) => (
-                        <option key={p} value={p}>{p}</option>
-                      ))}
-                    </select>
-                  )
-                ) : (
-                  <SelectorPlantel
-                    value={filtroPlantel}
-                    onChange={setFiltroPlantel}
-                    textoTodos="Todos"
-                  />
-                )}
-              </label>
-              )}
-
-              <label className="formulario__campo">
-                <span className="formulario__etiqueta">Turno</span>
-                {turnosPermitidos.length > 0 ? (
-                  turnosPermitidos.length === 1 ? (
-                    <select value={turnosPermitidos[0]} disabled>
-                      <option value={turnosPermitidos[0]}>{turnosPermitidos[0]}</option>
-                    </select>
-                  ) : (
-                    <select value={filtroTurno} onChange={(e) => setFiltroTurno(e.target.value)}>
-                      <option value="">Todos mis turnos</option>
-                      {turnosPermitidos.map((t) => (
-                        <option key={t} value={t}>{t}</option>
-                      ))}
-                    </select>
-                  )
-                ) : (
-                  <select value={filtroTurno} onChange={(e) => setFiltroTurno(e.target.value)}>
-                    <option value="">Todos</option>
-                    {TURNOS.map((t) => (
-                      <option key={t} value={t}>{t}</option>
-                    ))}
-                  </select>
-                )}
-              </label>
-
-              <div className="formulario__fila">
-                <label className="formulario__campo">
-                  <span className="formulario__etiqueta">Desde</span>
-                  <input type="date" value={filtroFechaDesde} onChange={(e) => setFiltroFechaDesde(e.target.value)} />
-                </label>
-                <label className="formulario__campo">
-                  <span className="formulario__etiqueta">Hasta</span>
-                  <input type="date" value={filtroFechaHasta} onChange={(e) => setFiltroFechaHasta(e.target.value)} />
-                </label>
-              </div>
-            </div>
-          </article>
         </aside>
       </div>
 
@@ -1280,6 +1203,129 @@ export default function Calendario({ soloLectura = false, publico = false }) {
           </ul>
         </div>
       )}
+
+      {/* Modal: filtros rápidos */}
+      <Modal
+        abierto={filtrosModalAbierto}
+        titulo="Filtros rápidos"
+        onCerrar={() => setFiltrosModalAbierto(false)}
+        pie={
+          <>
+            {hayFiltros && (
+              <button type="button" className="boton boton--fantasma" style={{ marginRight: "auto" }} onClick={limpiarFiltros}>
+                Limpiar filtros
+              </button>
+            )}
+            <button type="button" className="boton boton--primario" onClick={() => setFiltrosModalAbierto(false)}>
+              Aplicar
+            </button>
+          </>
+        }
+      >
+        <div className={styles["filtros"]}>
+          <label className="formulario__campo">
+            <span className="formulario__etiqueta">Tipo de evento</span>
+            <select value={filtroTipo} onChange={(e) => setFiltroTipo(e.target.value)}>
+              <option value="todos">Todos</option>
+              {tipos.map((t) => (
+                <option key={t.id} value={t.id}>{t.etiqueta}</option>
+              ))}
+            </select>
+          </label>
+
+          <label className="formulario__campo">
+            <span className="formulario__etiqueta">Área</span>
+            <select value={filtroArea} onChange={(e) => setFiltroArea(e.target.value)}>
+              <option value="todas">Todas</option>
+              {AREAS.map((a) => (
+                <option key={a} value={a}>{a}</option>
+              ))}
+            </select>
+          </label>
+
+          <label className="formulario__campo">
+            <span className="formulario__etiqueta">Semestre</span>
+            <select value={filtroSemestre} disabled={esAlumno} onChange={(e) => setFiltroSemestre(e.target.value)}>
+              <option value="">Todos</option>
+              {SEMESTRES.map((s) => (
+                <option key={s} value={s}>{s}.º</option>
+              ))}
+            </select>
+          </label>
+
+          <label className="formulario__campo">
+            <span className="formulario__etiqueta">Grupo</span>
+            <select value={filtroGrupo} disabled={esAlumno} onChange={(e) => setFiltroGrupo(e.target.value)}>
+              <option value="">Todos</option>
+              {GRUPOS.map((g) => (
+                <option key={g} value={g}>{g}</option>
+              ))}
+            </select>
+          </label>
+
+          {!esSuperusuario && (
+            <label className="formulario__campo">
+              <span className="formulario__etiqueta">Plantel</span>
+              {plantelesPermitidos.length > 0 ? (
+                plantelesPermitidos.length === 1 ? (
+                  <select value={plantelesPermitidos[0]} disabled>
+                    <option value={plantelesPermitidos[0]}>{plantelesPermitidos[0]}</option>
+                  </select>
+                ) : (
+                  <select value={filtroPlantel} onChange={(e) => setFiltroPlantel(e.target.value)}>
+                    <option value="">Todos mis planteles</option>
+                    {plantelesPermitidos.map((p) => (
+                      <option key={p} value={p}>{p}</option>
+                    ))}
+                  </select>
+                )
+              ) : (
+                <SelectorPlantel
+                  value={filtroPlantel}
+                  onChange={setFiltroPlantel}
+                  textoTodos="Todos"
+                />
+              )}
+            </label>
+          )}
+
+          <label className="formulario__campo">
+            <span className="formulario__etiqueta">Turno</span>
+            {turnosPermitidos.length > 0 ? (
+              turnosPermitidos.length === 1 ? (
+                <select value={turnosPermitidos[0]} disabled>
+                  <option value={turnosPermitidos[0]}>{turnosPermitidos[0]}</option>
+                </select>
+              ) : (
+                <select value={filtroTurno} onChange={(e) => setFiltroTurno(e.target.value)}>
+                  <option value="">Todos mis turnos</option>
+                  {turnosPermitidos.map((t) => (
+                    <option key={t} value={t}>{t}</option>
+                  ))}
+                </select>
+              )
+            ) : (
+              <select value={filtroTurno} onChange={(e) => setFiltroTurno(e.target.value)}>
+                <option value="">Todos</option>
+                {TURNOS.map((t) => (
+                  <option key={t} value={t}>{t}</option>
+                ))}
+              </select>
+            )}
+          </label>
+
+          <div className="formulario__fila">
+            <label className="formulario__campo">
+              <span className="formulario__etiqueta">Desde</span>
+              <input type="date" value={filtroFechaDesde} onChange={(e) => setFiltroFechaDesde(e.target.value)} />
+            </label>
+            <label className="formulario__campo">
+              <span className="formulario__etiqueta">Hasta</span>
+              <input type="date" value={filtroFechaHasta} onChange={(e) => setFiltroFechaHasta(e.target.value)} />
+            </label>
+          </div>
+        </div>
+      </Modal>
 
       {/* Modal: crear y editar evento */}
       <Modal
