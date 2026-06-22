@@ -1356,43 +1356,78 @@ class GoogleAuthView(APIView):
         if role == 'alumno' and not es_alumno(datos_institucional):
             return Response(status=status.HTTP_403_FORBIDDEN)
 
-        origin = request.headers.get('origin') or request.META.get('HTTP_ORIGIN')
-        allowed = getattr(settings, 'CORS_ALLOWED_ORIGINS', [])
-        fallback = getattr(settings, 'FRONTEND_DASHBOARD_URL', 'http://localhost:5173/dashboard')
+        tipo_empleado = (datos_institucional.get('tipoEmpleado') or '').strip()
+        nombre_api = (datos_institucional.get('nombre') or '').strip()
+        adscripcion = str(datos_institucional.get('adscripcion') or datos_institucional.get('nombreAdscripcion') or '')
+        id_api_val = str(datos_institucional.get('id') or '')
 
-        def origin_allowed(o):
-            if not o:
-                return False
-            if "devtunnels.ms" in o:
-                return True
-            if o in allowed:
-                return True
-            for a in allowed:
-                if a.startswith('.') and o.endswith(a):
-                    return True
-                if a.startswith('http') and o == a:
-                    return True
-                try:
-                    host = o.split('://', 1)[1]
-                except Exception:
-                    host = o
-                if a == host or (a.startswith('.') and host.endswith(a.lstrip('.'))):
-                    return True
-            return False
+        if role == 'alumno':
+            return Response({
+                'token': f'google-alumno-{correo}',
+                'nombre': nombre_api,
+                'sesion': {
+                    'id_usuario': None,
+                    'rol': 'alumno',
+                    'correo': correo,
+                    'planteles': [],
+                    'permisos_especiales': [],
+                    'tipoEmpleado': tipo_empleado,
+                    'adscripcion': adscripcion,
+                },
+            }, status=status.HTTP_200_OK)
 
-        if origin and origin_allowed(origin):
-            redirect_url = origin.rstrip('/') + '/dashboard'
-        else:
-            redirect_url = fallback.replace('.html', '')
-
-        dummy_token = f"dummy-token-{correo}"
-        is_xhr = (
-            request.headers.get('x-requested-with') == 'XMLHttpRequest'
-            or 'application/json' in request.headers.get('accept', '')
-        )
-        if is_xhr:
-            return Response(
-                {'redirect': redirect_url, 'token': dummy_token},
-                status=status.HTTP_200_OK
+        # Empleado (docente / administrativo): buscar o crear en BD local
+        try:
+            rol_obj, _ = Rol.objects.get_or_create(nombre_rol='docente')
+            usuario, _ = Usuario.objects.get_or_create(
+                correo=correo,
+                defaults={'rol': rol_obj, 'nombre': nombre_api, 'activo': True},
             )
-        return redirect(redirect_url)
+            if nombre_api and usuario.nombre != nombre_api:
+                Usuario.objects.filter(pk=usuario.pk).update(nombre=nombre_api)
+            if id_api_val and usuario.id_api != id_api_val:
+                Usuario.objects.filter(pk=usuario.pk).update(id_api=id_api_val)
+            usuario = (
+                Usuario.objects
+                .select_related('rol')
+                .prefetch_related(
+                    'planteles_asignados__plantel',
+                    'planteles_asignados__turno',
+                    'permisos_especiales__turno_objetivo',
+                )
+                .get(pk=usuario.pk, activo=True)
+            )
+        except Usuario.DoesNotExist:
+            return Response({'error': 'Usuario no activo.'}, status=status.HTTP_403_FORBIDDEN)
+
+        # Para role=admin verificar que el rol local sea admin o superusuario
+        rol_real = usuario.rol.nombre_rol
+        if role == 'admin' and rol_real not in ('admin', 'superusuario'):
+            return Response(
+                {'error': 'No tienes perfil de administrador.'},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        permisos_extra = [
+            {'id_turno': pe.turno_objetivo.id_turno, 'nombre_turno': pe.turno_objetivo.nombre_turno}
+            for pe in usuario.permisos_especiales.filter(activo=True)
+        ]
+
+        return Response({
+            'token': f'google-{correo}',
+            'nombre': usuario.nombre or nombre_api,
+            'sesion': {
+                'id_usuario': usuario.id_usuario,
+                'rol': usuario.rol.nombre_rol,
+                'planteles': [
+                    {
+                        'plantel': {'id': up.plantel.id_plantel, 'nombre': up.plantel.nombre},
+                        'turno': {'id': up.turno.id_turno, 'nombre': up.turno.nombre_turno},
+                    }
+                    for up in usuario.planteles_asignados.all()
+                ],
+                'permisos_especiales': permisos_extra,
+                'tipoEmpleado': tipo_empleado,
+                'adscripcion': adscripcion,
+            },
+        }, status=status.HTTP_200_OK)

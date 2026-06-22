@@ -76,47 +76,46 @@ export default function Login() {
           body: JSON.stringify({ token: id_token, role: currentRole }),
         });
         if (resp.status === 204) {
-          Swal.fire({
-            icon: 'error',
-            title: 'Oops...',
-            text: 'Solo se permiten cuentas institucionales',
-          });
+          Swal.fire({ icon: 'error', title: 'Oops...', text: 'Solo se permiten cuentas institucionales' });
           return;
         }
         if (!resp.ok) {
-          if (resp.status === 403) {
-            Swal.fire({
-              icon: 'error',
-              title: 'Oops...',
-              text: 'Rol no permitido para acceso institucional',
-            });
-            return;
-          }
           const errData = await resp.json().catch(() => ({}));
-          console.error('Backend error', errData);
+          Swal.fire({
+            icon: 'error',
+            title: 'Acceso denegado',
+            text: errData.error || 'No fue posible autenticar tu cuenta.',
+          });
           return;
         }
         const data = await resp.json().catch(() => ({}));
-        if (data.token) {
-          localStorage.setItem('authToken', data.token);
-          switch (currentRole) {
-            case 'admin':
-              navigate('/dashboard');
-              break;
-            case 'docente':
-              navigate('/docente/calendario');
-              break;
-            case 'alumno':
-              navigate('/alumno/calendario');
-              break;
-            default:
-              navigate('/dashboard');
-          }
+        if (!data.token) return;
+
+        const { token, nombre, sesion } = data;
+        guardarSesion(token, { ...sesion, nombre });
+
+        const rolDestino = sesion?.rol ?? currentRole;
+        const rutaDestino =
+          rolDestino === 'docente' ? '/docente/inicio'
+            : rolDestino === 'alumno' ? '/alumno/calendario'
+              : '/dashboard';
+
+        const esDocente = (sesion?.tipoEmpleado || '').trim().toLowerCase() === 'docente';
+        if (esDocente && (!sesion?.planteles || sesion.planteles.length === 0)) {
+          setPendingRoute(rutaDestino);
+          setShowModalConfig(true);
           return;
         }
-        if (data.redirect) {
-          window.location.href = data.redirect.replace('.html', '');
-        }
+
+        await Swal.fire({
+          icon: 'success',
+          title: '¡Bienvenido!',
+          text: nombre ? `Hola, ${nombre}` : 'Inicio de sesión correcto.',
+          timer: 1600,
+          timerProgressBar: true,
+          showConfirmButton: false,
+        });
+        navigate(rutaDestino);
       } catch (err) {
         console.error(err);
       }

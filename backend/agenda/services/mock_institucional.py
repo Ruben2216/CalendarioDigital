@@ -1,4 +1,15 @@
+import json
+import os
+
 import requests
+
+# Mocks de desarrollo: cargados desde MOCK_DATOS_CORREO en .env (JSON).
+# Si el correo está aquí, se devuelve directamente sin llamar a la API real.
+_MOCK_CORREOS: dict[str, dict] = {}
+try:
+    _MOCK_CORREOS = json.loads(os.environ.get('MOCK_DATOS_CORREO', '{}'))
+except Exception:
+    pass
 
 FALLO_EMPLEADO = {
     "exito": False, "statusLogueo": False,
@@ -47,6 +58,8 @@ def login_alumno(usuario: str, password: str) -> dict:
 
 
 def obtener_datos_por_correo(correo: str) -> dict:
+    if correo in _MOCK_CORREOS:
+        return _MOCK_CORREOS[correo]
     try:
         resp = requests.post(
             _URL_DATOS_POR_CORREO,
