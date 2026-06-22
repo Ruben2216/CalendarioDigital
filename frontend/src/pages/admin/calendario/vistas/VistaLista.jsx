@@ -50,20 +50,23 @@ export default function VistaLista({ eventos, fechaActual, colorTipo, etiquetaTi
                   {ev.horaInicio ? formatoHora(ev.horaInicio) : "Todo el día"}
                 </span>
 
-                <span className={`${styles["lista__punto"]} ${styles[`lista__punto--${colorTipo(ev.tipo)}`]}`} />
-
                 <div className={styles["lista__info"]}>
                   <span className={styles["lista__titulo"]}>{ev.titulo}</span>
                   <span className={styles["lista__sub"]}>
-                    {ev.area}
-                    {ev.lugar ? ` · ${ev.lugar}` : ""}
-                    {ev.plantel ? ` · ${ev.plantel}` : ""}
-                    {ev.turno ? ` · ${ev.turno}` : ""}
-                    {(ev.semestre != null || ev.grupo != null) ? ` · ${alcanceEvento(ev)}` : ""}
+                    {[
+                      ev.area,
+                      ev.lugar,
+                      ev.plantel,
+                      ev.turno,
+                      (ev.semestre != null || ev.grupo != null) ? alcanceEvento(ev) : null,
+                    ].filter(Boolean).join(" · ")}
                   </span>
                 </div>
 
-                <span className={`etiqueta etiqueta--${colorTipo(ev.tipo)} ${styles["lista__tipo"]}`}>
+                <span
+                  className={`etiqueta ${styles["lista__tipo"]}`}
+                  style={{ backgroundColor: colorTipo(ev.tipo) + '20', color: colorTipo(ev.tipo) }}
+                >
                   {etiquetaTipo(ev.tipo)}
                 </span>
 

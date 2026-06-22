@@ -56,22 +56,6 @@
   color: #15233d;
 }
 
-.lista__punto {
-  flex: none;
-  width: 11px;
-  height: 11px;
-  border-radius: 50%;
-}
-
-.lista__punto--azul { background: var(--blue); }
-.lista__punto--naranja { background: var(--orange); }
-.lista__punto--morado { background: var(--purple); }
-.lista__punto--verde { background: var(--green); }
-.lista__punto--teal { background: var(--teal); }
-.lista__punto--marino { background: var(--marino); }
-.lista__punto--rojo { background: var(--red); }
-.lista__punto--gris { background: var(--muted-2); }
-
 .lista__info {
   flex: 1;
   min-width: 0;
