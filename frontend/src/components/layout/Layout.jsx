@@ -4,9 +4,9 @@ import { useLogout } from "../../hooks/useLogout.js";
 import { LayoutDashboard, Calendar, Users, MessageSquare, Megaphone, Menu, Bell, ChevronDown, LogOut, CheckCheck, Trash2 } from "lucide-react";
 import Modal from "../modal/Modal.jsx";
 import logoCobach from "../../assets/img/logo-cobach.png";
-import { NOTIFICACIONES } from "../../data/avisos.js";
 import { ZONA } from "../../lib/fechas.js";
 import { leerSesion } from "../../hooks/useSesion.js";
+import { useNotificaciones } from "../../hooks/useNotificaciones.js";
 import { refrescarSesion } from "../../services/authService.js";
 import { useMensajeriaCtx } from "../../context/MensajeriaContext.jsx";
 import styles from "./Layout.module.css";
@@ -43,7 +43,7 @@ export default function Layout() {
     () => !window.matchMedia("(max-width: 920px)").matches
   );
   const [notifAbierto, setNotifAbierto] = useState(false);
-  const [notificaciones, setNotificaciones] = useState(NOTIFICACIONES);
+  const { notificaciones, notifSinLeer, marcarTodasLeidas, limpiarNotificaciones } = useNotificaciones();
   const [cerrarSesionAbierto, setCerrarSesionAbierto] = useState(false);
   const [perfilAbierto, setPerfilAbierto] = useState(false);
 
@@ -98,10 +98,6 @@ export default function Layout() {
     if (esMovil) setMenuAbierto(false);
   };
 
-  const notifSinLeer = notificaciones.filter((n) => n.sinLeer).length;
-  const marcarTodasLeidas = () =>
-    setNotificaciones((prev) => prev.map((n) => ({ ...n, sinLeer: false })));
-  const limpiarNotificaciones = () => setNotificaciones([]);
 
   return (
     <div

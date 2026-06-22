@@ -7,10 +7,10 @@ import BuscadorPlantelInline from "../buscador-plantel/BuscadorPlantelInline.jsx
 import Modal from "../modal/Modal.jsx";
 import SolicitudAdmin from "../solicitud-admin/SolicitudAdmin.jsx";
 import logoCobach from "../../assets/img/logo-cobach.png";
-import { NOTIFICACIONES } from "../../data/avisos.js";
 import { ZONA } from "../../lib/fechas.js";
 import { useSesion } from "../../hooks/useSesion.js";
 import { useAnunciosNoLeidos } from "../../hooks/useAnunciosNoLeidos.js";
+import { useNotificaciones } from "../../hooks/useNotificaciones.js";
 import { useMensajeriaCtx } from "../../context/MensajeriaContext.jsx";
 import styles from "./Layout.module.css";
 
@@ -63,7 +63,7 @@ export default function LayoutDocente() {
     () => !window.matchMedia("(max-width: 920px)").matches
   );
   const [notifAbierto, setNotifAbierto] = useState(false);
-  const [notificaciones, setNotificaciones] = useState(NOTIFICACIONES);
+  const { notificaciones, notifSinLeer, marcarTodasLeidas, limpiarNotificaciones } = useNotificaciones();
   const [cerrarSesionAbierto, setCerrarSesionAbierto] = useState(false);
   const [solicitudAbierto, setSolicitudAbierto] = useState(false);
   const [perfilAbierto, setPerfilAbierto] = useState(false);
@@ -185,10 +185,6 @@ export default function LayoutDocente() {
     if (esMovil) setMenuAbierto(false);
   };
 
-  const notifSinLeer = notificaciones.filter((n) => n.sinLeer).length;
-  const marcarTodasLeidas = () =>
-    setNotificaciones((prev) => prev.map((n) => ({ ...n, sinLeer: false })));
-  const limpiarNotificaciones = () => setNotificaciones([]);
 
   return (
     <div

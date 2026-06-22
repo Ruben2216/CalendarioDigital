@@ -9,7 +9,7 @@ import {
   ZONA, NOMBRES_MES, ABREV_MES, ahoraMexico, aClaveFecha, desdeClaveFecha,
   formatoHora, formatoFechaLarga,
 } from "../../../lib/fechas.js";
-import { NOTIFICACIONES } from "../../../data/avisos.js";
+import { useNotificaciones } from "../../../hooks/useNotificaciones.js";
 import ListaAnuncios from "../../../components/anuncios/ListaAnuncios.jsx";
 import TarjetaColapsable from "../../../components/tarjeta-colapsable/TarjetaColapsable.jsx";
 import { useCalendarioEventos } from "../../../hooks/useCalendarioEventos.js";
@@ -121,7 +121,7 @@ export default function Dashboard() {
     });
   }, [mesVisible, eventosPorFecha, claveHoy]);
 
-  const notifSinLeer = NOTIFICACIONES.filter((n) => n.sinLeer).length;
+  const { notificaciones, notifSinLeer } = useNotificaciones();
 
   const irMes = (delta) =>
     setMesVisible((prev) => new Date(prev.getFullYear(), prev.getMonth() + delta, 1));
@@ -163,7 +163,7 @@ export default function Dashboard() {
               <Bell size={21} />
             </span>
             <div>
-              <div className={styles["indicador__valor"]}>{NOTIFICACIONES.length}</div>
+              <div className={styles["indicador__valor"]}>{notificaciones.length}</div>
               <div className={styles["indicador__etiqueta"]}>Notificaciones pendientes</div>
               <div className={`${styles["indicador__nota"]} ${styles["indicador__nota--alerta"]}`}>
                 <AlertCircle size={12} />
@@ -253,20 +253,24 @@ export default function Dashboard() {
             }
           >
             <div className={styles["notif-lista"]}>
-              {NOTIFICACIONES.slice(0, 5).map(({ id, icono: Icono, color, titulo, subtitulo, sinLeer }) => (
-                <div
-                  key={id}
-                  className={`${styles["notif-fila"]} ${sinLeer ? styles["notif-fila--sin-leer"] : ""}`}
-                >
-                  <span className={`${styles["notif-fila__icono"]} ${styles[`notif-fila__icono--${color}`]}`}>
-                    <Icono size={15} />
-                  </span>
-                  <div className={styles["notif-fila__copia"]}>
-                    <p className={styles["notif-fila__titulo"]}>{titulo}</p>
-                    <span className={styles["notif-fila__subtitulo"]}>{subtitulo}</span>
+              {notificaciones.length === 0 ? (
+                <p className={styles["eventos__vacio"]}>No tienes notificaciones.</p>
+              ) : (
+                notificaciones.slice(0, 5).map(({ id, icono: Icono, color, titulo, subtitulo, sinLeer }) => (
+                  <div
+                    key={id}
+                    className={`${styles["notif-fila"]} ${sinLeer ? styles["notif-fila--sin-leer"] : ""}`}
+                  >
+                    <span className={`${styles["notif-fila__icono"]} ${styles[`notif-fila__icono--${color}`]}`}>
+                      <Icono size={15} />
+                    </span>
+                    <div className={styles["notif-fila__copia"]}>
+                      <p className={styles["notif-fila__titulo"]}>{titulo}</p>
+                      <span className={styles["notif-fila__subtitulo"]}>{subtitulo}</span>
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </TarjetaColapsable>
         </div>

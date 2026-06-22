@@ -6,6 +6,7 @@ import calendarImg from "../../assets/img/imagen-login.jpg";
 import "./login.css";
 import Swal from 'sweetalert2';
 import { loginInstitucional, guardarSesion, guardarConfiguracionPlanteles } from '../../services/authService';
+import { inicializarNotificaciones } from '../../services/pushService';
 import ModalConfiguracion from '../../components/ModalConfiguracion';
 
 const ROLES = [
@@ -40,6 +41,24 @@ export default function Login() {
   useEffect(() => {
     roleRef.current = role;
   }, [role]);
+
+  // Si el usuario ya tiene sesión se envia directo a su interfaz en lugar de mostrarle el login
+  // siempre y cuando le de click a la push notificacion
+  useEffect(() => {
+    const token = localStorage.getItem('authToken');
+    const raw = localStorage.getItem('sesion');
+    if (!token || !raw) return;
+    let s;
+    try { s = JSON.parse(raw); } catch { return; }
+    const rol = s?.rol;
+    if (!rol) return;
+    const destino =
+      rol === 'docente' ? '/docente/inicio'
+        : rol === 'alumno' ? '/alumno/inicio'
+          : rol === 'tutor' ? '/tutor/calendario'
+            : '/dashboard';
+    navigate(destino, { replace: true });
+  }, [navigate]);
 
   useEffect(() => {
     const hash = window.location.hash.slice(1);
@@ -181,6 +200,16 @@ export default function Login() {
 
     const { token, nombre, sesion } = resultado.datos;
     guardarSesion(token, { ...sesion, nombre });
+
+    // Notificaciones push (FCM): pide permiso, obtiene el token y lo registra
+    const planoNotif = sesion.plantel
+      ?? (Array.isArray(sesion.planteles) ? sesion.planteles[0]?.plantel : null);
+    inicializarNotificaciones({
+      id_usuario: sesion.id_usuario ?? null,
+      rol: sesion.rol ?? role,
+      plantel_id: planoNotif?.id ?? null,
+      plantel_nombre: planoNotif?.nombre ?? null,
+    }).catch(() => {});
 
     const rolDestino = sesion?.rol ?? role;
     const rutaDestino =

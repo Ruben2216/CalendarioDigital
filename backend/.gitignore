@@ -10,3 +10,4 @@ db.sqlite3
 .mypy_cache/
 .coverage
 htmlcov/
+firebase-credentials.json

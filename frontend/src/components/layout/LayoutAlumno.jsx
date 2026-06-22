@@ -4,10 +4,10 @@ import { useLogout } from "../../hooks/useLogout.js";
 import { Home, Calendar, Menu, Bell, ChevronDown, LogOut, CheckCheck, Trash2, Megaphone } from "lucide-react";
 import Modal from "../modal/Modal.jsx";
 import logoCobach from "../../assets/img/logo-cobach.png";
-import { NOTIFICACIONES } from "../../data/avisos.js";
 import { ZONA } from "../../lib/fechas.js";
 import { useSesion } from "../../hooks/useSesion.js";
 import { useAnunciosNoLeidos } from "../../hooks/useAnunciosNoLeidos.js";
+import { useNotificaciones } from "../../hooks/useNotificaciones.js";
 import styles from "./Layout.module.css";
 
 const ROL_ETIQUETA = {
@@ -41,7 +41,7 @@ export default function LayoutAlumno() {
     () => !window.matchMedia("(max-width: 920px)").matches
   );
   const [notifAbierto, setNotifAbierto] = useState(false);
-  const [notificaciones, setNotificaciones] = useState(NOTIFICACIONES);
+  const { notificaciones, notifSinLeer, marcarTodasLeidas, limpiarNotificaciones } = useNotificaciones();
   const [cerrarSesionAbierto, setCerrarSesionAbierto] = useState(false);
   const [perfilAbierto, setPerfilAbierto] = useState(false);
 
@@ -95,11 +95,6 @@ export default function LayoutAlumno() {
   const cerrarMenuMovil = () => {
     if (esMovil) setMenuAbierto(false);
   };
-
-  const notifSinLeer = notificaciones.filter((n) => n.sinLeer).length;
-  const marcarTodasLeidas = () =>
-    setNotificaciones((prev) => prev.map((n) => ({ ...n, sinLeer: false })));
-  const limpiarNotificaciones = () => setNotificaciones([]);
 
   return (
     <div

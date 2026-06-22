@@ -1,6 +1,7 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom";
 import { MensajeriaProvider } from "./context/MensajeriaContext.jsx";
+import { inicializarNotificaciones } from "./services/pushService.js";
 import Login from "./pages/login/login.jsx";
 import Layout from "./components/layout/Layout.jsx";
 import LayoutDocente from "./components/layout/LayoutDocente.jsx";
@@ -41,6 +42,23 @@ function ProtectedRoute({ roles }) {
 }
 
 function App() {
+  // Registra el token FCM también al recargar la app si ya hay sesión iniciada
+  useEffect(() => {
+    const raw = localStorage.getItem('sesion');
+    if (!raw) return;
+    let s;
+    try { s = JSON.parse(raw); } catch { return; }
+    if (!s?.rol || s.rol === 'tutor') return;
+
+    const plano = s.plantel ?? (Array.isArray(s.planteles) ? s.planteles[0]?.plantel : null);
+    inicializarNotificaciones({
+      id_usuario: s.id_usuario ?? null,
+      rol: s.rol,
+      plantel_id: plano?.id ?? null,
+      plantel_nombre: plano?.nombre ?? null,
+    }).catch(() => {});
+  }, []);
+
   return (
     <BrowserRouter>
       <Routes>
