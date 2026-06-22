@@ -1344,9 +1344,16 @@ class GoogleAuthView(APIView):
         if not correo.endswith('@cobach.edu.mx'):
             return Response(status=status.HTTP_204_NO_CONTENT)
 
-        # Si el acceso es como alumno, verificamos contra la API institucional
-        # que el correo realmente pertenezca a un alumno.
-        if role == 'alumno' and not es_alumno(obtener_datos_por_correo(correo)):
+        # Verificar estatus activo en la API institucional
+        datos_institucional = obtener_datos_por_correo(correo)
+        if (datos_institucional.get('estatus') or '').strip().upper() != 'ACTIVO':
+            return Response(
+                {'error': 'Cuenta inactiva en el sistema institucional.'},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        # Para alumnos: verificar que el correo corresponda a un alumno
+        if role == 'alumno' and not es_alumno(datos_institucional):
             return Response(status=status.HTTP_403_FORBIDDEN)
 
         origin = request.headers.get('origin') or request.META.get('HTTP_ORIGIN')
@@ -1356,7 +1363,7 @@ class GoogleAuthView(APIView):
         def origin_allowed(o):
             if not o:
                 return False
-            if "ngrok-free.app" in o:
+            if "devtunnels.ms" in o:
                 return True
             if o in allowed:
                 return True

@@ -5,7 +5,7 @@ import styles from './SelectorDocente.module.css';
 const BACKEND =
   window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
     ? 'http://localhost:8000'
-    : (import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000');
+    : (import.meta.env.VITE_BACKEND_URL ?? '');
 
 function iniciales(nombre) {
   return (nombre || '')
@@ -29,7 +29,7 @@ export default function SelectorDocente({ abierto, onCerrar, onSeleccionar, idPl
     const base = `${BACKEND}/api/usuarios/?excluir=superusuario,alumno${rol ? `&rol=${rol}` : ''}`;
     const url = esSuperadmin ? base : `${base}&plantel=${idPlantel}`;
 
-    fetch(url, { headers: { 'Accept': 'application/json', 'ngrok-skip-browser-warning': '1' } })
+    fetch(url, { headers: { 'Accept': 'application/json' } })
       .then((r) => r.json())
       .then((data) => setUsuarios(Array.isArray(data) ? data : data.usuarios ?? []))
       .catch(() => setError('No se pudieron cargar los usuarios.'))

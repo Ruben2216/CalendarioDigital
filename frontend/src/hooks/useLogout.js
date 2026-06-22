@@ -4,7 +4,7 @@ import { useSesion } from './useSesion.js';
 const BACKEND =
   window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
     ? 'http://localhost:8000'
-    : (import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000');
+    : (import.meta.env.VITE_BACKEND_URL ?? '');
 
 export function useLogout() {
   const navigate = useNavigate();
@@ -12,12 +12,9 @@ export function useLogout() {
 
   return async function cerrarSesion() {
     try {
-      const ngrokHeader = BACKEND.includes('ngrok-free.app')
-        ? { 'ngrok-skip-browser-warning': 'true' }
-        : {};
       await fetch(`${BACKEND}/api/auth/logout/`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...ngrokHeader },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id_usuario }),
       });
     } catch {

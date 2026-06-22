@@ -1,11 +1,9 @@
 const BACKEND =
   window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
     ? 'http://localhost:8000'
-    : (import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000');
+    : (import.meta.env.VITE_BACKEND_URL ?? '');
 
-const extraHeaders = BACKEND.includes('ngrok-free.app')
-  ? { 'ngrok-skip-browser-warning': 'true' }
-  : {};
+const extraHeaders = {};
 
 function apiFetch(url, options = {}) {
   return fetch(url, {

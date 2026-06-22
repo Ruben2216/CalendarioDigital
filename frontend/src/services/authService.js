@@ -1,10 +1,9 @@
-const BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
+const BASE_URL = import.meta.env.VITE_BACKEND_URL ?? '';
 
 function baseHeaders() {
     return {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
-        'ngrok-skip-browser-warning': '1',
     };
 }
 
@@ -41,7 +40,7 @@ export async function obtenerTurnos() {
 }
 
 export async function buscarUsuarios(q) {
-    const url = new URL(`${BASE_URL}/api/usuarios/`);
+    const url = new URL('/api/usuarios/', window.location.origin);
     url.searchParams.set('q', q);
     const respuesta = await fetch(url, { headers: baseHeaders() });
     if (!respuesta.ok) throw new Error('Error al buscar usuarios');
@@ -77,7 +76,7 @@ export async function refrescarSesion() {
         return sesion;
     }
     try {
-        const url = new URL(`${BASE_URL}/api/auth/sesion/`);
+        const url = new URL('/api/auth/sesion/', window.location.origin);
         url.searchParams.set('id_usuario', sesion.id_usuario);
         const respuesta = await fetch(url, { headers: baseHeaders() });
         if (!respuesta.ok) return sesion;

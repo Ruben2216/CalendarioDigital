@@ -1,12 +1,11 @@
 import { obtenerSesion } from './authService';
 
-const BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
+const BASE_URL = import.meta.env.VITE_BACKEND_URL ?? '';
 
 function headers() {
     return {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
-        'ngrok-skip-browser-warning': '1',
     };
 }
 
@@ -15,7 +14,7 @@ function idUsuario() {
 }
 
 export async function listarAnuncios({ publico = false, plantelFiltro = '' } = {}) {
-    const url = new URL(`${BASE_URL}/api/anuncios/`);
+    const url = new URL('/api/anuncios/', window.location.origin);
     const sesion = publico ? null : obtenerSesion();
     if (sesion) {
         if (sesion.id_usuario != null) url.searchParams.set('id_usuario', sesion.id_usuario);

@@ -1,12 +1,11 @@
 import { obtenerSesion } from './authService';
 
-const BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
+const BASE_URL = import.meta.env.VITE_BACKEND_URL ?? '';
 
 function headers() {
     return {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
-        'ngrok-skip-browser-warning': '1',
     };
 }
 
@@ -29,7 +28,7 @@ export async function listarTipos() {
 /* Eventos visibles del calendario como el alumno no existe en BD (datos desde la API) su visibilidad filtra por
 rol/plantel/turno, Los que no tienen cuenta no envían sesión */
 export async function listarEventos(idCalendario, { publico = false, plantelFiltro = '' } = {}) {
-    const url = new URL(`${BASE_URL}/api/eventos/`);
+    const url = new URL('/api/eventos/', window.location.origin);
     url.searchParams.set('id_calendario', idCalendario);
     const sesion = publico ? null : obtenerSesion();
     if (sesion) {

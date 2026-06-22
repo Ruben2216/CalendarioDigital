@@ -61,7 +61,7 @@ export default function Login() {
 
       const currentRole = roleRef.current;
       try {
-        let backendBase = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
+        let backendBase = import.meta.env.VITE_BACKEND_URL ?? '';
         if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
           backendBase = 'http://localhost:8000';
         }
@@ -72,7 +72,6 @@ export default function Login() {
             'Content-Type': 'application/json',
             'X-Requested-With': 'XMLHttpRequest',
             'Accept': 'application/json',
-            'ngrok-skip-browser-warning': '1',
           },
           body: JSON.stringify({ token: id_token, role: currentRole }),
         });
@@ -166,7 +165,7 @@ export default function Login() {
 
     if (isPublicAccess) {
       guardarSesion("tutor-public-token", { rol: "tutor", nombre: "Padre/Tutor" });
-      navigate("/tutor/calendario");
+      navigate("/tutor/calendario");  
       return;
     }
 

@@ -1,12 +1,11 @@
 import { obtenerSesion } from './authService';
 
-const BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
+const BASE_URL = import.meta.env.VITE_BACKEND_URL ?? '';
 
 function headers() {
     return {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
-        'ngrok-skip-browser-warning': '1',
     };
 }
 
@@ -39,7 +38,7 @@ export async function enviarSolicitud(payload) {
 
 // Lista de solicitudes (para admin/superusuario).
 export async function listarSolicitudes(estado) {
-    const url = new URL(`${BASE_URL}/api/solicitudes-admin/`);
+    const url = new URL('/api/solicitudes-admin/', window.location.origin);
     if (estado) url.searchParams.set('estado', estado);
     const resp = await fetch(url, { headers: headers() });
     if (!resp.ok) throw new Error('No se pudieron cargar las solicitudes.');
@@ -47,7 +46,7 @@ export async function listarSolicitudes(estado) {
 }
 
 export async function listarAdministradores() {
-    const url = new URL(`${BASE_URL}/api/usuarios/`);
+    const url = new URL('/api/usuarios/', window.location.origin);
     url.searchParams.set('rol', 'admin');
     const resp = await fetch(url, { headers: headers() });
     if (!resp.ok) throw new Error('No se pudieron cargar los administradores.');
