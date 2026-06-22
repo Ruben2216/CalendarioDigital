@@ -26,6 +26,8 @@ from agenda.views import (
     EventoDetailView,
     AnuncioListView,
     AnuncioDetailView,
+    RegistrarDispositivoView,
+    NotificacionListView,
 )
 
 urlpatterns = [
@@ -46,6 +48,11 @@ urlpatterns = [
     # Anuncios
     path('api/anuncios/', AnuncioListView.as_view(), name='anuncios'),
     path('api/anuncios/<int:id_anuncio>/', AnuncioDetailView.as_view(), name='anuncio-detail'),
+
+    # Notificaciones push (FCM)
+    path('api/dispositivos/registrar/', RegistrarDispositivoView.as_view(), name='registrar-dispositivo'),
+    # Centro de notificaciones (campana)
+    path('api/notificaciones/', NotificacionListView.as_view(), name='notificaciones'),
 
     # Solicitudes de acceso de administrador (docente → admin)
     path('api/solicitudes-admin/', SolicitudAdminView.as_view(), name='solicitudes-admin'),

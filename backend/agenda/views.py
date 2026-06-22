@@ -23,7 +23,13 @@ from datetime import date as _date, time as _time
 from .models import (
     Usuario, Rol, Conversacion, Mensaje, LecturaMensaje, SolicitudAdmin,
     UsuarioPlantel, Plantel, Turno, Calendario, TipoEvento, Evento, Anuncio,
+    DispositivoFCM, Notificacion,
 )
+from .services import notificaciones_push as push
+
+import logging
+
+logger = logging.getLogger(__name__)
 
 ROLES_EMPLEADO = {'superusuario', 'admin', 'docente'}
 
@@ -1235,6 +1241,21 @@ class AnuncioListView(APIView):
 
         anuncio = Anuncio.objects.create(creado_por=usuario, **datos)
         anuncio = Anuncio.objects.select_related('plantel', 'creado_por__rol').get(pk=anuncio.pk)
+
+        Notificacion.objects.create(
+            categoria=Notificacion.CATEGORIA_ANUNCIO,
+            titulo=anuncio.titulo,
+            mensaje=anuncio.descripcion,
+            audiencia=anuncio.audiencia,
+            plantel=anuncio.plantel,
+            referencia_id=anuncio.id_anuncio,
+        )
+
+        try:
+            push.enviar_anuncio(anuncio)
+        except Exception:
+            logger.exception('Fallo al enviar push del anuncio %s', anuncio.id_anuncio)
+
         return Response(_anuncio_dict(anuncio, usuario), status=status.HTTP_201_CREATED)
 
     @staticmethod
@@ -1304,6 +1325,129 @@ class AnuncioDetailView(APIView):
             return Response({'error': 'No autorizado.'}, status=status.HTTP_403_FORBIDDEN)
         anuncio.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class RegistrarDispositivoView(APIView):
+    """Registra (o actualiza) el token FCM de un dispositivo y lo suscribe
+    a sus temas: tema_todos, tema_rol_{rol} y, si se conoce, tema_plantel_{id}.
+
+    Acepta el plantel por id (`plantel_id`) o por nombre (`plantel_nombre` /
+    `plantel`). El nombre se resuelve con _planteles_equivalentes para cubrir
+    a los alumnos, cuyo plantel llega sin id desde la API institucional.
+    """
+
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        d = request.data
+        token = (d.get('token_fcm') or '').strip()
+        if not token:
+            return Response({'error': 'token_fcm requerido.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        rol = (d.get('rol') or '').strip()
+
+        # Los empleados tienen pk numérico en la BD local; los alumnos llegan
+        # con un id externo (GUID/matrícula) que NO existe como Usuario local.
+        usuario = None
+        id_usuario = d.get('id_usuario')
+        id_externo = d.get('id_externo') or d.get('matricula')
+        if id_usuario is not None and str(id_usuario).isdigit():
+            usuario = Usuario.objects.filter(pk=int(id_usuario), activo=True).first()
+        elif id_usuario is not None and not id_externo:
+            id_externo = str(id_usuario)
+
+        plantel = None
+        plantel_id = d.get('plantel_id')
+        plantel_nombre = d.get('plantel_nombre') or d.get('plantel')
+        if plantel_id is not None and str(plantel_id).isdigit():
+            plantel = Plantel.objects.filter(pk=int(plantel_id)).first()
+        elif plantel_nombre:
+            ids = _planteles_equivalentes(plantel_nombre)
+            plantel = Plantel.objects.filter(pk__in=ids).first()
+
+        DispositivoFCM.objects.update_or_create(
+            token_fcm=token,
+            defaults={
+                'usuario': usuario,
+                'id_externo': str(id_externo) if id_externo else None,
+                'rol': rol,
+                'plantel': plantel,
+                'activo': True,
+            },
+        )
+
+        temas = [push.TEMA_TODOS]
+        if rol:
+            temas.append(push.tema_rol(rol))
+        if plantel:
+            temas.append(push.tema_plantel(plantel.id_plantel))
+
+        try:
+            push.suscribir(token, temas)
+        except Exception:
+            logger.exception('Fallo al suscribir el token a los temas %s', temas)
+            return Response(
+                {'ok': True, 'temas': temas, 'aviso': 'Registrado, pero la suscripción a temas falló.'},
+                status=status.HTTP_201_CREATED,
+            )
+
+        return Response({'ok': True, 'temas': temas}, status=status.HTTP_201_CREATED)
+
+
+def _notif_dict(n):
+    return {
+        'id': n.id_notificacion,
+        'categoria': n.categoria,
+        'titulo': n.titulo,
+        'mensaje': n.mensaje,
+        'plantel': n.plantel.nombre if n.plantel else None,
+        'referencia_id': n.referencia_id,
+        'fecha': n.fecha_creacion.isoformat(),
+    }
+
+
+class NotificacionListView(APIView):
+    """Centro de notificaciones (campana). Devuelve las notificaciones que le
+    corresponden al usuario según su rol y plantel, con el mismo criterio que
+    los anuncios. El estado 'leído' se gestiona en el cliente."""
+
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        qs = Notificacion.objects.select_related('plantel')
+        usuario = _usuario_sesion(request)
+        general = Q(plantel__isnull=True)
+
+        if usuario:
+            rol = usuario.rol.nombre_rol
+            if rol == 'superusuario':
+                nombre_filtro = request.query_params.get('plantel_filtro')
+                if nombre_filtro:
+                    qs = qs.filter(general | Q(plantel__nombre=nombre_filtro))
+                else:
+                    qs = qs.filter(general)
+            elif rol == 'admin':
+                planteles = list(usuario.planteles_asignados.values_list('plantel_id', flat=True))
+                qs = qs.filter(general | Q(plantel_id__in=planteles))
+            else:
+                planteles = list(usuario.planteles_asignados.values_list('plantel_id', flat=True))
+                qs = qs.filter(
+                    (general | Q(plantel_id__in=planteles))
+                    & Q(audiencia__in=['todos', rol])
+                )
+        else:
+            rol = request.query_params.get('rol')
+            plantel_nombre = request.query_params.get('plantel')
+            if rol == 'alumno' and plantel_nombre:
+                ids = _planteles_equivalentes(plantel_nombre)
+                qs = qs.filter(
+                    (general | Q(plantel_id__in=ids))
+                    & Q(audiencia__in=['todos', 'alumno'])
+                )
+            else:
+                qs = qs.filter(general & Q(audiencia='todos'))
+
+        return Response([_notif_dict(n) for n in qs[:50]])
 
 
 class GoogleAuthView(APIView):

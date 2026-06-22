@@ -334,30 +334,30 @@ class LecturaMensaje(models.Model):
 
 
 class Notificacion(models.Model):
-    TIPOS = [
-        ('evento_creado',      'Evento creado'),
-        ('evento_actualizado', 'Evento actualizado'),
-        ('evento_eliminado',   'Evento eliminado'),
-        ('recordatorio',       'Recordatorio'),
+    CATEGORIA_ANUNCIO = 'anuncio'
+    CATEGORIA_EVENTO = 'evento'
+    CATEGORIAS = [
+        (CATEGORIA_ANUNCIO, 'Anuncio'),
+        (CATEGORIA_EVENTO, 'Evento'),
     ]
 
     id_notificacion = models.BigAutoField(primary_key=True)
-    usuario        = models.ForeignKey(
-        Usuario, on_delete=models.CASCADE, related_name='notificaciones'
-    )
+    categoria      = models.CharField(max_length=20, choices=CATEGORIAS, default=CATEGORIA_ANUNCIO)
     titulo         = models.CharField(max_length=200)
-    mensaje        = models.TextField()
-    tipo           = models.CharField(max_length=30, choices=TIPOS)
-    evento_titulo  = models.CharField(max_length=200)
-    leida          = models.BooleanField(default=False)
+    mensaje        = models.TextField(blank=True, default='')
+    audiencia      = models.CharField(max_length=20, default='todos')
+    plantel        = models.ForeignKey(
+        Plantel, on_delete=models.CASCADE, null=True, blank=True, related_name='notificaciones'
+    )
+    referencia_id  = models.BigIntegerField(null=True, blank=True)  # id del anuncio/evento origen
     fecha_creacion = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         db_table = 'Notificacion'
-        ordering = ['-leida', '-fecha_creacion']
+        ordering = ['-fecha_creacion']
 
     def __str__(self):
-        return f'[{self.tipo}] {self.titulo} → {self.usuario.correo}'
+        return f'[{self.categoria}] {self.titulo}'
 
 
 class SolicitudAdmin(models.Model):
@@ -397,3 +397,28 @@ class SolicitudAdmin(models.Model):
 
     def __str__(self):
         return f'{self.correo} ({self.estado})'
+
+
+class DispositivoFCM(models.Model):
+    id_dispositivo = models.BigAutoField(primary_key=True)
+    usuario = models.ForeignKey(
+        Usuario, on_delete=models.CASCADE, null=True, blank=True,
+        related_name='dispositivos'
+    )
+    id_externo = models.CharField(max_length=100, null=True, blank=True)
+    rol = models.CharField(max_length=50)
+    plantel = models.ForeignKey(
+        Plantel, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='dispositivos'
+    )
+    token_fcm = models.CharField(max_length=255, unique=True)
+    activo = models.BooleanField(default=True)
+    fecha_registro = models.DateTimeField(auto_now_add=True)
+    fecha_actualizacion = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'DispositivoFCM'
+        ordering = ['-fecha_actualizacion']
+
+    def __str__(self):
+        return f'{self.token_fcm[:12]}… ({self.rol})'

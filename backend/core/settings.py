@@ -133,6 +133,11 @@ STATIC_URL = 'static/'
 
 GOOGLE_OAUTH2_CLIENT_ID = os.environ.get('GOOGLE_OAUTH2_CLIENT_ID', '')
 
+FIREBASE_CREDENTIALS_FILE = os.environ.get(
+    'FIREBASE_CREDENTIALS_FILE',
+    os.path.join(BASE_DIR, 'firebase-credentials.json'),
+)
+
 FRONTEND_DASHBOARD_URL = os.environ.get('FRONTEND_DASHBOARD_URL', 'http://localhost:5173/dashboard')
 
 REST_FRAMEWORK = {
