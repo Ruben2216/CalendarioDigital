@@ -27,7 +27,6 @@ export default defineConfig(({ mode }) => {
       hmr,
       proxy: {
         '/api': {
-          target: 'http://localhost:8000',
           target: env.VITE_PROXY_TARGET || 'http://localhost:8000',
           changeOrigin: true,
         },

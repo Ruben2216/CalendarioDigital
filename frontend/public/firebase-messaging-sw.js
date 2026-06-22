@@ -15,8 +15,10 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const messaging = firebase.messaging();
 
+self.addEventListener('install', () => self.skipWaiting());
+self.addEventListener('activate', (event) => event.waitUntil(self.clients.claim()));
+
 messaging.onBackgroundMessage((payload) => {
-  console.log('Mensaje recibido en segundo plano: ', payload);
   const datos = payload.data || {};
   const notificationTitle = datos.title || 'Notificación';
   const notificationOptions = {
@@ -24,7 +26,7 @@ messaging.onBackgroundMessage((payload) => {
     icon: '/icono.png',
     data: { url: datos.url || '/' }
   };
-  self.registration.showNotification(notificationTitle, notificationOptions);
+  return self.registration.showNotification(notificationTitle, notificationOptions);
 });
 
 // Al tocar la notificación: enfoca la app si ya está abierta, o la abre.

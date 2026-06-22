@@ -857,7 +857,9 @@ class TipoEventoListView(APIView):
                 tipos = TipoEvento.objects.select_related('plantel').all()
             elif rol == 'admin':
                 ids = list(usuario.planteles_asignados.values_list('plantel_id', flat=True))
-                tipos = TipoEvento.objects.filter(plantel_id__in=ids)
+                tipos = TipoEvento.objects.filter(
+                    Q(plantel__isnull=True) | Q(plantel_id__in=ids)
+                )
             else:
                 ids = list(usuario.planteles_asignados.values_list('plantel_id', flat=True))
                 tipos = TipoEvento.objects.filter(
@@ -1006,6 +1008,38 @@ def _planteles_equivalentes(nombre):
             ids.append(p.id_plantel)
     return ids
 
+
+def _notificar_evento(evento, accion):
+    etiquetas = {
+        'creado': 'Nuevo evento',
+        'actualizado': 'Evento actualizado',
+        'eliminado': 'Evento cancelado',
+    }
+    titulo = f"{etiquetas.get(accion, 'Evento')}: {evento.titulo}"
+    partes = [evento.fecha_inicio.strftime('%d/%m/%Y')]
+    if evento.lugar:
+        partes.append(evento.lugar)
+    mensaje = ' · '.join(partes)
+
+    Notificacion.objects.create(
+        categoria=Notificacion.CATEGORIA_EVENTO,
+        titulo=titulo,
+        mensaje=mensaje,
+        audiencia='todos',
+        plantel=evento.plantel,
+        referencia_id=evento.id_evento,
+    )
+
+    temas = [push.tema_plantel(evento.plantel_id)] if evento.plantel_id else [push.TEMA_TODOS]
+    try:
+        push.enviar_a_temas(temas, titulo, mensaje, {
+            'tipo': f'evento_{accion}',
+            'id_evento': evento.id_evento,
+        })
+    except Exception:
+        logger.exception('Fallo al enviar push del evento %s', evento.id_evento)
+
+
 class EventoListView(APIView):
     permission_classes = [permissions.AllowAny]
 
@@ -1075,6 +1109,7 @@ class EventoListView(APIView):
 
         evento = Evento.objects.create(creado_por=usuario, **datos)
         evento = Evento.objects.select_related('tipo_evento', 'plantel', 'turno', 'creado_por__rol').get(pk=evento.pk)
+        _notificar_evento(evento, 'creado')
         return Response(_evento_dict(evento, usuario), status=status.HTTP_201_CREATED)
 
     @staticmethod
@@ -1109,9 +1144,9 @@ class EventoListView(APIView):
             if not par_valido:
                 return None, 'Solo puedes crear eventos en tu plantel asignado.'
             ids_plantel = [a.plantel_id for a in asignaciones]
-            if tipo.plantel_id is None:
-                return None, 'Los tipos de evento del calendario general no se pueden usar aquí. Crea tus propios tipos desde el panel de Simbología.'
-            if tipo.plantel_id not in ids_plantel:
+            # Permitidos: tipos generales (sin plantel, institucionales) o los del
+            # propio plantel. Solo se rechazan los de OTRO plantel.
+            if tipo.plantel_id is not None and tipo.plantel_id not in ids_plantel:
                 return None, 'El tipo de evento no pertenece a tu catálogo de plantel.'
             turno = par_valido.turno
 
@@ -1160,6 +1195,7 @@ class EventoDetailView(APIView):
             setattr(evento, campo, valor)
         evento.save()
         evento = Evento.objects.select_related('tipo_evento', 'plantel', 'turno', 'creado_por__rol').get(pk=evento.pk)
+        _notificar_evento(evento, 'actualizado')
         return Response(_evento_dict(evento, usuario))
 
     def delete(self, request, id_evento):
@@ -1168,6 +1204,7 @@ class EventoDetailView(APIView):
             return Response(status=status.HTTP_404_NOT_FOUND)
         if not evento.puede_editar(usuario):
             return Response({'error': 'No autorizado.'}, status=status.HTTP_403_FORBIDDEN)
+        _notificar_evento(evento, 'eliminado')  # antes de borrar: aún tiene los datos
         evento.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
