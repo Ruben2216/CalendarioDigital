@@ -61,7 +61,7 @@ export default function VistaMesMovil({
                 type="button"
                 className={[
                   styles["mes-movil__celda"],
-                  esHoy && !esSelec ? styles["mes-movil__celda--hoy"] : "",
+                  esHoy ? styles["mes-movil__celda--hoy"] : "",
                   esSelec ? styles["mes-movil__celda--selec"] : "",
                 ].join(" ")}
                 onClick={() => onSeleccionarDia(celda.clave)}

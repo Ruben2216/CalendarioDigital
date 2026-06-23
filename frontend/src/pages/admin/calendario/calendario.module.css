@@ -21,6 +21,11 @@
   overflow: hidden;
 }
 
+.calendario__encabezado > div {
+  min-width: 0;
+  max-width: 100%;
+}
+
 .calendario__titulo {
   margin: 0;
   font-family: var(--font-display);
@@ -34,6 +39,7 @@
 .calendario__semestre {
   margin-top: 8px;
   letter-spacing: 0.04em;
+  vertical-align: middle;
 }
 
 .calendario__lectura {
@@ -41,9 +47,11 @@
   align-items: center;
   gap: 5px;
   margin-top: 8px;
+  margin-left: 8px;
   font-size: 12px;
   font-weight: 600;
   color: var(--muted);
+  vertical-align: middle;
 }
 
 .calendario__lectura svg {
@@ -70,11 +78,17 @@
   min-width: 0;
   max-width: 100%;
   width: auto;
-  padding: 4px 28px 4px 8px;
+  padding: 4px 34px 4px 8px;
   margin-left: -4px;
   border: 1px solid transparent;
   border-radius: 10px;
-  background: transparent;
+  background-color: transparent;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23667085' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  background-size: 16px;
+  appearance: none;
+  -webkit-appearance: none;
   font-family: var(--font-display);
   font-size: 22px;
   line-height: 1.15;
@@ -82,14 +96,14 @@
   letter-spacing: -0.02em;
   color: #0f172a;
   cursor: pointer;
-  transition: background 0.15s ease, border-color 0.15s ease;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
   text-overflow: ellipsis;
   overflow: hidden;
   white-space: nowrap;
 }
 
 .calendario__titulo-selector:hover {
-  background: #f2f5f9;
+  background-color: #f2f5f9;
   border-color: var(--border);
 }
 
@@ -1253,6 +1267,35 @@
   .calendario__titulo-selector {
     font-size: 18px;
     letter-spacing: -0.01em;
+  }
+
+  .calendario__encabezado > div {
+    width: 100%;
+    text-align: center;
+  }
+
+  .calendario__titulo-selector {
+    width: 100%;
+    margin-left: 0;
+    padding: 8px 36px 8px 36px;
+    text-align: center;
+    text-align-last: center;
+    background-color: #fff;
+    border-color: var(--border, #dbe4f0);
+    box-shadow: 0 1px 3px rgba(9, 22, 48, 0.06);
+  }
+
+  .calendario__titulo-selector:hover {
+    background-color: #fff;
+  }
+
+  .picker {
+    position: fixed;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: min(330px, calc(100vw - 32px));
+    z-index: 60;
   }
 }
 
