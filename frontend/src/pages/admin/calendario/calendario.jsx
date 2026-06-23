@@ -39,6 +39,10 @@ import "./fullcalendar.css";
 
 const COLOR_GRIS = "#97a3b6";
 
+function randomColor() {
+  return "#" + Math.floor(Math.random() * 0xffffff).toString(16).padStart(6, "0").toUpperCase();
+}
+
 const VISTAS = [
   { id: "mes", etiqueta: "Mes", icono: CalendarDays, fc: "dayGridMonth" },
   { id: "semana", etiqueta: "Semana", icono: CalendarRange, fc: "timeGridWeek" },
@@ -155,7 +159,7 @@ export default function Calendario({ soloLectura = false, publico = false }) {
   const [editColor, setEditColor] = useState("#64748B");
   const [formTipoVisible, setFormTipoVisible] = useState(false);
   const [nuevoNombre, setNuevoNombre] = useState("");
-  const [nuevoColor, setNuevoColor] = useState("#64748B");
+  const [nuevoColor, setNuevoColor] = useState(randomColor);
   const [nuevoPlantelId, setNuevoPlantelId] = useState("");
 
   // null = verificando, false = no vinculado, { vinculado: true, email } = vinculado
@@ -711,7 +715,7 @@ export default function Calendario({ soloLectura = false, publico = false }) {
       const nuevo = await crearTipo({ nombre: nuevoNombre.trim(), color_hex: nuevoColor, plantel_id });
       setTipos((prev) => [...prev, nuevo]);
       setNuevoNombre("");
-      setNuevoColor("#64748B");
+      setNuevoColor(randomColor());
       setNuevoPlantelId("");
       setFormTipoVisible(false);
     } catch (err) {
