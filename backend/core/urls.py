@@ -29,6 +29,7 @@ from agenda.views import (
     AnuncioDetailView,
     RegistrarDispositivoView,
     NotificacionListView,
+    EstadisticasDashboardView,
 )
 
 urlpatterns = [
@@ -55,6 +56,9 @@ urlpatterns = [
     path('api/dispositivos/registrar/', RegistrarDispositivoView.as_view(), name='registrar-dispositivo'),
     # Centro de notificaciones (campana)
     path('api/notificaciones/', NotificacionListView.as_view(), name='notificaciones'),
+
+    # Estadísticas del dashboard (usuarios activos, etc.)
+    path('api/estadisticas/dashboard/', EstadisticasDashboardView.as_view(), name='estadisticas-dashboard'),
 
     # Solicitudes de acceso de administrador (docente → admin)
     path('api/solicitudes-admin/', SolicitudAdminView.as_view(), name='solicitudes-admin'),

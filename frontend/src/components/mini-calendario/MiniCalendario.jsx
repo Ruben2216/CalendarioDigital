@@ -64,6 +64,10 @@ export default function MiniCalendario({
   const irHoy = () => setMesVisible(new Date(hoy.getFullYear(), hoy.getMonth(), 1));
 
   const manejarClickDia = (celda) => {
+    if (celda.clave === fechaSeleccionada) {
+      setFechaSeleccionada(null);
+      return;
+    }
     setFechaSeleccionada(celda.clave);
     if (!celda.delMes) {
       const fecha = desdeClaveFecha(celda.clave);
@@ -137,13 +141,6 @@ export default function MiniCalendario({
             <span className={styles["dia-eventos__titulo"]}>
               {formatoFechaLarga(fechaSeleccionada)}
             </span>
-            <button
-              type="button"
-              className={styles["dia-eventos__limpiar"]}
-              onClick={() => setFechaSeleccionada(null)}
-            >
-              Limpiar
-            </button>
           </div>
 
           {eventosDelDia.length === 0 ? (
@@ -152,7 +149,6 @@ export default function MiniCalendario({
             <ul className={styles["dia-eventos__lista"]}>
               {eventosDelDia.map((ev) => (
                 <li key={ev.id} className={styles["dia-eventos__item"]}>
-                  <span className={styles["dia-eventos__marca"]} style={{ backgroundColor: colorTipo(ev.tipo) }} />
                   <div className={styles["dia-eventos__copia"]}>
                     <p className={styles["dia-eventos__nombre"]}>{ev.titulo}</p>
                     <div className={styles["dia-eventos__meta"]}>

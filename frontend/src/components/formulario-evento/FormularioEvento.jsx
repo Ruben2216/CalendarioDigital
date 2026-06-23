@@ -60,7 +60,18 @@ export default function FormularioEvento({
           />
         </div>
         <div className="formulario__campo">
-          <span className="formulario__etiqueta">Fecha fin (opcional)</span>
+          <span className={`formulario__etiqueta ${styles['etiqueta-fin']}`}>
+            Fecha fin (opcional)
+            {form.fechaFin && (
+              <button
+                type="button"
+                className={styles['limpiar-fecha']}
+                onClick={() => fij('fechaFin', '')}
+              >
+                Limpiar
+              </button>
+            )}
+          </span>
           <SelectorFecha
             value={form.fechaFin}
             min={form.fecha}

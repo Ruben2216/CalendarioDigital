@@ -41,7 +41,7 @@ export default function VistaMesMovil({
       <div className={`tarjeta ${styles["mes-movil__cal"]}`}>
         <div className={styles["mes-movil__cabecera"]}>
           {DIAS_SEMANA.map((d, i) => (
-            <span key={d} className={`${styles["mes-movil__dia-label"]} ${i === 0 ? styles["mes-movil__dia-label--dom"] : ""}`}>
+            <span key={d} className={`${styles["mes-movil__dia-label"]} ${i === 0 || i === 6 ? styles["mes-movil__dia-label--finde"] : ""}`}>
               {d}
             </span>
           ))}
@@ -61,13 +61,13 @@ export default function VistaMesMovil({
                 type="button"
                 className={[
                   styles["mes-movil__celda"],
-                  esHoy && !esSelec ? styles["mes-movil__celda--hoy"] : "",
+                  esHoy ? styles["mes-movil__celda--hoy"] : "",
                   esSelec ? styles["mes-movil__celda--selec"] : "",
                 ].join(" ")}
                 onClick={() => onSeleccionarDia(celda.clave)}
                 aria-label={`${celda.numero}${esHoy ? ", hoy" : ""}${eventos.length ? `, ${eventos.length} eventos` : ""}`}
               >
-                <span className={styles["mes-movil__num"]}>{celda.numero}</span>
+                <span className={`${styles["mes-movil__num"]} ${idx % 7 === 0 || idx % 7 === 6 ? styles["mes-movil__num--finde"] : ""}`}>{celda.numero}</span>
                 <span className={styles["mes-movil__puntos"]}>
                   {eventos.slice(0, 3).map((ev, i) => (
                     <span
@@ -99,23 +99,19 @@ export default function VistaMesMovil({
           <div className={styles["mes-movil__lista"]}>
             {eventosDelDia.map((ev) => (
               <div key={ev.id} className={styles["mes-movil__item"]}>
-                <span
-                  className={styles["mes-movil__item-barra"]}
-                  style={{ backgroundColor: colorTipo(ev.tipo) }}
-                />
                 <div className={styles["mes-movil__item-info"]}>
                   <span className={styles["mes-movil__item-titulo"]}>{ev.titulo}</span>
                   <span className={styles["mes-movil__item-hora"]}>
                     {ev.horaInicio ? formatoHora(ev.horaInicio) : "Todo el día"}
                     {ev.lugar ? ` · ${ev.lugar}` : ""}
                   </span>
+                  <span
+                    className={`etiqueta ${styles["mes-movil__item-tipo"]}`}
+                    style={{ backgroundColor: colorTipo(ev.tipo) + "20", color: colorTipo(ev.tipo) }}
+                  >
+                    {etiquetaTipo(ev.tipo)}
+                  </span>
                 </div>
-                <span
-                  className="etiqueta"
-                  style={{ backgroundColor: colorTipo(ev.tipo) + "20", color: colorTipo(ev.tipo) }}
-                >
-                  {etiquetaTipo(ev.tipo)}
-                </span>
                 {!soloLectura && ev.puede_editar && (
                   <div className={styles["mes-movil__item-acciones"]}>
                     <button type="button" onClick={() => onEditar(ev)} aria-label="Editar" title="Editar">

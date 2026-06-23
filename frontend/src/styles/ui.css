@@ -33,7 +33,7 @@
 .boton--primario {
   background: var(--blue);
   color: #fff;
-  box-shadow: 0 6px 16px rgba(1, 71, 212, 0.28);
+  box-shadow: 0 6px 16px rgba(2, 17, 56, 0.28);
 }
 
 .boton--primario:hover {

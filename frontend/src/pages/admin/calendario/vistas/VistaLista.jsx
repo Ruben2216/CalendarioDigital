@@ -46,9 +46,33 @@ export default function VistaLista({ eventos, fechaActual, colorTipo, etiquetaTi
                 className={styles["lista__fila"]}
                 onClick={() => onSeleccionarDia(g.clave)}
               >
-                <span className={styles["lista__hora"]}>
-                  {ev.horaInicio ? formatoHora(ev.horaInicio) : "Todo el día"}
-                </span>
+                <div className={styles["lista__cab"]}>
+                  <span className={styles["lista__hora"]}>
+                    {ev.horaInicio ? formatoHora(ev.horaInicio) : "Todo el día"}
+                  </span>
+
+                  {!soloLectura && (
+                    <div className={styles["lista__acciones"]}>
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); onEditar(ev); }}
+                        aria-label="Editar"
+                        title="Editar"
+                      >
+                        <Pencil size={15} />
+                      </button>
+                      <button
+                        type="button"
+                        className={styles["lista__borrar"]}
+                        onClick={(e) => { e.stopPropagation(); onEliminar(ev); }}
+                        aria-label="Eliminar"
+                        title="Eliminar"
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    </div>
+                  )}
+                </div>
 
                 <div className={styles["lista__info"]}>
                   <span className={styles["lista__titulo"]}>{ev.titulo}</span>
@@ -69,28 +93,6 @@ export default function VistaLista({ eventos, fechaActual, colorTipo, etiquetaTi
                 >
                   {etiquetaTipo(ev.tipo)}
                 </span>
-
-                {!soloLectura && (
-                  <div className={styles["lista__acciones"]}>
-                    <button
-                      type="button"
-                      onClick={(e) => { e.stopPropagation(); onEditar(ev); }}
-                      aria-label="Editar"
-                      title="Editar"
-                    >
-                      <Pencil size={15} />
-                    </button>
-                    <button
-                      type="button"
-                      className={styles["lista__borrar"]}
-                      onClick={(e) => { e.stopPropagation(); onEliminar(ev); }}
-                      aria-label="Eliminar"
-                      title="Eliminar"
-                    >
-                      <Trash2 size={15} />
-                    </button>
-                  </div>
-                )}
               </div>
             ))}
           </div>

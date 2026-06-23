@@ -8,7 +8,7 @@
 
 /* ── Mini calendar card ── */
 .mes-movil__cal {
-  padding: 16px 12px;
+  padding: 0;
   min-width: 0;
   overflow: hidden;
 }
@@ -16,6 +16,8 @@
 .mes-movil__cabecera {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
+  background: linear-gradient(180deg, #0a2060 0%, #021138 100%);
+  padding: 10px 8px;
   margin-bottom: 6px;
 }
 
@@ -24,18 +26,19 @@
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.02em;
-  color: var(--muted);
-  padding: 4px 0;
+  color: #fff;
+  padding: 2px 0;
 }
 
-.mes-movil__dia-label--dom {
-  color: var(--red, #e53e3e);
+.mes-movil__dia-label--finde {
+  color: #ff9b9b;
 }
 
 /* ── Days grid ── */
 .mes-movil__grid {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
+  padding: 4px 8px 10px;
 }
 
 .mes-movil__celda {
@@ -76,13 +79,28 @@
   flex: none;
 }
 
+.mes-movil__num--finde {
+  color: var(--red, #e53e3e);
+}
+
 .mes-movil__celda--hoy .mes-movil__num {
-  background: #0a2060;
+  background: var(--blue, #0a2060);
   color: #fff;
 }
 
 .mes-movil__celda--selec .mes-movil__num {
-  background: var(--blue, #1a56db);
+  box-shadow: 0 0 0 2px var(--blue, #0a2060);
+}
+
+.mes-movil__celda--hoy.mes-movil__celda--selec .mes-movil__num {
+  background: var(--blue, #0a2060);
+  color: #fff;
+  box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--blue, #0a2060);
+}
+
+.mes-movil__celda--hoy:hover .mes-movil__num,
+.mes-movil__celda--hoy.mes-movil__celda--selec:hover .mes-movil__num {
+  background: var(--blue, #0a2060);
   color: #fff;
 }
 
@@ -169,18 +187,13 @@
   overflow: hidden;
 }
 
-.mes-movil__item-barra {
-  width: 4px;
-  min-height: 38px;
-  border-radius: 4px;
-  flex: none;
-  align-self: stretch;
-}
-
 .mes-movil__item-info {
   flex: 1;
   min-width: 0;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
 }
 
 .mes-movil__item-titulo {
@@ -205,12 +218,15 @@
 }
 
 /* Etiqueta de tipo — no debe forzar el ancho del item */
-.mes-movil__item :global(.etiqueta) {
-  flex: none;
-  max-width: 80px;
+.mes-movil__item-tipo {
+  display: inline-block;
+  align-self: flex-start;
+  margin-top: 6px;
+  max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  vertical-align: top;
 }
 
 /* ── Actions ── */
