@@ -70,6 +70,8 @@ def _construir_body(evento):
         partes_desc.append(evento.area)
     if evento.lugar:
         partes_desc.append(f'Lugar: {evento.lugar}')
+    if evento.plantel:
+        partes_desc.append(f'Plantel: {evento.plantel.nombre}')
     description = '\n'.join(partes_desc)
 
     if evento.hora_inicio:
