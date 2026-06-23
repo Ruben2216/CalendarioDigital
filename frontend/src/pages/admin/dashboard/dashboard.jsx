@@ -2,18 +2,18 @@ import { useEffect, useMemo, useState } from "react";
 import { useSesion } from '../../../hooks/useSesion.js';
 import { useNavigate } from "react-router-dom";
 import {
-  Calendar, Clock, Users, Bell, ChevronLeft, ChevronRight, ChevronDown, MapPin,
-  Megaphone, TrendingUp, AlertCircle, Tag,
+  Calendar, CalendarDays, Clock, Users, ChevronLeft, ChevronRight, ChevronDown, MapPin,
+  Megaphone, TrendingUp, Tag,
 } from "lucide-react";
 import {
   ZONA, NOMBRES_MES, ABREV_MES, ahoraMexico, aClaveFecha, desdeClaveFecha,
   formatoHora, formatoFechaLarga,
 } from "../../../lib/fechas.js";
-import { useNotificaciones } from "../../../hooks/useNotificaciones.js";
 import ListaAnuncios from "../../../components/anuncios/ListaAnuncios.jsx";
 import TarjetaColapsable from "../../../components/tarjeta-colapsable/TarjetaColapsable.jsx";
 import { useCalendarioEventos } from "../../../hooks/useCalendarioEventos.js";
 import { listarAnuncios } from "../../../services/anunciosService.js";
+import { obtenerEstadisticasDashboard } from "../../../services/estadisticasService.js";
 import styles from "./dashboard.module.css";
 
 const DIAS_MINI = ["D", "L", "M", "M", "J", "V", "S"];
@@ -51,6 +51,15 @@ export default function Dashboard() {
     listarAnuncios()
       .then((lista) => { if (vigente) setAnuncios(lista); })
       .catch(() => { if (vigente) setAnuncios([]); });
+    return () => { vigente = false; };
+  }, []);
+
+  const [estadisticas, setEstadisticas] = useState(null);
+  useEffect(() => {
+    let vigente = true;
+    obtenerEstadisticasDashboard()
+      .then((datos) => { if (vigente) setEstadisticas(datos); })
+      .catch(() => { if (vigente) setEstadisticas(null); });
     return () => { vigente = false; };
   }, []);
   const [mesVisible, setMesVisible] = useState(
@@ -101,6 +110,17 @@ export default function Dashboard() {
       .sort((a, b) => a.fecha.localeCompare(b.fecha));
   }, [eventos, claveHoy]);
 
+  const { eventosMes, eventosSemana } = useMemo(() => {
+    const prefijoMes = claveHoy.slice(0, 7); // "YYYY-MM"
+    const finSemana = aClaveFecha(
+      new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate() + 7)
+    );
+    return {
+      eventosMes: eventos.filter((e) => e.fecha.startsWith(prefijoMes)).length,
+      eventosSemana: eventos.filter((e) => e.fecha >= claveHoy && e.fecha <= finSemana).length,
+    };
+  }, [eventos, claveHoy, hoy]);
+
   const celdasCalendario = useMemo(() => {
     const anio = mesVisible.getFullYear();
     const mes = mesVisible.getMonth();
@@ -120,8 +140,6 @@ export default function Dashboard() {
       };
     });
   }, [mesVisible, eventosPorFecha, claveHoy]);
-
-  const { notificaciones, notifSinLeer } = useNotificaciones();
 
   const irMes = (delta) =>
     setMesVisible((prev) => new Date(prev.getFullYear(), prev.getMonth() + delta, 1));
@@ -149,26 +167,34 @@ export default function Dashboard() {
               <Users size={21} />
             </span>
             <div>
-              <div className={styles["indicador__valor"]}>312</div>
-              <div className={styles["indicador__etiqueta"]}>Usuarios activos</div>
-              <div className={`${styles["indicador__nota"]} ${styles["indicador__nota--positiva"]}`}>
-                <TrendingUp size={12} />
-                18 nuevos esta semana
+              <div className={styles["indicador__valor"]}>
+                {estadisticas ? estadisticas.usuarios_activos : "—"}
               </div>
+              <div className={styles["indicador__etiqueta"]}>
+                {estadisticas?.ambito === "plantel" ? "Usuarios de mi plantel" : "Usuarios activos"}
+              </div>
+              {estadisticas?.activos_semana > 0 && (
+                <div className={`${styles["indicador__nota"]} ${styles["indicador__nota--positiva"]}`}>
+                  <TrendingUp size={12} />
+                  {estadisticas.activos_semana} activos esta semana
+                </div>
+              )}
             </div>
           </article>
 
           <article className={styles["indicador"]}>
             <span className={`${styles["indicador__icono"]} ${styles["indicador__icono--morado"]}`}>
-              <Bell size={21} />
+              <CalendarDays size={21} />
             </span>
             <div>
-              <div className={styles["indicador__valor"]}>{notificaciones.length}</div>
-              <div className={styles["indicador__etiqueta"]}>Notificaciones pendientes</div>
-              <div className={`${styles["indicador__nota"]} ${styles["indicador__nota--alerta"]}`}>
-                <AlertCircle size={12} />
-                {notifSinLeer} sin leer
-              </div>
+              <div className={styles["indicador__valor"]}>{eventosMes}</div>
+              <div className={styles["indicador__etiqueta"]}>Eventos este mes</div>
+              {eventosSemana > 0 && (
+                <div className={`${styles["indicador__nota"]} ${styles["indicador__nota--positiva"]}`}>
+                  <TrendingUp size={12} />
+                  {eventosSemana} esta semana
+                </div>
+              )}
             </div>
           </article>
         </section>
@@ -229,51 +255,18 @@ export default function Dashboard() {
           </div>
         </TarjetaColapsable>
 
-        <div className={styles["tarjetas-inferiores"]}>
-          <TarjetaColapsable
-            icono={Megaphone}
-            titulo="Anuncios"
-            accion={
-              <button type="button" className="tarjeta__enlace" onClick={() => navigate("/anuncios")}>
-                Ver todos
-                <ChevronRight size={14} />
-              </button>
-            }
-          >
-            <ListaAnuncios anuncios={anuncios.slice(0, 4)} mostrarAudiencia />
-          </TarjetaColapsable>
-
-          <TarjetaColapsable
-            icono={Bell}
-            titulo="Notificaciones"
-            accion={
-              notifSinLeer > 0 ? (
-                <span className="etiqueta etiqueta--azul">{notifSinLeer} nuevas</span>
-              ) : null
-            }
-          >
-            <div className={styles["notif-lista"]}>
-              {notificaciones.length === 0 ? (
-                <p className={styles["eventos__vacio"]}>No tienes notificaciones.</p>
-              ) : (
-                notificaciones.slice(0, 5).map(({ id, icono: Icono, color, titulo, subtitulo, sinLeer }) => (
-                  <div
-                    key={id}
-                    className={`${styles["notif-fila"]} ${sinLeer ? styles["notif-fila--sin-leer"] : ""}`}
-                  >
-                    <span className={`${styles["notif-fila__icono"]} ${styles[`notif-fila__icono--${color}`]}`}>
-                      <Icono size={15} />
-                    </span>
-                    <div className={styles["notif-fila__copia"]}>
-                      <p className={styles["notif-fila__titulo"]}>{titulo}</p>
-                      <span className={styles["notif-fila__subtitulo"]}>{subtitulo}</span>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </TarjetaColapsable>
-        </div>
+        <TarjetaColapsable
+          icono={Megaphone}
+          titulo="Anuncios"
+          accion={
+            <button type="button" className="tarjeta__enlace" onClick={() => navigate("/anuncios")}>
+              Ver todos
+              <ChevronRight size={14} />
+            </button>
+          }
+        >
+          <ListaAnuncios anuncios={anuncios} mostrarAudiencia />
+        </TarjetaColapsable>
       </div>
 
       <aside className={styles["lateral-derecho"]}>

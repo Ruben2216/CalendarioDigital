@@ -110,7 +110,6 @@
 }
 
 .indicador__nota--positiva { color: var(--green); }
-.indicador__nota--alerta { color: var(--red); }
 
 /* Eventos */
 .eventos {
@@ -201,13 +200,6 @@
 }
 
 /*  Anuncio */
-.tarjetas-inferiores {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 16px;
-  align-items: start;
-}
-
 .anuncios {
   display: grid;
 }
@@ -607,76 +599,6 @@
 .leyenda__punto--rojo { background: var(--red); }
 .leyenda__punto--gris { background: var(--muted-2); }
 
-/* Lista de notificaciones (tarjeta) */
-.notif-lista {
-  display: grid;
-}
-
-.notif-fila {
-  display: flex;
-  gap: 12px;
-  padding: 12px 16px;
-  align-items: flex-start;
-  position: relative;
-}
-
-.notif-fila + .notif-fila {
-  border-top: 1px solid #edf1f7;
-}
-
-.notif-fila:hover {
-  background: var(--panel-soft);
-}
-
-.notif-fila--sin-leer::after {
-  content: "";
-  position: absolute;
-  top: 50%;
-  right: 14px;
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--blue);
-  transform: translateY(-50%);
-}
-
-.notif-fila__icono {
-  width: 33px;
-  height: 33px;
-  border-radius: 11px;
-  display: grid;
-  place-items: center;
-  flex: none;
-  margin-top: 1px;
-}
-
-.notif-fila__icono--azul { background: var(--blue-soft); color: var(--blue); }
-.notif-fila__icono--verde { background: var(--green-soft); color: var(--green); }
-.notif-fila__icono--naranja { background: var(--orange-soft); color: var(--orange); }
-.notif-fila__icono--gris { background: #f2f5f9; color: var(--muted); }
-
-.notif-fila__copia {
-  min-width: 0;
-  flex: 1;
-  padding-right: 10px;
-}
-
-.notif-fila__titulo {
-  margin: 0;
-  font-family: var(--font-display);
-  font-size: 13px;
-  line-height: 1.25;
-  font-weight: 700;
-  color: #101828;
-}
-
-.notif-fila__subtitulo {
-  display: block;
-  margin-top: 2px;
-  color: var(--muted);
-  font-size: 11px;
-}
-
 /* Responsive */
 @media (max-width: 1240px) {
   .rejilla {
@@ -685,12 +607,6 @@
 
   .lateral-derecho {
     max-width: 480px;
-  }
-}
-
-@media (max-width: 1080px) {
-  .tarjetas-inferiores {
-    grid-template-columns: 1fr;
   }
 }
 

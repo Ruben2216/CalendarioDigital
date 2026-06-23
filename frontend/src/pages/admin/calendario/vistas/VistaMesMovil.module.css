@@ -28,7 +28,7 @@
   padding: 4px 0;
 }
 
-.mes-movil__dia-label--dom {
+.mes-movil__dia-label--finde {
   color: var(--red, #e53e3e);
 }
 
@@ -74,6 +74,10 @@
   border-radius: 50%;
   transition: background-color 0.15s ease, color 0.15s ease;
   flex: none;
+}
+
+.mes-movil__num--finde {
+  color: var(--red, #e53e3e);
 }
 
 .mes-movil__celda--hoy .mes-movil__num {
@@ -181,6 +185,9 @@
   flex: 1;
   min-width: 0;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
 }
 
 .mes-movil__item-titulo {
@@ -205,12 +212,15 @@
 }
 
 /* Etiqueta de tipo — no debe forzar el ancho del item */
-.mes-movil__item :global(.etiqueta) {
-  flex: none;
-  max-width: 80px;
+.mes-movil__item-tipo {
+  display: inline-block;
+  align-self: flex-start;
+  margin-top: 6px;
+  max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  vertical-align: top;
 }
 
 /* ── Actions ── */

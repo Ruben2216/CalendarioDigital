@@ -11,15 +11,14 @@ import esLocale from "@fullcalendar/core/locales/es";
 import {
   CalendarDays, CalendarRange, LayoutGrid, List, ChevronLeft, ChevronRight,
   ChevronDown, Plus, Download, Pencil, Trash2, Filter, Tag,
-  PanelRight, X, Clock, MapPin, Hourglass, Check,
+  PanelRight, X, Clock, MapPin, Hourglass, Check, Eye,
 } from "lucide-react";
 import Modal from "../../../components/modal/Modal.jsx";
-import AvisoBadge from "../../../components/aviso-badge/AvisoBadge.jsx";
 import FormularioEvento from "../../../components/formulario-evento/FormularioEvento.jsx";
 import { avisoExito, confirmarEliminacion } from "../../../lib/alertas.js";
 import {
   NOMBRES_MES, ABREV_MES, aClaveFecha, desdeClaveFecha, sumarDias, minutosDe, formatoHora,
-  formatoFechaLarga, calcularSemestre, ahoraMexico,
+  formatoFechaLarga, calcularSemestre, ahoraMexico, rangoSemana,
 } from "../../../lib/fechas.js";
 import { AREAS, SEMESTRES, GRUPOS, TURNOS, alcanceEvento } from "../../../data/calendario.js";
 import {
@@ -33,6 +32,7 @@ import { useSesion } from "../../../hooks/useSesion.js";
 import VistaAnual from "./vistas/VistaAnual.jsx";
 import VistaLista from "./vistas/VistaLista.jsx";
 import VistaMesMovil from "./vistas/VistaMesMovil.jsx";
+import VistaSemanaMovil from "./vistas/VistaSemanaMovil.jsx";
 import styles from "./calendario.module.css";
 import "./fullcalendar.css";
 
@@ -139,8 +139,9 @@ export default function Calendario({ soloLectura = false, publico = false }) {
   );
 
   // Info rápida
-  const [popover, setPopover] = useState(null);         
-  const [eventoSelId, setEventoSelId] = useState(null); 
+  const [popover, setPopover] = useState(null);
+  const [eventoSelId, setEventoSelId] = useState(null);
+  const [detalleEvento, setDetalleEvento] = useState(null);  // modal de detalles (móvil)
 
   // Estado de los 3 modales
   const [modalEvento, setModalEvento] = useState(false);
@@ -392,13 +393,19 @@ export default function Calendario({ soloLectura = false, publico = false }) {
 
   // Texto que se muestra en la toolbar según la vista.
   const tituloBarra = useMemo(() => {
-    if (vista === "semana") return tituloVista.charAt(0).toUpperCase() + tituloVista.slice(1);
+    if (vista === "semana") {
+      if (esMobil) {
+        const inicio = sumarDias(fechaActual, -fechaActual.getDay());
+        return rangoSemana(inicio, sumarDias(inicio, 6));
+      }
+      return tituloVista.charAt(0).toUpperCase() + tituloVista.slice(1);
+    }
     if (vista === "anual") {
       const ciclo = fechaActual.getMonth() >= 7 ? fechaActual.getFullYear() : fechaActual.getFullYear() - 1;
       return `Ciclo ${ciclo} – ${ciclo + 1}`;
     }
     return `${NOMBRES_MES[fechaActual.getMonth()]} ${fechaActual.getFullYear()}`; // mes y lista
-  }, [vista, fechaActual, tituloVista]);
+  }, [vista, fechaActual, tituloVista, esMobil]);
 
   const irHoy = () => {
     setFechaSeleccionada(claveHoy);
@@ -413,8 +420,14 @@ export default function Calendario({ soloLectura = false, publico = false }) {
       setFechaActual((x) => new Date(x.getFullYear() + delta, x.getMonth(), 1));
     } else if (vista === "lista") {
       setFechaActual((x) => new Date(x.getFullYear(), x.getMonth() + delta, 1));
+    } else if (api()) {
+      // FullCalendar montado (escritorio): él gestiona prev/next y avisa por datesSet.
+      api()[delta < 0 ? "prev" : "next"]();
+    } else if (vista === "semana") {
+      // Móvil: no hay FullCalendar; movemos la fecha por semanas o meses.
+      setFechaActual((x) => sumarDias(x, delta * 7));
     } else {
-      api()?.[delta < 0 ? "prev" : "next"]();
+      setFechaActual((x) => new Date(x.getFullYear(), x.getMonth() + delta, 1));
     }
   };
   const irAnterior = () => mover(-1);
@@ -432,7 +445,7 @@ export default function Calendario({ soloLectura = false, publico = false }) {
   // Saltar a un mes desde el selector
   const elegirMes = (mes) => {
     setPickerAbierto(false);
-    if (esVistaFC) api()?.gotoDate(new Date(anioPicker, mes, 1));
+    if (api()) api().gotoDate(new Date(anioPicker, mes, 1));
     else setFechaActual(new Date(anioPicker, mes, 1));
   };
 
@@ -655,7 +668,10 @@ export default function Calendario({ soloLectura = false, publico = false }) {
             SEMESTRE {semestre.ciclo}-{semestre.letra}
           </span>
           {lectura && (
-            <AvisoBadge texto="lectura" />
+            <span className={styles["calendario__lectura"]} title="Solo lectura">
+              <Eye size={13} />
+              Solo lectura
+            </span>
           )}
         </div>
 
@@ -846,6 +862,22 @@ export default function Calendario({ soloLectura = false, publico = false }) {
                   onEliminar={pedirEliminar}
                 />
               </div>
+            ) : esMobil && vista === "semana" ? (
+              <div className={styles["lienzo"]}>
+                <VistaSemanaMovil
+                  fechaActual={fechaActual}
+                  eventosPorDia={eventosPorDia}
+                  colorTipo={colorTipo}
+                  etiquetaTipo={etiquetaTipo}
+                  claveHoy={claveHoy}
+                  fechaSeleccionada={fechaSeleccionada}
+                  onSeleccionarDia={setFechaSeleccionada}
+                  soloLectura={lectura}
+                  onEditar={abrirEditarEvento}
+                  onEliminar={pedirEliminar}
+                  onVerDetalle={setDetalleEvento}
+                />
+              </div>
             ) : (
             <div className={`tarjeta ${styles["lienzo"]}`} ref={lienzoRef}>
               <div className="cal-fc">
@@ -906,7 +938,7 @@ export default function Calendario({ soloLectura = false, publico = false }) {
           {/* PANEL DE EVENTOS DEL DÍA SELECCIONADO.
               En la vista Lista no se muestra: la lista ya detalla los eventos.
               En mobile vista mes tampoco: VistaMesMovil lo maneja internamente. */}
-          {vista !== "lista" && !(esMobil && vista === "mes") && (
+          {vista !== "lista" && !(esMobil && (vista === "mes" || vista === "semana")) && (
           <div className={`tarjeta ${styles["panel-dia"]}`}>
             <div className={styles["panel-dia__cabecera"]}>
               <h3 className={styles["panel-dia__titulo"]}>{tituloPanel}</h3>
@@ -1207,6 +1239,86 @@ export default function Calendario({ soloLectura = false, publico = false }) {
           </ul>
         </div>
       )}
+
+      {/* Modal: detalle del evento (vista móvil) */}
+      <Modal
+        abierto={!!detalleEvento}
+        titulo="Detalle del evento"
+        onCerrar={() => setDetalleEvento(null)}
+        pie={
+          detalleEvento && !lectura && detalleEvento.puede_editar ? (
+            <>
+              <button
+                type="button"
+                className="boton boton--fantasma"
+                style={{ marginRight: "auto" }}
+                onClick={() => { const ev = detalleEvento; setDetalleEvento(null); pedirEliminar(ev); }}
+              >
+                Eliminar
+              </button>
+              <button
+                type="button"
+                className="boton boton--primario"
+                onClick={() => { const ev = detalleEvento; setDetalleEvento(null); abrirEditarEvento(ev); }}
+              >
+                Editar
+              </button>
+            </>
+          ) : null
+        }
+      >
+        {detalleEvento && (
+          <div className={styles["detalle"]}>
+            <div className={styles["detalle__cab"]}>
+              <span className={styles["detalle__punto"]} style={{ backgroundColor: colorTipo(detalleEvento.tipo) }} />
+              <h4 className={styles["detalle__titulo"]}>{detalleEvento.titulo}</h4>
+            </div>
+            <ul className={styles["pop-evento__datos"]}>
+              <li>
+                <CalendarDays size={14} />
+                {formatoFechaLarga(detalleEvento.fecha)}
+                {detalleEvento.fechaFin && detalleEvento.fechaFin !== detalleEvento.fecha
+                  ? ` – ${formatoFechaLarga(detalleEvento.fechaFin)}`
+                  : ""}
+              </li>
+              <li>
+                <Clock size={14} />
+                {detalleEvento.horaInicio
+                  ? `${formatoHora(detalleEvento.horaInicio)}${detalleEvento.horaFin ? ` – ${formatoHora(detalleEvento.horaFin)}` : ""}`
+                  : "Todo el día"}
+              </li>
+              {duracionTexto(detalleEvento) && (
+                <li>
+                  <Hourglass size={14} />
+                  {duracionTexto(detalleEvento)}
+                </li>
+              )}
+              {detalleEvento.lugar && (
+                <li>
+                  <MapPin size={14} />
+                  {detalleEvento.lugar}
+                </li>
+              )}
+              <li>
+                <Tag size={14} />
+                <span className="etiqueta" style={{ backgroundColor: colorTipo(detalleEvento.tipo) + '20', color: colorTipo(detalleEvento.tipo) }}>
+                  {etiquetaTipo(detalleEvento.tipo)}
+                </span>
+              </li>
+              {[detalleEvento.area, detalleEvento.plantel, detalleEvento.turno,
+                (detalleEvento.semestre != null || detalleEvento.grupo != null) ? alcanceEvento(detalleEvento) : null,
+              ].filter(Boolean).length > 0 && (
+                <li>
+                  <Filter size={14} />
+                  {[detalleEvento.area, detalleEvento.plantel, detalleEvento.turno,
+                    (detalleEvento.semestre != null || detalleEvento.grupo != null) ? alcanceEvento(detalleEvento) : null,
+                  ].filter(Boolean).join(" · ")}
+                </li>
+              )}
+            </ul>
+          </div>
+        )}
+      </Modal>
 
       {/* Modal: filtros rápidos */}
       <Modal

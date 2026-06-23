@@ -18,7 +18,7 @@ from .services.mock_institucional import (
     es_alumno,
 )
 import re
-from datetime import date as _date, time as _time
+from datetime import date as _date, time as _time, timedelta
 
 from .models import (
     Usuario, Rol, Conversacion, Mensaje, LecturaMensaje, SolicitudAdmin,
@@ -1612,3 +1612,33 @@ class GoogleAuthView(APIView):
                 'adscripcion': adscripcion,
             },
         }, status=status.HTTP_200_OK)
+
+
+class EstadisticasDashboardView(APIView):
+    """Indicadores del dashboard admin/superusuario.
+
+    Alcance por rol: el superusuario ve toda la institución; el admin solo los
+    usuarios asignados a sus planteles (vía UsuarioPlantel). 'activos_semana'
+    cuenta quienes tienen sesión en los últimos 7 días."""
+
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        usuario = _usuario_sesion(request)
+        if not usuario:
+            return Response({'error': 'No autenticado.'}, status=status.HTTP_401_UNAUTHORIZED)
+
+        qs = Usuario.objects.filter(activo=True)
+        ambito = 'institucion'
+
+        if usuario.rol.nombre_rol == 'admin':
+            planteles = list(usuario.planteles_asignados.values_list('plantel_id', flat=True))
+            qs = qs.filter(planteles_asignados__plantel_id__in=planteles).distinct()
+            ambito = 'plantel'
+
+        hace_semana = timezone.now() - timedelta(days=7)
+        return Response({
+            'ambito': ambito,
+            'usuarios_activos': qs.count(),
+            'activos_semana': qs.filter(ultima_sesion__gte=hace_semana).count(),
+        })

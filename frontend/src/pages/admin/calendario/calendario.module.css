@@ -36,6 +36,20 @@
   letter-spacing: 0.04em;
 }
 
+.calendario__lectura {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.calendario__lectura svg {
+  opacity: 0.75;
+}
+
 .calendario__vista-plantel {
   display: flex;
   align-items: center;
@@ -1034,6 +1048,29 @@
 .pop-evento__datos svg {
   color: var(--blue);
   flex: none;
+}
+
+/* Detalle del evento (modal móvil) */
+.detalle__cab {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.detalle__punto {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  flex: none;
+}
+
+.detalle__titulo {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 800;
+  color: #0f172a;
+  min-width: 0;
 }
 
 @keyframes pop-aparece {
