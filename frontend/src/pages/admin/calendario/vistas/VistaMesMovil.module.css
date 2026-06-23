@@ -8,7 +8,7 @@
 
 /* ── Mini calendar card ── */
 .mes-movil__cal {
-  padding: 16px 12px;
+  padding: 0;
   min-width: 0;
   overflow: hidden;
 }
@@ -16,6 +16,8 @@
 .mes-movil__cabecera {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
+  background: linear-gradient(180deg, #0a2060 0%, #021138 100%);
+  padding: 10px 8px;
   margin-bottom: 6px;
 }
 
@@ -24,18 +26,19 @@
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.02em;
-  color: var(--muted);
-  padding: 4px 0;
+  color: #fff;
+  padding: 2px 0;
 }
 
 .mes-movil__dia-label--finde {
-  color: var(--red, #e53e3e);
+  color: #ff9b9b;
 }
 
 /* ── Days grid ── */
 .mes-movil__grid {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
+  padding: 4px 8px 10px;
 }
 
 .mes-movil__celda {
@@ -171,14 +174,6 @@
   min-width: 0;
   max-width: 100%;
   overflow: hidden;
-}
-
-.mes-movil__item-barra {
-  width: 4px;
-  min-height: 38px;
-  border-radius: 4px;
-  flex: none;
-  align-self: stretch;
 }
 
 .mes-movil__item-info {

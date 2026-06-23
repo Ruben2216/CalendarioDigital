@@ -97,6 +97,11 @@ export default function Dashboard() {
     : [];
 
   const manejarClickDia = (celda) => {
+    // Toggle: si se vuelve a tocar el día ya seleccionado, se limpia.
+    if (celda.clave === fechaSeleccionada) {
+      setFechaSeleccionada(null);
+      return;
+    }
     setFechaSeleccionada(celda.clave);
     if (!celda.delMes) {
       const fecha = desdeClaveFecha(celda.clave);
@@ -339,13 +344,6 @@ export default function Dashboard() {
                 <span className={styles["dia-eventos__titulo"]}>
                   {formatoFechaLarga(fechaSeleccionada)}
                 </span>
-                <button
-                  type="button"
-                  className={styles["dia-eventos__limpiar"]}
-                  onClick={() => setFechaSeleccionada(null)}
-                >
-                  Limpiar
-                </button>
               </div>
 
               {eventosDelDia.length === 0 ? (
@@ -354,7 +352,6 @@ export default function Dashboard() {
                 <ul className={styles["dia-eventos__lista"]}>
                   {eventosDelDia.map((evento) => (
                     <li key={evento.id} className={styles["dia-eventos__item"]}>
-                      <span className={styles["dia-eventos__marca"]} style={{ backgroundColor: colorTipo(evento.tipo) }} />
                       <div className={styles["dia-eventos__copia"]}>
                         <p className={styles["dia-eventos__nombre"]}>{evento.titulo}</p>
                         <div className={styles["dia-eventos__meta"]}>

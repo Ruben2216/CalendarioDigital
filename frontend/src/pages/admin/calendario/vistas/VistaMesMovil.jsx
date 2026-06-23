@@ -99,10 +99,6 @@ export default function VistaMesMovil({
           <div className={styles["mes-movil__lista"]}>
             {eventosDelDia.map((ev) => (
               <div key={ev.id} className={styles["mes-movil__item"]}>
-                <span
-                  className={styles["mes-movil__item-barra"]}
-                  style={{ backgroundColor: colorTipo(ev.tipo) }}
-                />
                 <div className={styles["mes-movil__item-info"]}>
                   <span className={styles["mes-movil__item-titulo"]}>{ev.titulo}</span>
                   <span className={styles["mes-movil__item-hora"]}>

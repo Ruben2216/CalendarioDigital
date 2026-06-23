@@ -134,6 +134,12 @@
   box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--blue);
 }
 
+.dia--hoy.dia--seleccionado,
+.dia--hoy.dia--seleccionado:hover {
+  background: var(--blue);
+  color: #fff;
+}
+
 .dia::after {
   content: "";
   position: absolute;
@@ -202,23 +208,6 @@
   gap: 10px;
   align-items: flex-start;
 }
-
-.dia-eventos__marca {
-  width: 4px;
-  align-self: stretch;
-  min-height: 38px;
-  border-radius: 999px;
-  flex: none;
-}
-
-.dia-eventos__marca--azul { background: var(--blue); }
-.dia-eventos__marca--naranja { background: var(--orange); }
-.dia-eventos__marca--verde { background: var(--green); }
-.dia-eventos__marca--morado { background: var(--purple); }
-.dia-eventos__marca--teal { background: var(--teal); }
-.dia-eventos__marca--marino { background: var(--marino); }
-.dia-eventos__marca--rojo { background: var(--red); }
-.dia-eventos__marca--gris { background: var(--muted-2); }
 
 .dia-eventos__copia {
   min-width: 0;

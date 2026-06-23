@@ -128,7 +128,6 @@
   gap: 8px;
   padding: 9px 11px;
   border-radius: 10px;
-  border-left: 3px solid;
 }
 
 .sem-movil__chip-punto {
@@ -227,7 +226,6 @@
 .sem-movil__evt {
   position: absolute;
   border-radius: 10px;
-  border-left: 3px solid;
   padding: 6px 9px;
   overflow: hidden;
   display: flex;

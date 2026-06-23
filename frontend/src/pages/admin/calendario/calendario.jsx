@@ -168,9 +168,17 @@ export default function Calendario({ soloLectura = false, publico = false }) {
   const cierreHoverTimer = useRef(null);
 
   useEffect(() => {
-    if (panelAbierto && window.matchMedia("(max-width: 1100px)").matches) {
-      asideRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-    }
+    if (!panelAbierto) return;
+    if (!window.matchMedia("(max-width: 1100px)").matches) return;
+    document.documentElement.style.overflow = "hidden";
+    document.body.style.overflow = "hidden";
+    const onKey = (e) => { if (e.key === "Escape") setPanelAbierto(false); };
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.documentElement.style.overflow = "";
+      document.body.style.overflow = "";
+      document.removeEventListener("keydown", onKey);
+    };
   }, [panelAbierto]);
 
   useEffect(() => {
@@ -835,10 +843,10 @@ export default function Calendario({ soloLectura = false, publico = false }) {
                 className={`boton boton--fantasma ${styles["barra__panel-btn"]}`}
                 aria-pressed={panelAbierto}
                 onClick={() => setPanelAbierto((v) => !v)}
-                title={panelAbierto ? "Ocultar panel" : "Mostrar panel"}
+                title={panelAbierto ? "Ocultar simbología" : "Mostrar simbología"}
               >
                 <PanelRight size={16} />
-                Panel
+                Simbología
               </button>
             </div>
           </div>
@@ -1038,9 +1046,18 @@ export default function Calendario({ soloLectura = false, publico = false }) {
           className={`${styles["calendario__aside"]} ${panelAbierto ? styles["calendario__aside--abierto"] : ""}`}
           aria-hidden={!panelAbierto}
         >
+          <button
+            type="button"
+            className={styles["panel-asa"]}
+            onClick={() => setPanelAbierto(false)}
+            aria-label="Cerrar panel"
+          >
+            <span className={styles["panel-asa__bar"]} />
+          </button>
+
           {/* Encabezado del panel con X para cerrarlo */}
           <div className={styles["panel-cab"]}>
-            <span className={styles["panel-cab__titulo"]}>Panel</span>
+            <span className={styles["panel-cab__titulo"]}>Simbología</span>
             <button
               type="button"
               className={styles["panel-cab__cerrar"]}

@@ -47,6 +47,7 @@
 }
 
 .navegacion__opcion {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -65,16 +66,15 @@
 }
 
 .navegacion__opcion:hover {
-  background: rgba(255, 255, 255, 0.11);
+  background: rgba(255, 255, 255, 0.1);
   color: #fff;
 }
 
 .navegacion__opcion--activa {
-  background: var(--blue);
+  background: rgba(255, 255, 255, 0.18);
   color: #fff;
-  box-shadow:
-    inset 0 2px 4px rgba(255, 255, 255, 0.22),
-    inset 0 -5px 10px rgba(0, 0, 0, 0.4);
+  font-weight: 700;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.28);
 }
 
 .navegacion__badge {
@@ -493,7 +493,7 @@
   flex: none;
   display: grid;
   place-items: center;
-  background: linear-gradient(135deg, #0147d4, #021138);
+  background: linear-gradient(135deg, #0a2060, #021138);
   color: #fff;
   font-family: var(--font-display);
   font-size: 13px;

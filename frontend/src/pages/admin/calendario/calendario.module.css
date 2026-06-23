@@ -384,6 +384,10 @@
   overflow-x: auto;
 }
 
+.panel-asa {
+  display: none;
+}
+
 /* Encabezado del panel lateral (con botón de cerrar) */
 .panel-cab {
   display: flex;
@@ -1080,36 +1084,80 @@
 
 /* Responsive */
 @media (max-width: 1100px) {
-  /* En pantallas medianas/chicas el panel se abre como CAJÓN que se DESLIZA
-     desde la derecha (mismo efecto que la barra lateral), sin encoger el
-     calendario. */
   .calendario__cuerpo {
     flex-direction: column;
     align-items: stretch;
   }
 
-  .calendario__aside {
-    position: static;
-    width: 100%;
-    margin-left: 0;
-    margin-top: 16px;
-    overflow: visible;
-    transform: none;
-    transition: none;
-    box-shadow: none;
+  .panel-respaldo {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(9, 22, 48, 0.45);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease;
+    z-index: 50;
   }
 
-  .calendario__aside:not(.calendario__aside--abierto) {
-    display: none;
+  .panel-respaldo--visible {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .calendario__aside {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: auto;
+    height: auto;
+    max-height: 82vh;
+    margin: 0;
+    padding: 18px 16px calc(20px + env(safe-area-inset-bottom));
+    overflow-y: auto;
+    background: var(--bg);
+    border-radius: 22px 22px 0 0;
+    box-shadow: 0 -16px 40px rgba(9, 22, 48, 0.22);
+    transform: translateY(100%);
+    visibility: hidden;
+    transition: transform 0.28s ease, visibility 0.28s ease;
+    z-index: 60;
+    display: grid;
+    gap: 14px;
+    align-content: start;
+  }
+
+  .panel-asa {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 24px;
+    margin: -8px 0 2px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+  }
+
+  .panel-asa__bar {
+    width: 44px;
+    height: 5px;
+    border-radius: 999px;
+    background: #cdd6e3;
+    transition: background 0.15s ease;
+  }
+
+  .panel-asa:hover .panel-asa__bar {
+    background: #b7c2d4;
   }
 
   .calendario__aside--abierto {
-    width: 100%;
-    margin-left: 0;
-  }
-
-  .panel-respaldo {
-    display: none;
+    transform: translateY(0);
+    visibility: visible;
+    width: auto;
+    margin: 0;
   }
 }
 
@@ -1124,7 +1172,35 @@
   }
 
   .barra__derecha {
-    justify-content: flex-start;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .barra__derecha :global(.boton--primario) {
+    flex: 1 1 100%;
+    order: -1;
+    justify-content: center;
+  }
+
+  .barra__derecha .vista,
+  .barra__derecha :global(.boton--fantasma) {
+    flex: 1 1 auto;
+  }
+
+  .barra__derecha .vista__boton,
+  .barra__derecha :global(.boton--fantasma) {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* 'Exportar' está deshabilitado, se oculta en móvil */
+  .barra__derecha :global(.boton--fantasma):disabled {
+    display: none;
+  }
+
+  .aviso-sin-tipos {
+    flex: 1 1 100%;
   }
 
   .barra__rango {
