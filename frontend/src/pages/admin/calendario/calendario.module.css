@@ -407,10 +407,11 @@
 
 .aviso-sin-tipos {
   font-size: 12px;
-  color: var(--orange, #ef7d15);
+  color: var(--red);
   display: flex;
   align-items: center;
   gap: 5px;
+  font-weight: bold;
 }
 
 /* Botón "Panel" de la toolbar: punto que avisa de filtros activos */

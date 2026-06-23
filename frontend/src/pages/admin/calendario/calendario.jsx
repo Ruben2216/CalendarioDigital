@@ -272,7 +272,11 @@ export default function Calendario({ soloLectura = false, publico = false }) {
     () => calendarios.find((c) => c.id === calendarioActivo) || null,
     [calendarios, calendarioActivo]
   );
-  const tienesTipos = tipos.length > 0;
+  const tiposParaCrear = useMemo(
+    () => esAdmin ? tipos.filter((t) => !t.es_global) : tipos,
+    [tipos, esAdmin]
+  );
+  const tienesTipos = tiposParaCrear.length > 0;
   const puedeCrear = !lectura && tienesTipos && (esSuperusuario || (esAdmin && calActivo?.clave === "escolarizado"));
 
   // Eventos visibles tras aplicar los filtros de tipo y área.
@@ -501,7 +505,7 @@ export default function Calendario({ soloLectura = false, publico = false }) {
     setFormEvento({
       ...FORM_EVENTO_VACIO,
       fecha: fechaSeleccionada || claveHoy,
-      tipo: tipos[0]?.id || "",
+      tipo: tiposParaCrear[0]?.id || "",
       plantel: esAdmin ? (misAsignaciones[0]?.plantel || "") : "",
       turno: esAdmin ? (misAsignaciones[0]?.turno || "") : "",
     });
@@ -793,7 +797,7 @@ export default function Calendario({ soloLectura = false, publico = false }) {
               )}
               {!lectura && esAdmin && calActivo?.clave === "escolarizado" && !tienesTipos && (
                 <span className={styles["aviso-sin-tipos"]}>
-                  Agrega tipos de evento en Simbología para poder crear eventos
+                  Antes de crear eventos, agrega un tipo de evento
                 </span>
               )}
 
@@ -1357,7 +1361,7 @@ export default function Calendario({ soloLectura = false, publico = false }) {
         <FormularioEvento
           id="form-evento-calendario"
           form={formEvento}
-          tipos={tipos}
+          tipos={tiposParaCrear}
           restringido={esAdmin}
           planteles={misPlanteles}
           turnos={misTurnos}
