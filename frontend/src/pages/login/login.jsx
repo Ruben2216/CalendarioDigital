@@ -61,12 +61,14 @@ export default function Login() {
   }, [navigate]);
 
   useEffect(() => {
-    const hash = window.location.hash.slice(1);
-    if (!hash) return;
-    const params = new URLSearchParams(hash);
-    const id_token = params.get('id_token');
-    if (id_token && window.opener) {
-      window.opener.postMessage({ type: 'google-oauth', id_token }, window.location.origin);
+    // Flujo de código: Google redirige con ?code=... en query params
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get('code');
+    if (code && window.opener) {
+      window.opener.postMessage(
+        { type: 'google-oauth', code, redirect_uri: window.location.origin + '/login' },
+        window.location.origin
+      );
       window.close();
     }
   }, []);
@@ -75,8 +77,8 @@ export default function Login() {
     const handleMessage = async (event) => {
       if (event.origin !== window.location.origin) return;
       if (event.data?.type !== 'google-oauth') return;
-      const { id_token } = event.data;
-      if (!id_token) return;
+      const { code, redirect_uri } = event.data;
+      if (!code) return;
 
       const currentRole = roleRef.current;
       try {
@@ -92,7 +94,7 @@ export default function Login() {
             'X-Requested-With': 'XMLHttpRequest',
             'Accept': 'application/json',
           },
-          body: JSON.stringify({ token: id_token, role: currentRole }),
+          body: JSON.stringify({ code, redirect_uri, role: currentRole }),
         });
         if (resp.status === 204) {
           Swal.fire({ icon: 'error', title: 'Oops...', text: 'Solo se permiten cuentas institucionales' });
@@ -147,14 +149,12 @@ export default function Login() {
   const handleGoogleLogin = () => {
     const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
     const redirectUri = `${window.location.origin}/login`;
-    const nonce = crypto.randomUUID?.() ?? Math.random().toString(36).substring(2);
 
     const params = new URLSearchParams({
       client_id: clientId,
       redirect_uri: redirectUri,
-      response_type: 'id_token',
+      response_type: 'code',
       scope: 'openid email profile',
-      nonce,
       prompt: 'select_account',
     });
 

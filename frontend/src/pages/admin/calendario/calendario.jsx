@@ -16,7 +16,7 @@ import {
 import Modal from "../../../components/modal/Modal.jsx";
 import AvisoBadge from "../../../components/aviso-badge/AvisoBadge.jsx";
 import FormularioEvento from "../../../components/formulario-evento/FormularioEvento.jsx";
-import { avisoExito, confirmarEliminacion } from "../../../lib/alertas.js";
+import { avisoExito, confirmarEliminacion, confirmarAccion } from "../../../lib/alertas.js";
 import {
   NOMBRES_MES, ABREV_MES, aClaveFecha, desdeClaveFecha, sumarDias, minutosDe, formatoHora,
   formatoFechaLarga, calcularSemestre, ahoraMexico,
@@ -33,6 +33,7 @@ import { useSesion } from "../../../hooks/useSesion.js";
 import VistaAnual from "./vistas/VistaAnual.jsx";
 import VistaLista from "./vistas/VistaLista.jsx";
 import VistaMesMovil from "./vistas/VistaMesMovil.jsx";
+import { urlAutorizacion, verificarVinculo, vincular, desvincular } from "../../../services/googleCalendarService.js";
 import styles from "./calendario.module.css";
 import "./fullcalendar.css";
 
@@ -156,6 +157,9 @@ export default function Calendario({ soloLectura = false, publico = false }) {
   const [nuevoColor, setNuevoColor] = useState("#64748B");
   const [nuevoPlantelId, setNuevoPlantelId] = useState("");
 
+  // null = verificando, false = no vinculado, { vinculado: true, email } = vinculado
+  const [calVinculado, setCalVinculado] = useState(null);
+
   // Referencias: a FullCalendar (para controlarlo) y a los desplegables.
   const calendarRef = useRef(null);
   const lienzoRef = useRef(null);
@@ -178,6 +182,63 @@ export default function Calendario({ soloLectura = false, publico = false }) {
     mq.addEventListener("change", handler);
     return () => mq.removeEventListener("change", handler);
   }, []);
+
+  useEffect(() => {
+    if (publico || !sesion?.id_usuario) return;
+    verificarVinculo()
+      .then((data) => setCalVinculado(data.vinculado ? data : false))
+      .catch(() => setCalVinculado(false));
+  }, [publico, sesion?.id_usuario]);
+
+  useEffect(() => {
+    if (publico || !sesion?.id_usuario) return;
+    const onMessage = async (event) => {
+      if (event.origin !== window.location.origin) return;
+      if (event.data?.type !== 'google-calendar-code') return;
+      const { code, error } = event.data;
+      if (error) { avisoError('Autorización rechazada por Google.'); return; }
+      if (!code) return;
+      try {
+        const resultado = await vincular(code);
+        setCalVinculado({ vinculado: true, email: resultado.email ?? null });
+        avisoExito('Google Calendar vinculado correctamente.');
+      } catch (e) {
+        avisoError(e.message || 'No se pudo vincular Google Calendar.');
+      }
+    };
+    window.addEventListener('message', onMessage);
+    return () => window.removeEventListener('message', onMessage);
+  }, [publico, sesion?.id_usuario]);
+
+  const abrirVinculacionGoogle = () => {
+    const w = 520, h = 620;
+    const left = Math.round(window.screenX + (window.outerWidth - w) / 2);
+    const top = Math.round(window.screenY + (window.outerHeight - h) / 2);
+    const popup = window.open(
+      urlAutorizacion(),
+      'google-calendar-vincular',
+      `width=${w},height=${h},left=${left},top=${top},scrollbars=yes,resizable=yes`
+    );
+    if (!popup) avisoError('Permite ventanas emergentes para vincular Google Calendar.');
+  };
+
+  const desconectarCalendar = async () => {
+    const emailMostrar = calVinculado?.email ? ` (${calVinculado.email})` : '';
+    const result = await confirmarAccion({
+      titulo: 'Desconectar Google Calendar',
+      html: `Los eventos ya sincronizados permanecerán en tu Google Calendar${emailMostrar}.`,
+      confirmar: 'Desconectar',
+      peligro: true,
+    });
+    if (!result.isConfirmed) return;
+    try {
+      await desvincular();
+      setCalVinculado(false);
+      avisoExito('Google Calendar desconectado.');
+    } catch {
+      avisoError('No se pudo desconectar Google Calendar.');
+    }
+  };
 
   // Acceso corto a la API de FullCalendar (prev, next, today, changeView...).
   const api = () => calendarRef.current?.getApi();
@@ -276,6 +337,12 @@ export default function Calendario({ soloLectura = false, publico = false }) {
     () => esAdmin ? tipos.filter((t) => !t.es_global) : tipos,
     [tipos, esAdmin]
   );
+
+  const tiposSimbologia = useMemo(() => {
+    if (!esSuperusuario) return tipos;
+    if (!vistaPlantel) return tipos.filter((t) => t.es_global);
+    return tipos.filter((t) => t.es_global || t.plantel === vistaPlantel);
+  }, [tipos, esSuperusuario, vistaPlantel]);
   const tienesTipos = tiposParaCrear.length > 0;
   const puedeCrear = !lectura && tienesTipos && (esSuperusuario || (esAdmin && calActivo?.clave === "escolarizado"));
 
@@ -783,11 +850,31 @@ export default function Calendario({ soloLectura = false, publico = false }) {
                 )}
               </div>
 
-              {!lectura && (
-                <button type="button" className="boton boton--fantasma" disabled title="Disponible próximamente">
-                  <Download size={16} />
-                  Exportar
-                </button>
+              {!publico && sesion?.id_usuario && (
+                calVinculado?.vinculado ? (
+                  <button
+                    type="button"
+                    className="boton boton--fantasma"
+                    onClick={desconectarCalendar}
+                    title={`Google Calendar vinculado${calVinculado.email ? ` como ${calVinculado.email}` : ''} — clic para desconectar`}
+                  >
+                    <Check size={16} />
+                    {calVinculado.email
+                      ? calVinculado.email.split('@')[0]
+                      : 'Google Calendar'}
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className="boton boton--fantasma"
+                    onClick={abrirVinculacionGoogle}
+                    disabled={calVinculado === null}
+                    title="Sincroniza los eventos con tu Google Calendar"
+                  >
+                    <Download size={16} />
+                    {calVinculado === null ? '…' : 'Vincular Google Calendar'}
+                  </button>
+                )
               )}
               {puedeCrear && (
                 <button type="button" className="boton boton--primario" onClick={abrirNuevoEvento}>
@@ -1037,7 +1124,7 @@ export default function Calendario({ soloLectura = false, publico = false }) {
               )}
             </div>
             <ul className={styles["simbologia"]}>
-              {tipos.map((t) => (
+              {tiposSimbologia.map((t) => (
                 <li key={t.id} className={styles["simbologia__item"]}>
                   {tipoEditandoId === t.id ? (
                     <div className={styles["simbologia__edit"]}>
@@ -1231,7 +1318,7 @@ export default function Calendario({ soloLectura = false, publico = false }) {
             <span className="formulario__etiqueta">Tipo de evento</span>
             <select value={filtroTipo} onChange={(e) => setFiltroTipo(e.target.value)}>
               <option value="todos">Todos</option>
-              {tipos.map((t) => (
+              {tiposSimbologia.map((t) => (
                 <option key={t.id} value={t.id}>{t.etiqueta}</option>
               ))}
             </select>

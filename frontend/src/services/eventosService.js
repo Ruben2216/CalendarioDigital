@@ -20,7 +20,10 @@ export async function listarCalendarios() {
 }
 
 export async function listarTipos() {
-    const resp = await fetch(`${BASE_URL}/api/tipos-evento/`, { headers: headers() });
+    const id = idUsuario();
+    const url = new URL('/api/tipos-evento/', window.location.origin);
+    if (id != null) url.searchParams.set('id_usuario', id);
+    const resp = await fetch(url, { headers: headers() });
     if (!resp.ok) throw new Error('No se pudieron cargar los tipos de evento.');
     return resp.json();
 }

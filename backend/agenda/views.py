@@ -23,11 +23,18 @@ from datetime import date as _date, time as _time
 from .models import (
     Usuario, Rol, Conversacion, Mensaje, LecturaMensaje, SolicitudAdmin,
     UsuarioPlantel, Plantel, Turno, Calendario, TipoEvento, Evento, Anuncio,
-    DispositivoFCM, Notificacion,
+    DispositivoFCM, Notificacion, GoogleOauthCredential, EventoGoogleSync,
+)
+from .services.google_calendar import (
+    sincronizar_creacion,
+    sincronizar_actualizacion,
+    sincronizar_eliminacion,
+    backfill_usuario,
 )
 from .services import notificaciones_push as push
 
 import logging
+import threading
 
 logger = logging.getLogger(__name__)
 
@@ -850,24 +857,24 @@ class TipoEventoListView(APIView):
     def get(self, request):
         usuario = _usuario_sesion(request)
         if usuario is None:
-            tipos = TipoEvento.objects.filter(plantel__isnull=True)
+            tipos = TipoEvento.objects.select_related('plantel').filter(plantel__isnull=True)
         else:
             rol = usuario.rol.nombre_rol
             if rol == 'superusuario':
                 tipos = TipoEvento.objects.select_related('plantel').all()
             elif rol == 'admin':
                 ids = list(usuario.planteles_asignados.values_list('plantel_id', flat=True))
-                tipos = TipoEvento.objects.filter(
+                tipos = TipoEvento.objects.select_related('plantel').filter(
                     Q(plantel__isnull=True) | Q(plantel_id__in=ids)
                 )
             else:
                 ids = list(usuario.planteles_asignados.values_list('plantel_id', flat=True))
-                tipos = TipoEvento.objects.filter(
+                tipos = TipoEvento.objects.select_related('plantel').filter(
                     Q(plantel__isnull=True) | Q(plantel_id__in=ids)
                 )
         return Response([
             {'id': str(t.id_tipo_evento), 'etiqueta': t.nombre, 'color': t.color_hex,
-             'es_global': t.plantel_id is None}
+             'es_global': t.plantel_id is None, 'plantel': t.plantel.nombre if t.plantel else None}
             for t in tipos
         ])
 
@@ -1110,6 +1117,7 @@ class EventoListView(APIView):
         evento = Evento.objects.create(creado_por=usuario, **datos)
         evento = Evento.objects.select_related('tipo_evento', 'plantel', 'turno', 'creado_por__rol').get(pk=evento.pk)
         _notificar_evento(evento, 'creado')
+        threading.Thread(target=sincronizar_creacion, args=(evento,), daemon=True).start()
         return Response(_evento_dict(evento, usuario), status=status.HTTP_201_CREATED)
 
     @staticmethod
@@ -1196,6 +1204,7 @@ class EventoDetailView(APIView):
         evento.save()
         evento = Evento.objects.select_related('tipo_evento', 'plantel', 'turno', 'creado_por__rol').get(pk=evento.pk)
         _notificar_evento(evento, 'actualizado')
+        threading.Thread(target=sincronizar_actualizacion, args=(evento,), daemon=True).start()
         return Response(_evento_dict(evento, usuario))
 
     def delete(self, request, id_evento):
@@ -1204,7 +1213,8 @@ class EventoDetailView(APIView):
             return Response(status=status.HTTP_404_NOT_FOUND)
         if not evento.puede_editar(usuario):
             return Response({'error': 'No autorizado.'}, status=status.HTTP_403_FORBIDDEN)
-        _notificar_evento(evento, 'eliminado')  # antes de borrar: aún tiene los datos
+        _notificar_evento(evento, 'eliminado')
+        sincronizar_eliminacion(evento)   # antes de evento.delete(): lee los syncs
         evento.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -1487,6 +1497,93 @@ class NotificacionListView(APIView):
         return Response([_notif_dict(n) for n in qs[:50]])
 
 
+def _email_desde_id_token(id_token):
+    """Extrae el campo email del payload JWT sin verificación de firma.
+    Solo se usa cuando el token viene directamente de oauth2.googleapis.com/token."""
+    import base64
+    import json as _json
+    try:
+        parts = id_token.split('.')
+        if len(parts) < 2:
+            return None
+        padding = 4 - len(parts[1]) % 4
+        payload = _json.loads(base64.urlsafe_b64decode(parts[1] + '=' * padding))
+        return payload.get('email')
+    except Exception:
+        return None
+
+
+class GoogleCalendarCallbackView(APIView):
+    """Gestiona la vinculación de Google Calendar: estado (GET), vincular (POST), desvincular (DELETE)."""
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        usuario = _usuario_sesion(request)
+        if not usuario:
+            return Response({'error': 'No autenticado.'}, status=status.HTTP_401_UNAUTHORIZED)
+        try:
+            cred = usuario.google_credentials
+            return Response({'vinculado': True, 'email': cred.email_google})
+        except GoogleOauthCredential.DoesNotExist:
+            return Response({'vinculado': False, 'email': None})
+
+    def post(self, request):
+        usuario = _usuario_sesion(request)
+        if not usuario:
+            return Response({'error': 'No autenticado.'}, status=status.HTTP_401_UNAUTHORIZED)
+
+        rol = usuario.rol.nombre_rol
+        if rol == 'tutor':
+            return Response({'error': 'No autorizado.'}, status=status.HTTP_403_FORBIDDEN)
+
+        code = request.data.get('code')
+        if not code:
+            return Response({'error': 'Código de autorización requerido.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        payload = {
+            'code': code,
+            'client_id': settings.GOOGLE_OAUTH2_CLIENT_ID,
+            'client_secret': settings.GOOGLE_OAUTH2_CLIENT_SECRET,
+            'redirect_uri': settings.GOOGLE_OAUTH2_REDIRECT_URI,
+            'grant_type': 'authorization_code',
+        }
+        try:
+            resp = requests.post('https://oauth2.googleapis.com/token', data=payload, timeout=10)
+        except requests.RequestException:
+            return Response({'error': 'No se pudo contactar con Google.'}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+        if resp.status_code != 200:
+            return Response({'error': 'No se pudieron obtener los tokens de Google.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        tokens = resp.json()
+        expiry = timezone.now() + timezone.timedelta(seconds=tokens.get('expires_in', 3600))
+
+        email_google = _email_desde_id_token(tokens.get('id_token', ''))
+
+        existing = GoogleOauthCredential.objects.filter(usuario=usuario).first()
+        refresh_token = tokens.get('refresh_token') or (existing.refresh_token if existing else None)
+
+        _, created = GoogleOauthCredential.objects.update_or_create(
+            usuario=usuario,
+            defaults={
+                'email_google': email_google,
+                'access_token': tokens['access_token'],
+                'refresh_token': refresh_token,
+                'scopes': tokens.get('scope', ''),
+                'expiry': expiry,
+            },
+        )
+        if created:
+            threading.Thread(target=backfill_usuario, args=(usuario,), daemon=True).start()
+        return Response({'status': 'Conexión con Google Calendar exitosa.', 'email': email_google})
+
+    def delete(self, request):
+        usuario = _usuario_sesion(request)
+        if not usuario:
+            return Response({'error': 'No autenticado.'}, status=status.HTTP_401_UNAUTHORIZED)
+        GoogleOauthCredential.objects.filter(usuario=usuario).delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
 class GoogleAuthView(APIView):
     """Verifica el ID token de Google y redirige al dashboard si el dominio es válido."""
 
@@ -1498,7 +1595,30 @@ class GoogleAuthView(APIView):
         if role and role not in self.INSTITUTIONAL_ROLES:
             return Response(status=status.HTTP_403_FORBIDDEN)
 
-        id_token = request.data.get('token') or request.POST.get('token')
+        # Flujo de código (login combinado con Calendar): recibe code + redirect_uri
+        code = request.data.get('code')
+        calendar_tokens = None
+        if code:
+            redirect_uri = request.data.get('redirect_uri', '')
+            payload = {
+                'code': code,
+                'client_id': settings.GOOGLE_OAUTH2_CLIENT_ID,
+                'client_secret': settings.GOOGLE_OAUTH2_CLIENT_SECRET,
+                'redirect_uri': redirect_uri,
+                'grant_type': 'authorization_code',
+            }
+            try:
+                token_resp = requests.post('https://oauth2.googleapis.com/token', data=payload, timeout=10)
+            except requests.RequestException:
+                return Response(status=status.HTTP_503_SERVICE_UNAVAILABLE)
+            if token_resp.status_code != 200:
+                return Response(status=status.HTTP_400_BAD_REQUEST)
+            calendar_tokens = token_resp.json()
+            id_token = calendar_tokens.get('id_token')
+        else:
+            # Flujo implícito legacy: recibe id_token directamente
+            id_token = request.data.get('token') or request.POST.get('token')
+
         if not id_token:
             return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -1594,6 +1714,26 @@ class GoogleAuthView(APIView):
             for pe in usuario.permisos_especiales.filter(activo=True)
         ]
 
+        # Guardar credenciales de Google Calendar solo si el código incluía scope de calendar
+        google_calendar_vinculado = False
+        returned_scope = (calendar_tokens or {}).get('scope', '')
+        if calendar_tokens and calendar_tokens.get('access_token') and 'calendar' in returned_scope:
+            expiry = timezone.now() + timezone.timedelta(seconds=calendar_tokens.get('expires_in', 3600))
+            existing = GoogleOauthCredential.objects.filter(usuario=usuario).first()
+            refresh_token_final = calendar_tokens.get('refresh_token') or (existing.refresh_token if existing else None)
+            _, created = GoogleOauthCredential.objects.update_or_create(
+                usuario=usuario,
+                defaults={
+                    'access_token': calendar_tokens['access_token'],
+                    'refresh_token': refresh_token_final,
+                    'scopes': returned_scope,
+                    'expiry': expiry,
+                },
+            )
+            google_calendar_vinculado = True
+            if created:
+                threading.Thread(target=backfill_usuario, args=(usuario,), daemon=True).start()
+
         return Response({
             'token': f'google-{correo}',
             'nombre': usuario.nombre or nombre_api,
@@ -1610,5 +1750,6 @@ class GoogleAuthView(APIView):
                 'permisos_especiales': permisos_extra,
                 'tipoEmpleado': tipo_empleado,
                 'adscripcion': adscripcion,
+                'google_calendar_vinculado': google_calendar_vinculado,
             },
         }, status=status.HTTP_200_OK)

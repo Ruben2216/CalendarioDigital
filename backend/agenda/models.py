@@ -74,6 +74,23 @@ class Usuario(models.Model):
         return f'{self.correo} ({self.rol.nombre_rol})'
 
 
+class GoogleOauthCredential(models.Model):
+    usuario = models.OneToOneField(
+        Usuario, on_delete=models.CASCADE, related_name='google_credentials'
+    )
+    email_google = models.EmailField(null=True, blank=True)
+    access_token = models.TextField()
+    refresh_token = models.TextField(null=True, blank=True)
+    scopes = models.TextField()
+    expiry = models.DateTimeField()
+
+    class Meta:
+        db_table = 'GoogleOauthCredential'
+
+    def __str__(self):
+        return f'Google Calendar - {self.usuario.correo} ({self.email_google or "sin email"})'
+
+
 class UsuarioPlantel(models.Model):
     id_usuario_plantel = models.BigAutoField(primary_key=True)
     usuario = models.ForeignKey(
@@ -198,6 +215,24 @@ class Evento(models.Model):
         if rol == 'admin':
             return self.creado_por_id == usuario.id_usuario
         return False
+
+
+class EventoGoogleSync(models.Model):
+    """Mapea cada evento a cada usuario que lo tiene sincronizado en su Google Calendar."""
+    evento = models.ForeignKey(
+        Evento, on_delete=models.CASCADE, related_name='google_syncs'
+    )
+    usuario = models.ForeignKey(
+        Usuario, on_delete=models.CASCADE, related_name='google_event_syncs'
+    )
+    google_event_id = models.CharField(max_length=255)
+
+    class Meta:
+        db_table = 'EventoGoogleSync'
+        unique_together = ('evento', 'usuario')
+
+    def __str__(self):
+        return f'{self.usuario.correo} → evento {self.evento_id}'
 
 
 class Anuncio(models.Model):

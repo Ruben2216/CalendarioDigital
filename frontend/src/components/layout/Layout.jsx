@@ -269,8 +269,12 @@ export default function Layout() {
 
             <div className={styles["plantel"]}>
               <div>
-                <small>{tipoEmpleado === 'Administrativo' ? 'Departamento' : 'Plantel'}</small>
-                <strong>{adscripcion || (plantel?.nombre ?? (rol === 'superusuario' ? 'Todos los planteles' : 'Sin plantel'))}</strong>
+                <small>{plantel?.nombre ? 'Plantel' : (tipoEmpleado === 'Administrativo' ? 'Departamento' : 'Plantel')}</small>
+                <strong>
+                  {rol === 'superusuario'
+                    ? 'Todos los planteles'
+                    : (plantel?.nombre || adscripcion || 'Sin plantel')}
+                </strong>
               </div>
             </div>
 
@@ -300,8 +304,12 @@ export default function Layout() {
                   </div>
                   <ul className={styles["menu-perfil__datos"]}>
                     <li>
-                      <span>{tipoEmpleado === 'Administrativo' ? 'Departamento' : 'Plantel'}</span>
-                      <strong>{adscripcion || plantel?.nombre || '—'}</strong>
+                      <span>{plantel?.nombre ? 'Plantel' : (tipoEmpleado === 'Administrativo' ? 'Departamento' : 'Plantel')}</span>
+                      <strong>
+                        {rol === 'superusuario'
+                          ? 'Todos los planteles'
+                          : (plantel?.nombre || adscripcion || '—')}
+                      </strong>
                     </li>
                     <li><span>Turno</span><strong>{turno?.nombre || '—'}</strong></li>
                     <li><span>Ciclo escolar</span><strong>{ciclo}</strong></li>

@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom
 import { MensajeriaProvider } from "./context/MensajeriaContext.jsx";
 import { inicializarNotificaciones } from "./services/pushService.js";
 import Login from "./pages/login/login.jsx";
+import GoogleCalendarCallback from "./pages/google-calendar-callback/GoogleCalendarCallback.jsx";
 import Layout from "./components/layout/Layout.jsx";
 import LayoutDocente from "./components/layout/LayoutDocente.jsx";
 import LayoutAlumno from "./components/layout/LayoutAlumno.jsx";
@@ -113,6 +114,9 @@ function App() {
             <Route path="/docente/foro"       element={<Suspense fallback={<Cargando />}><ForoDocente /></Suspense>} />
           </Route>
         </Route>
+
+        {/* Callback OAuth2 para vincular Google Calendar */}
+        <Route path="/calendar/callback" element={<GoogleCalendarCallback />} />
 
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
