@@ -1117,7 +1117,9 @@ class EventoListView(APIView):
         evento = Evento.objects.create(creado_por=usuario, **datos)
         evento = Evento.objects.select_related('tipo_evento', 'plantel', 'turno', 'creado_por__rol').get(pk=evento.pk)
         _notificar_evento(evento, 'creado')
-        threading.Thread(target=sincronizar_creacion, args=(evento,), daemon=True).start()
+        agregar_google = request.data.get('agregar_a_google_calendar', True)
+        excluir = set() if agregar_google else {usuario.id_usuario}
+        threading.Thread(target=sincronizar_creacion, args=(evento, excluir), daemon=True).start()
         return Response(_evento_dict(evento, usuario), status=status.HTTP_201_CREATED)
 
     @staticmethod

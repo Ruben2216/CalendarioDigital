@@ -143,11 +143,17 @@ def _usuarios_con_acceso(evento):
 # Sincronización multi-usuario
 # ---------------------------------------------------------------------------
 
-def sincronizar_creacion(evento):
-    """Crea el evento en el Google Calendar de todos los usuarios con acceso."""
+def sincronizar_creacion(evento, excluir_ids=None):
+    """Crea el evento en el Google Calendar de todos los usuarios con acceso.
+
+    excluir_ids: conjunto de id_usuario a omitir (p.ej. el creador que no quiso agregarlo).
+    """
     from ..models import EventoGoogleSync
 
+    excluir = set(excluir_ids) if excluir_ids else set()
     for usuario in _usuarios_con_acceso(evento):
+        if usuario.id_usuario in excluir:
+            continue
         service = _obtener_servicio(usuario)
         if not service:
             continue

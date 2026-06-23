@@ -50,7 +50,7 @@ const VISTAS = [
 const FORM_EVENTO_VACIO = {
   titulo: "", tipo: "", area: "", fecha: "", fechaFin: "",
   horaInicio: "", horaFin: "", lugar: "", plantel: "", turno: "", formato: "punto", todoElDia: false,
-  especifico: false, semestre: "", grupo: "",
+  especifico: false, semestre: "", grupo: "", agregarAGoogleCalendar: false,
 };
 
 function duracionTexto(ev) {
@@ -596,6 +596,7 @@ export default function Calendario({ soloLectura = false, publico = false }) {
       tipo: tiposParaCrear[0]?.id || "",
       plantel: esAdmin ? (misAsignaciones[0]?.plantel || "") : "",
       turno: esAdmin ? (misAsignaciones[0]?.turno || "") : "",
+      agregarAGoogleCalendar: Boolean(calVinculado?.vinculado),
     });
     setModalEvento(true);
   };
@@ -617,7 +618,7 @@ export default function Calendario({ soloLectura = false, publico = false }) {
   const guardarEvento = async (e) => {
     e.preventDefault();
     if (!formEvento.fecha || !calendarioActivo) return;
-    const { todoElDia, especifico, formato, ...resto } = formEvento;
+    const { todoElDia, especifico, formato, agregarAGoogleCalendar, ...resto } = formEvento;
     const datos = {
       ...resto,
       id_calendario: calendarioActivo,
@@ -636,7 +637,7 @@ export default function Calendario({ soloLectura = false, publico = false }) {
       if (eventoEditando) {
         await actualizarEvento(eventoEditando, datos);
       } else {
-        await crearEvento(datos);
+        await crearEvento(datos, { agregarAGoogleCalendar });
       }
       await cargarEventos(calendarioActivo);
       setFechaSeleccionada(datos.fecha);
@@ -1584,6 +1585,16 @@ export default function Calendario({ soloLectura = false, publico = false }) {
           onChange={(campo, valor) => setFormEvento((prev) => ({ ...prev, [campo]: valor }))}
           onSubmit={guardarEvento}
         />
+        {(esAdmin || esSuperusuario) && calVinculado?.vinculado && !eventoEditando && (
+          <label className={styles["google-cal-opcion"]}>
+            <input
+              type="checkbox"
+              checked={formEvento.agregarAGoogleCalendar}
+              onChange={(e) => setFormEvento((prev) => ({ ...prev, agregarAGoogleCalendar: e.target.checked }))}
+            />
+            <span>Agregar a mi Google Calendar</span>
+          </label>
+        )}
       </Modal>
     </div>
   );

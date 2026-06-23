@@ -1320,3 +1320,25 @@
     justify-content: center;
   }
 }
+
+.google-cal-opcion {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 14px;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 13.5px;
+  color: var(--text);
+  user-select: none;
+}
+
+.google-cal-opcion input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  cursor: pointer;
+  accent-color: var(--blue);
+}

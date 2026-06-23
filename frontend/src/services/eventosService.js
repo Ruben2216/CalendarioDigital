@@ -47,11 +47,11 @@ export async function listarEventos(idCalendario, { publico = false, plantelFilt
     return resp.json();
 }
 
-export async function crearEvento(datos) {
+export async function crearEvento(datos, { agregarAGoogleCalendar = true } = {}) {
     const resp = await fetch(`${BASE_URL}/api/eventos/`, {
         method: 'POST',
         headers: headers(),
-        body: JSON.stringify({ ...datos, id_usuario: idUsuario() }),
+        body: JSON.stringify({ ...datos, id_usuario: idUsuario(), agregar_a_google_calendar: agregarAGoogleCalendar }),
     });
     const cuerpo = await resp.json().catch(() => ({}));
     if (!resp.ok) throw new Error(cuerpo.error || 'No se pudo crear el evento.');
