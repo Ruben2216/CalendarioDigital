@@ -296,6 +296,12 @@ class Conversacion(models.Model):
     class Meta:
         db_table = 'Conversacion'
         unique_together = ('participante_a', 'participante_b')
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(participante_a_id__lt=models.F('participante_b_id')),
+                name='chk_conversacion_orden_participantes',
+            )
+        ]
 
     @staticmethod
     def par_ordenado(id_a: int, id_b: int) -> tuple[int, int]:
@@ -413,10 +419,14 @@ class SolicitudAdmin(models.Model):
     usuario = models.ForeignKey(
         Usuario, on_delete=models.CASCADE, related_name='solicitudes_admin'
     )
-    nombre = models.CharField(max_length=150)
-    correo = models.CharField(max_length=100)
-    plantel = models.CharField(max_length=100, blank=True, default='')
-    turno = models.CharField(max_length=30, blank=True, default='')
+    plantel = models.ForeignKey(
+        Plantel, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='solicitudes_admin'
+    )
+    turno = models.ForeignKey(
+        Turno, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='solicitudes_admin'
+    )
     motivo = models.TextField(blank=True, default='')
     estado = models.CharField(max_length=20, choices=ESTADOS, default=ESTADO_PENDIENTE)
     fecha_solicitud = models.DateTimeField(auto_now_add=True)
@@ -431,7 +441,7 @@ class SolicitudAdmin(models.Model):
         ordering = ['-fecha_solicitud']
 
     def __str__(self):
-        return f'{self.correo} ({self.estado})'
+        return f'{self.usuario.correo} ({self.estado})'
 
 
 class DispositivoFCM(models.Model):

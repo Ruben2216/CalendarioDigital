@@ -450,10 +450,10 @@ def _solicitud_dict(s):
     return {
         'id': s.id_solicitud_admin,
         'id_usuario': s.usuario_id,
-        'nombre': s.nombre,
-        'correo': s.correo,
-        'plantel': s.plantel,
-        'turno': s.turno,
+        'nombre': s.usuario.nombre,
+        'correo': s.usuario.correo,
+        'plantel': s.plantel.nombre if s.plantel else '',
+        'turno': s.turno.nombre_turno.lower() if s.turno else '',
         'motivo': s.motivo,
         'estado': s.estado,
         'fecha_solicitud': s.fecha_solicitud.isoformat(),
@@ -466,7 +466,7 @@ class SolicitudAdminView(APIView):
 
     def get(self, request):
         estado = request.query_params.get('estado')
-        qs = SolicitudAdmin.objects.select_related('usuario')
+        qs = SolicitudAdmin.objects.select_related('usuario', 'plantel')
         if estado:
             qs = qs.filter(estado=estado)
         return Response([_solicitud_dict(s) for s in qs])
@@ -487,12 +487,16 @@ class SolicitudAdminView(APIView):
                 status=status.HTTP_200_OK,
             )
 
+        plantel_nombre = (request.data.get('plantel') or '').strip()
+        plantel_obj = Plantel.objects.filter(nombre__iexact=plantel_nombre).first() if plantel_nombre else None
+
+        turno_nombre = (request.data.get('turno') or '').strip()
+        turno_obj = Turno.objects.filter(nombre_turno__iexact=turno_nombre).first() if turno_nombre else None
+
         solicitud = SolicitudAdmin.objects.create(
             usuario=usuario,
-            nombre=(request.data.get('nombre') or usuario.nombre or '').strip(),
-            correo=(request.data.get('correo') or usuario.correo or '').strip(),
-            plantel=(request.data.get('plantel') or '').strip(),
-            turno=(request.data.get('turno') or '').strip(),
+            plantel=plantel_obj,
+            turno=turno_obj,
             motivo=(request.data.get('motivo') or '').strip(),
         )
         return Response(
@@ -525,7 +529,7 @@ class ResolverSolicitudAdminView(APIView):
             return Response({'error': 'No autorizado.'}, status=status.HTTP_403_FORBIDDEN)
 
         try:
-            solicitud = SolicitudAdmin.objects.select_related('usuario').get(pk=id_solicitud)
+            solicitud = SolicitudAdmin.objects.select_related('usuario', 'plantel', 'turno').get(pk=id_solicitud)
         except SolicitudAdmin.DoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND)
 
@@ -548,13 +552,9 @@ class ResolverSolicitudAdminView(APIView):
             usuario.rol = rol_admin
             usuario.save(update_fields=['rol'])
             # Crear entrada UsuarioPlantel con el plantel/turno de la solicitud
-            if solicitud.plantel:
-                plantel_obj = Plantel.objects.filter(nombre__iexact=solicitud.plantel).first()
-                if plantel_obj:
-                    turno_nombre = solicitud.turno.strip().capitalize() if solicitud.turno else 'Matutino'
-                    turno_obj, _ = Turno.objects.get_or_create(nombre_turno=turno_nombre)
-                    UsuarioPlantel.objects.filter(usuario=usuario).delete()
-                    UsuarioPlantel.objects.create(usuario=usuario, plantel=plantel_obj, turno=turno_obj)
+            if solicitud.plantel_id and solicitud.turno_id:
+                UsuarioPlantel.objects.filter(usuario=usuario).delete()
+                UsuarioPlantel.objects.create(usuario=usuario, plantel=solicitud.plantel, turno=solicitud.turno)
             solicitud.estado = SolicitudAdmin.ESTADO_ACEPTADA
         else:
             solicitud.estado = SolicitudAdmin.ESTADO_RECHAZADA
