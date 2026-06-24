@@ -111,24 +111,6 @@ class UsuarioPlantel(models.Model):
         return f'{self.usuario.correo} - {self.plantel.nombre} - {self.turno.nombre_turno}'
 
 
-class PermisoEspecial(models.Model):
-    id_permiso_especial = models.BigAutoField(primary_key=True)
-    usuario = models.ForeignKey(
-        Usuario, on_delete=models.CASCADE, related_name='permisos_especiales'
-    )
-    turno_objetivo = models.ForeignKey(
-        Turno, on_delete=models.CASCADE, related_name='permisos_otorgados'
-    )
-    autorizado_por = models.ForeignKey(
-        Usuario, on_delete=models.PROTECT, related_name='permisos_autorizados'
-    )
-    fecha_autorizacion = models.DateTimeField(auto_now_add=True)
-    activo = models.BooleanField(default=True)
-
-    class Meta:
-        db_table = 'PermisoEspecial'
-
-
 class Calendario(models.Model):
     CLAVE_ESCOLARIZADO = 'escolarizado'
     CLAVE_SEA = 'sea'

@@ -110,7 +110,7 @@ class LoginInstitucionalView(APIView):
             usuario = (
                 Usuario.objects
                 .select_related('rol')
-                .prefetch_related('permisos_especiales__turno_objetivo', 'planteles_asignados__plantel', 'planteles_asignados__turno')
+                .prefetch_related('planteles_asignados__plantel', 'planteles_asignados__turno')
                 .get(pk=usuario.pk, activo=True)
             )
         except Usuario.DoesNotExist:
@@ -129,14 +129,6 @@ class LoginInstitucionalView(APIView):
                 {'error': 'El perfil seleccionado no corresponde a tu cuenta.'},
                 status=status.HTTP_403_FORBIDDEN
             )
-
-        permisos_extra = [
-            {
-                'id_turno': pe.turno_objetivo.id_turno,
-                'nombre_turno': pe.turno_objetivo.nombre_turno,
-            }
-            for pe in usuario.permisos_especiales.filter(activo=True)
-        ]
 
         datos_empleado = {}
         if rol_solicitado != 'alumno' and id_externo:
@@ -166,7 +158,6 @@ class LoginInstitucionalView(APIView):
                     }
                     for up in usuario.planteles_asignados.all()
                 ],
-                'permisos_especiales': permisos_extra,
                 'tipoEmpleado': datos_empleado.get('tipoEmpleado', ''),
                 'adscripcion': datos_empleado.get('adscripcion', '') or datos_empleado.get('nombreAdscripcion', ''),
             },
@@ -206,7 +197,6 @@ class LoginInstitucionalView(APIView):
                 },
                 'grupo': datos.get('grupo'),
                 'semestre': datos.get('semestre'),
-                'permisos_especiales': [],
             },
         }, status=status.HTTP_200_OK)
 
@@ -1673,7 +1663,6 @@ class GoogleAuthView(APIView):
                     'rol': 'alumno',
                     'correo': correo,
                     'planteles': [],
-                    'permisos_especiales': [],
                     'tipoEmpleado': tipo_empleado,
                     'adscripcion': adscripcion,
                 },
@@ -1696,7 +1685,6 @@ class GoogleAuthView(APIView):
                 .prefetch_related(
                     'planteles_asignados__plantel',
                     'planteles_asignados__turno',
-                    'permisos_especiales__turno_objetivo',
                 )
                 .get(pk=usuario.pk, activo=True)
             )
@@ -1710,11 +1698,6 @@ class GoogleAuthView(APIView):
                 {'error': 'No tienes perfil de administrador.'},
                 status=status.HTTP_403_FORBIDDEN,
             )
-
-        permisos_extra = [
-            {'id_turno': pe.turno_objetivo.id_turno, 'nombre_turno': pe.turno_objetivo.nombre_turno}
-            for pe in usuario.permisos_especiales.filter(activo=True)
-        ]
 
         # Guardar credenciales de Google Calendar solo si el código incluía scope de calendar
         google_calendar_vinculado = False
@@ -1749,7 +1732,6 @@ class GoogleAuthView(APIView):
                     }
                     for up in usuario.planteles_asignados.all()
                 ],
-                'permisos_especiales': permisos_extra,
                 'tipoEmpleado': tipo_empleado,
                 'adscripcion': adscripcion,
                 'google_calendar_vinculado': google_calendar_vinculado,

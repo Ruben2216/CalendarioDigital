@@ -1,7 +1,7 @@
 export function leerSesion() {
   const raw = localStorage.getItem('sesion');
   if (!raw) {
-    return { rol: '', nombre: '', iniciales: '', plantel: null, turno: null, planteles: [], permisos_especiales: [] };
+    return { rol: '', nombre: '', iniciales: '', plantel: null, turno: null, planteles: [] };
   }
   const sesion = JSON.parse(raw);
   const nombre = sesion.nombre || '';
