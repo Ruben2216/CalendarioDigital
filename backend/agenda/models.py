@@ -372,7 +372,13 @@ class Notificacion(models.Model):
     plantel        = models.ForeignKey(
         Plantel, on_delete=models.CASCADE, null=True, blank=True, related_name='notificaciones'
     )
-    referencia_id  = models.BigIntegerField(null=True, blank=True)  # id del anuncio/evento origen
+
+    anuncio = models.ForeignKey(
+        Anuncio, on_delete=models.SET_NULL, null=True, blank=True, related_name='notificaciones'
+    )
+    evento = models.ForeignKey(
+        Evento, on_delete=models.SET_NULL, null=True, blank=True, related_name='notificaciones'
+    )
     fecha_creacion = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -432,8 +438,6 @@ class DispositivoFCM(models.Model):
         Usuario, on_delete=models.CASCADE, null=True, blank=True,
         related_name='dispositivos'
     )
-    id_externo = models.CharField(max_length=100, null=True, blank=True)
-    rol = models.CharField(max_length=50)
     plantel = models.ForeignKey(
         Plantel, on_delete=models.SET_NULL, null=True, blank=True,
         related_name='dispositivos'
@@ -448,4 +452,4 @@ class DispositivoFCM(models.Model):
         ordering = ['-fecha_actualizacion']
 
     def __str__(self):
-        return f'{self.token_fcm[:12]}… ({self.rol})'
+        return f'{self.token_fcm[:12]}…'
