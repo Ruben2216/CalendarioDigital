@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { MessageSquare, UserPlus } from 'lucide-react';
 import { useSesion } from '../../../hooks/useSesion.js';
 import { useMensajeria } from '../../../hooks/useMensajeria.js';
+import { useMediaQuery } from '../../../hooks/useMediaQuery.js';
 import { obtenerOCrearConversacion } from '../../../services/mensajeriaService.js';
 import { useMensajeriaCtx } from '../../../context/MensajeriaContext.jsx';
 import ConvLista from '../../../components/mensajeria/ConvLista.jsx';
@@ -13,6 +14,7 @@ export default function Mensajeria() {
   const { id_usuario, iniciales, plantel, rol } = useSesion();
   const { refrescar: refrescarBadge } = useMensajeriaCtx();
   const [selectorAbierto, setSelectorAbierto] = useState(false);
+  const esMovil = useMediaQuery('(max-width: 720px)');
 
   const {
     conversaciones,
@@ -79,30 +81,35 @@ export default function Mensajeria() {
       </div>
 
       <div className={styles['mensajeria__layout']}>
-        <ConvLista
-          conversaciones={conversaciones}
-          idActiva={idConvActiva}
-          cargando={cargandoConvs}
-          onSeleccionar={seleccionarConversacion}
-          titulo={esSuperadmin ? 'Todos los planteles' : `Docentes · ${plantel?.nombre ?? ''}`}
-        />
-
-        {idConvActiva ? (
-          <ChatPanel
-            mensajes={mensajes}
-            cargando={cargandoMsgs}
-            inicialesUsuario={iniciales}
-            conversacion={conversaciones.find((c) => c.id === idConvActiva)}
-            onEnviar={handleEnviar}
-            onActualizar={recargarMensajes}
-            esAdmin
-            onAprobar={aprobarSolicitud}
+        {(!esMovil || !idConvActiva) && (
+          <ConvLista
+            conversaciones={conversaciones}
+            idActiva={idConvActiva}
+            cargando={cargandoConvs}
+            onSeleccionar={seleccionarConversacion}
+            titulo={esSuperadmin ? 'Todos los planteles' : `Docentes · ${plantel?.nombre ?? ''}`}
           />
-        ) : (
-          <div className={styles['mensajeria__vacio']}>
-            <MessageSquare size={32} strokeWidth={1.5} />
-            <p>Selecciona una conversación o contacta a un docente.</p>
-          </div>
+        )}
+
+        {(!esMovil || idConvActiva) && (
+          idConvActiva ? (
+            <ChatPanel
+              mensajes={mensajes}
+              cargando={cargandoMsgs}
+              inicialesUsuario={iniciales}
+              conversacion={conversaciones.find((c) => c.id === idConvActiva)}
+              onEnviar={handleEnviar}
+              onActualizar={recargarMensajes}
+              esAdmin
+              onAprobar={aprobarSolicitud}
+              onVolver={esMovil ? () => seleccionarConversacion(null) : null}
+            />
+          ) : (
+            <div className={styles['mensajeria__vacio']}>
+              <MessageSquare size={32} strokeWidth={1.5} />
+              <p>Selecciona una conversación o contacta a un docente.</p>
+            </div>
+          )
         )}
       </div>
 

@@ -2,6 +2,8 @@
   display: flex;
   flex-direction: column;
   gap: 24px;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .foro__encabezado {
@@ -9,6 +11,11 @@
   justify-content: space-between;
   align-items: flex-start;
   gap: 16px;
+  flex-wrap: wrap;
+}
+
+.foro__titulo-bloque {
+  min-width: 0;
 }
 
 .foro__titulo {
@@ -20,18 +27,52 @@
   letter-spacing: -0.01em;
 }
 
+.foro__acciones {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.foro__acciones-fila {
+  display: flex;
+  gap: 8px;
+}
+
+.foro__error {
+  font-size: 11px;
+  color: var(--red);
+}
+
 .foro__cuerpo {
   display: grid;
   grid-template-columns: 320px 1fr;
   gap: 16px;
   height: calc(100vh - 200px);
   min-height: 480px;
+  min-width: 0;
 }
 
-@media (max-width: 860px) {
+@media (max-width: 720px) {
   .foro__cuerpo {
     grid-template-columns: 1fr;
     height: auto;
     min-height: unset;
+  }
+}
+
+@media (max-width: 560px) {
+  .foro__acciones {
+    width: 100%;
+    align-items: stretch;
+  }
+
+  .foro__acciones-fila {
+    flex-wrap: wrap;
+  }
+
+  .foro__acciones-fila :global(.boton) {
+    flex: 1 1 auto;
+    justify-content: center;
   }
 }

@@ -391,7 +391,7 @@ export default function Usuarios() {
                           </div>
                         </div>
                       </td>
-                      <td>
+                      <td data-label="Plantel">
                         <div className={styles["planteles"]}>
                           {u.planteles.map((p) => (
                             <span key={p} className={styles["plantel-chip"]}>
@@ -401,16 +401,16 @@ export default function Usuarios() {
                           ))}
                         </div>
                       </td>
-                      <td>
+                      <td data-label="Turno">
                         <span className={`etiqueta etiqueta--${turno?.color}`}>{turno?.etiqueta}</span>
                       </td>
-                      <td>
+                      <td data-label="Rol">
                         <span className={`etiqueta etiqueta--${ROL.color}`}>{ROL.etiqueta}</span>
                       </td>
-                      <td>
+                      <td data-label="Estado">
                         <span className={`etiqueta etiqueta--${estado?.color}`}>{estado?.etiqueta}</span>
                       </td>
-                      <td className={styles["tabla__tenue"]}>{formatoFecha(u.solicitado)}</td>
+                      <td data-label="Solicitado" className={styles["tabla__tenue"]}>{formatoFecha(u.solicitado)}</td>
                       <td>
                         <div className={styles["acciones"]}>
                           {u.estado !== "activo" && (

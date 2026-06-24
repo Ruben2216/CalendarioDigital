@@ -403,4 +403,63 @@
   .filtros select {
     flex: 1;
   }
+
+  .tabla-envoltura {
+    overflow-x: visible;
+  }
+
+  .tabla thead {
+    display: none;
+  }
+
+  .tabla,
+  .tabla tbody {
+    display: block;
+    width: 100%;
+  }
+
+  .tabla tbody tr {
+    display: block;
+    padding: 12px 14px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    margin-bottom: 10px;
+  }
+
+  .tabla tbody tr:last-child td {
+    border-bottom: 0;
+  }
+
+  .tabla tbody td {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 6px 0;
+    border: 0;
+  }
+
+  .tabla tbody td[data-label]::before {
+    content: attr(data-label);
+    flex: none;
+    font-family: var(--font-display);
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .usuario {
+    min-width: 0;
+  }
+
+  .planteles {
+    max-width: none;
+    justify-content: flex-end;
+  }
+
+  .acciones {
+    justify-content: flex-start;
+  }
 }

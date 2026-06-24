@@ -5,6 +5,8 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .conv-lista__cabecera {
@@ -26,6 +28,17 @@
   padding: 0;
   overflow-y: auto;
   flex: 1;
+}
+
+@media (max-width: 720px) {
+  .conv-lista {
+    overflow: visible;
+  }
+
+  .conv-lista__lista {
+    overflow-y: visible;
+    flex: none;
+  }
 }
 
 .conv-item {

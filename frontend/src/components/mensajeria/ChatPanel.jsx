@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Send, RefreshCw, Plus } from 'lucide-react';
+import { Send, RefreshCw, Plus, ArrowLeft } from 'lucide-react';
 import BurbujaMensaje from './BurbujaMensaje.jsx';
 import styles from './ChatPanel.module.css';
 
@@ -13,6 +13,7 @@ export default function ChatPanel({
   cargando = false,
   onActualizar = null,
   onNuevaSolicitud = null,
+  onVolver = null,
 }) {
   const [texto, setTexto] = useState('');
   const listaRef = useRef(null);
@@ -65,6 +66,17 @@ export default function ChatPanel({
   return (
     <div className={styles['chat-panel']}>
       <div className={styles['chat-panel__cabecera']}>
+        {onVolver && (
+          <button
+            type="button"
+            className={styles['chat-panel__volver']}
+            onClick={onVolver}
+            aria-label="Volver a conversaciones"
+            title="Volver"
+          >
+            <ArrowLeft size={20} />
+          </button>
+        )}
         <span className={styles['chat-panel__avatar']}>{inicialesOtro}</span>
         <div className={styles['chat-panel__cab-info']}>
           <strong className={styles['chat-panel__nombre']}>{nombreOtro}</strong>

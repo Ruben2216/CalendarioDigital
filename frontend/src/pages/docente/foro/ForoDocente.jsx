@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Plus, UserPlus } from 'lucide-react';
 import { useSesion } from '../../../hooks/useSesion.js';
 import { useMensajeria } from '../../../hooks/useMensajeria.js';
+import { useMediaQuery } from '../../../hooks/useMediaQuery.js';
 import { enviarSolicitudBroadcast, obtenerOCrearConversacion } from '../../../services/mensajeriaService.js';
 import ConvLista from '../../../components/mensajeria/ConvLista.jsx';
 import ChatPanel from '../../../components/mensajeria/ChatPanel.jsx';
@@ -31,6 +32,7 @@ export default function ForoDocente() {
 
   const convActiva = conversaciones.find((c) => c.id === idConvActiva) ?? null;
   const avatarUsuario = iniciales || nombre?.slice(0, 2).toUpperCase() || 'DC';
+  const esMovil = useMediaQuery('(max-width: 720px)');
 
   const iniciarSolicitud = () => {
     setErrorAdmin(null);
@@ -93,12 +95,12 @@ export default function ForoDocente() {
   return (
     <div className={styles['foro']}>
       <header className={styles['foro__encabezado']}>
-        <div>
+        <div className={styles['foro__titulo-bloque']}>
           <h2 className={styles['foro__titulo']}>Foro docente</h2>
           <span className="etiqueta etiqueta--azul">Mensajería interna</span>
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
-          <div style={{ display: 'flex', gap: 8 }}>
+        <div className={styles['foro__acciones']}>
+          <div className={styles['foro__acciones-fila']}>
             <button
               type="button"
               className="boton boton--fantasma"
@@ -118,27 +120,32 @@ export default function ForoDocente() {
             </button>
           </div>
           {errorAdmin && (
-            <span style={{ fontSize: 11, color: 'var(--red)' }}>{errorAdmin}</span>
+            <span className={styles['foro__error']}>{errorAdmin}</span>
           )}
         </div>
       </header>
 
       <div className={styles['foro__cuerpo']}>
-        <ConvLista
-          conversaciones={conversaciones}
-          idActiva={idConvActiva}
-          onSeleccionar={seleccionarConversacion}
-        />
-        <ChatPanel
-          conversacion={convActiva}
-          mensajes={mensajes}
-          cargando={cargandoMsgs}
-          inicialesUsuario={avatarUsuario}
-          onEnviar={enviarMensaje}
-          onActualizar={recargarMensajes}
-          onNuevaSolicitud={iniciarSolicitud}
-          esAdmin={false}
-        />
+        {(!esMovil || !idConvActiva) && (
+          <ConvLista
+            conversaciones={conversaciones}
+            idActiva={idConvActiva}
+            onSeleccionar={seleccionarConversacion}
+          />
+        )}
+        {(!esMovil || idConvActiva) && (
+          <ChatPanel
+            conversacion={convActiva}
+            mensajes={mensajes}
+            cargando={cargandoMsgs}
+            inicialesUsuario={avatarUsuario}
+            onEnviar={enviarMensaje}
+            onActualizar={recargarMensajes}
+            onNuevaSolicitud={iniciarSolicitud}
+            esAdmin={false}
+            onVolver={esMovil ? () => seleccionarConversacion(null) : null}
+          />
+        )}
       </div>
 
       <ModalSolicitud
