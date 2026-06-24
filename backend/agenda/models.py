@@ -1,5 +1,6 @@
 import json
 
+from django.core.exceptions import ValidationError
 from django.db import models
 
 
@@ -350,6 +351,13 @@ class LecturaMensaje(models.Model):
     ultimo_leido = models.ForeignKey(
         Mensaje, on_delete=models.SET_NULL, null=True, related_name='+'
     )
+
+    def clean(self):
+        if self.ultimo_leido_id is not None:
+            if self.ultimo_leido.conversacion_id != self.conversacion_id:
+                raise ValidationError(
+                    'El mensaje último leído no pertenece a esta conversación.'
+                )
 
     class Meta:
         db_table = 'LecturaMensaje'
