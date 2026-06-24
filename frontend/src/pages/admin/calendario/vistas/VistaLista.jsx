@@ -1,11 +1,23 @@
-import { useMemo } from "react";
-import { Pencil, Trash2 } from "lucide-react";
-import { formatoHora, formatoFechaLarga } from "../../../../lib/fechas.js";
+import { useMemo, useState } from "react";
+import { Pencil, Trash2, ChevronDown } from "lucide-react";
+import { formatoHora, formatoFechaLarga, aClaveFecha, ahoraMexico } from "../../../../lib/fechas.js";
 import { alcanceEvento } from "../../../../data/calendario.js";
 import styles from "./VistaLista.module.css";
 
 export default function VistaLista({ eventos, fechaActual, colorTipo, etiquetaTipo, onSeleccionarDia, onEditar, onEliminar, soloLectura = false, })
 {
+  const [colapsados, setColapsados] = useState(() => new Set());
+
+  const claveHoy = useMemo(() => aClaveFecha(ahoraMexico()), []);
+
+  const alternarDia = (clave) =>
+    setColapsados((prev) => {
+      const sig = new Set(prev);
+      if (sig.has(clave)) sig.delete(clave);
+      else sig.add(clave);
+      return sig;
+    });
+
   // Eventos del mes visible, agrupados por su día de inicio */
   const grupos = useMemo(() => {
     const mes = fechaActual.getMonth();
@@ -33,12 +45,41 @@ export default function VistaLista({ eventos, fechaActual, colorTipo, etiquetaTi
     );
   }
 
+  const todosColapsados = grupos.every((g) => colapsados.has(g.clave));
+  const alternarTodos = () =>
+    setColapsados(todosColapsados ? new Set() : new Set(grupos.map((g) => g.clave)));
+
   return (
     <div className={styles["lista"]}>
-      {grupos.map((g) => (
-        <div key={g.clave} className={styles["lista__grupo"]}>
-          <div className={styles["lista__dia"]}>{formatoFechaLarga(g.clave)}</div>
+      <div className={styles["lista__barra"]}>
+        <button type="button" className={styles["lista__toggle-todos"]} onClick={alternarTodos}>
+          {todosColapsados ? "Expandir todo" : "Contraer todo"}
+        </button>
+      </div>
 
+      {grupos.map((g) => {
+        const colapsado = colapsados.has(g.clave);
+        const esHoy = g.clave === claveHoy;
+        return (
+        <div key={g.clave} className={styles["lista__grupo"]}>
+          <button
+            type="button"
+            className={`${styles["lista__dia"]} ${esHoy ? styles["lista__dia--hoy"] : ""}`}
+            onClick={() => alternarDia(g.clave)}
+            aria-expanded={!colapsado}
+          >
+            <ChevronDown
+              size={18}
+              className={`${styles["lista__chevron"]} ${colapsado ? styles["lista__chevron--cerrado"] : ""}`}
+            />
+            <span className={styles["lista__dia-texto"]}>{formatoFechaLarga(g.clave)}</span>
+            {esHoy && <span className={styles["lista__hoy-badge"]}>Hoy</span>}
+            <span className={styles["lista__conteo"]}>
+              {g.eventos.length} {g.eventos.length === 1 ? "evento" : "eventos"}
+            </span>
+          </button>
+
+          {!colapsado && (
           <div className={`tarjeta ${styles["lista__tarjeta"]}`}>
             {g.eventos.map((ev) => (
               <div
@@ -96,8 +137,10 @@ export default function VistaLista({ eventos, fechaActual, colorTipo, etiquetaTi
               </div>
             ))}
           </div>
+          )}
         </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
