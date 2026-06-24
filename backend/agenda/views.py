@@ -1034,7 +1034,7 @@ def _notificar_evento(evento, accion):
         mensaje=mensaje,
         audiencia='todos',
         plantel=evento.plantel,
-        referencia_id=evento.id_evento,
+        evento=evento if accion != 'eliminado' else None,
     )
 
     temas = [push.tema_plantel(evento.plantel_id)] if evento.plantel_id else [push.TEMA_TODOS]
@@ -1297,7 +1297,7 @@ class AnuncioListView(APIView):
             mensaje=anuncio.descripcion,
             audiencia=anuncio.audiencia,
             plantel=anuncio.plantel,
-            referencia_id=anuncio.id_anuncio,
+            anuncio=anuncio,
         )
 
         try:
@@ -1399,11 +1399,8 @@ class RegistrarDispositivoView(APIView):
         # con un id externo (GUID/matrícula) que NO existe como Usuario local.
         usuario = None
         id_usuario = d.get('id_usuario')
-        id_externo = d.get('id_externo') or d.get('matricula')
         if id_usuario is not None and str(id_usuario).isdigit():
             usuario = Usuario.objects.filter(pk=int(id_usuario), activo=True).first()
-        elif id_usuario is not None and not id_externo:
-            id_externo = str(id_usuario)
 
         plantel = None
         plantel_id = d.get('plantel_id')
@@ -1418,8 +1415,6 @@ class RegistrarDispositivoView(APIView):
             token_fcm=token,
             defaults={
                 'usuario': usuario,
-                'id_externo': str(id_externo) if id_externo else None,
-                'rol': rol,
                 'plantel': plantel,
                 'activo': True,
             },
@@ -1450,7 +1445,7 @@ def _notif_dict(n):
         'titulo': n.titulo,
         'mensaje': n.mensaje,
         'plantel': n.plantel.nombre if n.plantel else None,
-        'referencia_id': n.referencia_id,
+        'referencia_id': n.evento_id or n.anuncio_id,
         'fecha': n.fecha_creacion.isoformat(),
     }
 
