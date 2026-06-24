@@ -10,7 +10,7 @@ import esLocale from "@fullcalendar/core/locales/es";
 
 import {
   CalendarDays, CalendarRange, LayoutGrid, List, ChevronLeft, ChevronRight,
-  ChevronDown, Plus, Download, Pencil, Trash2, Filter, Tag,
+  ChevronDown, Plus, CalendarSync, Pencil, Trash2, Filter, Tag,
   PanelRight, X, Clock, MapPin, Hourglass, Check, Eye,
 } from "lucide-react";
 import Modal from "../../../components/modal/Modal.jsx";
@@ -885,6 +885,7 @@ export default function Calendario({ soloLectura = false, publico = false }) {
                     type="button"
                     className="boton boton--fantasma"
                     onClick={desconectarCalendar}
+                    aria-label="Google Calendar vinculado — clic para desconectar"
                     title={`Google Calendar vinculado${calVinculado.email ? ` como ${calVinculado.email}` : ''} — clic para desconectar`}
                   >
                     <Check size={16} />
@@ -898,9 +899,10 @@ export default function Calendario({ soloLectura = false, publico = false }) {
                     className="boton boton--fantasma"
                     onClick={abrirVinculacionGoogle}
                     disabled={calVinculado === null}
+                    aria-label="Vincular Google Calendar"
                     title="Sincroniza los eventos con tu Google Calendar"
                   >
-                    <Download size={16} />
+                    <CalendarSync size={16} />
                     {calVinculado === null ? '…' : 'Vincular Google Calendar'}
                   </button>
                 )
@@ -922,6 +924,7 @@ export default function Calendario({ soloLectura = false, publico = false }) {
                 type="button"
                 className={`boton boton--fantasma ${styles["barra__panel-btn"]}`}
                 onClick={() => setFiltrosModalAbierto(true)}
+                aria-label="Filtros rápidos"
                 title="Filtros rápidos"
               >
                 <Filter size={16} />
@@ -935,6 +938,7 @@ export default function Calendario({ soloLectura = false, publico = false }) {
                 className={`boton boton--fantasma ${styles["barra__panel-btn"]}`}
                 aria-pressed={panelAbierto}
                 onClick={() => setPanelAbierto((v) => !v)}
+                aria-label="Simbología"
                 title={panelAbierto ? "Ocultar simbología" : "Mostrar simbología"}
               >
                 <PanelRight size={16} />

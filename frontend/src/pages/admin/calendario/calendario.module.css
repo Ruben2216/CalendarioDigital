@@ -1185,7 +1185,13 @@
     width: 100%;
   }
 
+  .barra__navegacion {
+    order: 2;
+    justify-content: center;
+  }
+
   .barra__derecha {
+    order: 1;
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
@@ -1197,14 +1203,21 @@
     justify-content: center;
   }
 
-  .barra__derecha .vista,
-  .barra__derecha :global(.boton--fantasma) {
+  .barra__derecha .vista {
     flex: 1 1 auto;
   }
 
-  .barra__derecha .vista__boton,
-  .barra__derecha :global(.boton--fantasma) {
+  .barra__derecha .vista__boton {
     width: 100%;
+    justify-content: center;
+  }
+
+  .barra__derecha :global(.boton--fantasma) {
+    flex: 1 1 auto;
+    width: auto;
+    padding: 0;
+    gap: 0;
+    font-size: 0;
     justify-content: center;
   }
 
