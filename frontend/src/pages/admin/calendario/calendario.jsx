@@ -94,18 +94,18 @@ export default function Calendario({ soloLectura = false, publico = false }) {
   const misPlanteles = useMemo(() => [...new Set(misAsignaciones.map((a) => a.plantel))], [misAsignaciones]);
   const misTurnos = useMemo(() => [...new Set(misAsignaciones.map((a) => a.turno).filter(Boolean))], [misAsignaciones]);
 
-  // Planteles/turnos a los que el usuario puede filtrar en el calendario: 
-  // el alumno tiene 1 fijo;
-  // el docente los que tenga asignados sea 1 o 2 maximo 
-  // admin/superusuario, sin límite (por ahora)
+  // Planteles/turnos a los que el usuario puede filtrar en el calendario:
+  // el alumno tiene 1 fijo; el docente y el admin, los que tengan asignados
+  // (el backend ya restringe sus eventos a esos planteles); el superusuario
+  // ve todo (su filtro de plantel es el buscador general).
   const plantelesPermitidos = useMemo(() => {
     if (esAlumno) return sesion.plantel?.nombre ? [sesion.plantel.nombre] : [];
-    if (esDocente) return [...new Set((sesion.planteles || []).map((a) => a.plantel?.nombre).filter(Boolean))];
+    if (esDocente || esAdmin) return [...new Set((sesion.planteles || []).map((a) => a.plantel?.nombre).filter(Boolean))];
     return [];
   }, []);
   const turnosPermitidos = useMemo(() => {
     if (esAlumno) return sesion.turno?.nombre ? [sesion.turno.nombre] : [];
-    if (esDocente) return [...new Set((sesion.planteles || []).map((a) => a.turno?.nombre).filter(Boolean))];
+    if (esDocente || esAdmin) return [...new Set((sesion.planteles || []).map((a) => a.turno?.nombre).filter(Boolean))];
     return [];
   }, []);
 
