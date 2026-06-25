@@ -37,8 +37,18 @@ export async function listarEventos(idCalendario, { publico = false, plantelFilt
     if (sesion) {
         if (sesion.id_usuario != null) url.searchParams.set('id_usuario', sesion.id_usuario);
         if (sesion.rol) url.searchParams.set('rol', sesion.rol);
-        if (sesion.plantel?.nombre) url.searchParams.set('plantel', sesion.plantel.nombre);
+
+        if (sesion.plantel?.id) {
+            url.searchParams.set('plantel_id', sesion.plantel.id);
+        } else if (sesion.plantel?.nombre) {
+            url.searchParams.set('plantel', sesion.plantel.nombre);
+        }
         if (sesion.turno?.nombre) url.searchParams.set('turno', sesion.turno.nombre);
+
+        if (sesion.rol === 'alumno') {
+            if (sesion.semestre != null) url.searchParams.set('semestre', sesion.semestre);
+            if (sesion.grupo) url.searchParams.set('grupo', sesion.grupo);
+        }
     }
     // Filtro de plantel del superusuario
     if (plantelFiltro) url.searchParams.set('plantel_filtro', plantelFiltro);
