@@ -1,16 +1,17 @@
-import { useState } from "react";
 import { ChevronDown } from "lucide-react";
+import { usePreferencia } from "../../hooks/usePreferencia.js";
 import styles from "./TarjetaColapsable.module.css";
 
-// Tarjeta con encabezado clicable para mostrar/ocultar su contenido
+// Tarjeta con encabezado clicable para mostrar/ocultar su contenido.
 export default function TarjetaColapsable({
+  id,
   icono: Icono,
   titulo,
   accion,
   defaultAbierto = true,
   children,
 }) {
-  const [abierto, setAbierto] = useState(defaultAbierto);
+  const [abierto, setAbierto] = usePreferencia(id ? `tarjeta:${id}` : null, defaultAbierto);
 
   return (
     <article className="tarjeta">
