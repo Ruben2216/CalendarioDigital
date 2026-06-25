@@ -138,6 +138,28 @@ class LoginInstitucionalView(APIView):
             if id_api_value and usuario.id_api != id_api_value:
                 Usuario.objects.filter(pk=usuario.pk).update(id_api=id_api_value)
 
+        # Sincronizar plantel desde adscripción institucional (solo empleados via API, no admins locales)
+        if not usuario_local and datos_empleado:
+            adscripcion_nombre = (
+                datos_empleado.get('adscripcion') or
+                datos_empleado.get('nombreAdscripcion') or ''
+            ).strip()
+            if adscripcion_nombre:
+                plantel_adscripcion = Plantel.objects.filter(nombre__iexact=adscripcion_nombre).first()
+                if plantel_adscripcion:
+                    turno_default, _ = Turno.objects.get_or_create(nombre_turno='Matutino')
+                    UsuarioPlantel.objects.get_or_create(
+                        usuario=usuario,
+                        plantel=plantel_adscripcion,
+                        defaults={'turno': turno_default},
+                    )
+                    usuario = (
+                        Usuario.objects
+                        .select_related('rol')
+                        .prefetch_related('planteles_asignados__plantel', 'planteles_asignados__turno')
+                        .get(pk=usuario.pk)
+                    )
+
         return Response({
             'token': respuesta_institucional.get('token', ''),
             'nombre': usuario.nombre or '',
@@ -791,8 +813,8 @@ class GuardarConfiguracionPlantelesView(APIView):
         nuevos_registros = []
         for plantel_id, turnos in selecciones.items():
             try:
-                plantel = Plantel.objects.get(pk=int(plantel_id))
-            except (ValueError, Plantel.DoesNotExist):
+                plantel = Plantel.objects.get(pk=plantel_id)
+            except Plantel.DoesNotExist:
                 errores.append(f"Plantel no encontrado: {plantel_id}")
                 continue
 
@@ -1571,11 +1593,12 @@ class GoogleCalendarCallbackView(APIView):
         if not code:
             return Response({'error': 'Código de autorización requerido.'}, status=status.HTTP_400_BAD_REQUEST)
 
+        redirect_uri = request.data.get('redirect_uri') or settings.GOOGLE_OAUTH2_REDIRECT_URI
         payload = {
             'code': code,
             'client_id': settings.GOOGLE_OAUTH2_CLIENT_ID,
             'client_secret': settings.GOOGLE_OAUTH2_CLIENT_SECRET,
-            'redirect_uri': settings.GOOGLE_OAUTH2_REDIRECT_URI,
+            'redirect_uri': redirect_uri,
             'grant_type': 'authorization_code',
         }
         try:

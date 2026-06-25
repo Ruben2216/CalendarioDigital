@@ -8,7 +8,7 @@ export default function GoogleCalendarCallback() {
 
         if (window.opener) {
             window.opener.postMessage(
-                { type: 'google-calendar-code', code, error },
+                { type: 'google-calendar-code', code, error, redirect_uri: window.location.origin + '/calendar/callback' },
                 window.location.origin
             );
             window.close();

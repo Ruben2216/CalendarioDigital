@@ -198,7 +198,7 @@ export default function Calendario({ soloLectura = false, publico = false }) {
   }, []);
 
   useEffect(() => {
-    if (publico || !sesion?.id_usuario) return;
+    if (publico || !sesion?.id_usuario || sesion?.rol === 'alumno') return;
     verificarVinculo()
       .then((data) => setCalVinculado(data.vinculado ? data : false))
       .catch(() => setCalVinculado(false));
@@ -209,11 +209,11 @@ export default function Calendario({ soloLectura = false, publico = false }) {
     const onMessage = async (event) => {
       if (event.origin !== window.location.origin) return;
       if (event.data?.type !== 'google-calendar-code') return;
-      const { code, error } = event.data;
+      const { code, error, redirect_uri } = event.data;
       if (error) { avisoError('Autorización rechazada por Google.'); return; }
       if (!code) return;
       try {
-        const resultado = await vincular(code);
+        const resultado = await vincular(code, redirect_uri);
         setCalVinculado({ vinculado: true, email: resultado.email ?? null });
         avisoExito('Google Calendar vinculado correctamente.');
       } catch (e) {

@@ -38,12 +38,12 @@ export async function verificarVinculo() {
     return resp.json();
 }
 
-export async function vincular(code) {
+export async function vincular(code, redirectUri) {
     const id = obtenerSesion()?.id_usuario;
     const resp = await fetch(`${BASE_URL}/api/auth/google/calendar/vincular/`, {
         method: 'POST',
         headers: headers(),
-        body: JSON.stringify({ id_usuario: id, code }),
+        body: JSON.stringify({ id_usuario: id, code, redirect_uri: redirectUri }),
     });
     if (!resp.ok) {
         const err = await resp.json().catch(() => ({}));
