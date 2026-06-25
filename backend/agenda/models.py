@@ -1,4 +1,5 @@
 import json
+import uuid
 
 from django.core.exceptions import ValidationError
 from django.db import models
@@ -16,8 +17,9 @@ class Rol(models.Model):
 
 
 class Plantel(models.Model):
-    id_plantel = models.BigAutoField(primary_key=True)
-    nombre = models.CharField(max_length=100)
+    id_plantel = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    clave = models.CharField(max_length=10, unique=True)
+    nombre = models.CharField(max_length=250)
 
     class Meta:
         db_table = 'Plantel'
