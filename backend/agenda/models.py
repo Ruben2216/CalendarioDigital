@@ -4,6 +4,8 @@ import uuid
 from django.core.exceptions import ValidationError
 from django.db import models
 
+from .fields import UniqueIdentifierField
+
 
 class Rol(models.Model):
     id_rol = models.BigAutoField(primary_key=True)
@@ -17,7 +19,7 @@ class Rol(models.Model):
 
 
 class Plantel(models.Model):
-    id_plantel = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    id_plantel = UniqueIdentifierField(primary_key=True, default=uuid.uuid4, editable=False)
     clave = models.CharField(max_length=10, unique=True)
     nombre = models.CharField(max_length=250)
 
