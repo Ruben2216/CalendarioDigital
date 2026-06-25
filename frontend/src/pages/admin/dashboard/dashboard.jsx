@@ -14,6 +14,7 @@ import TarjetaColapsable from "../../../components/tarjeta-colapsable/TarjetaCol
 import { useCalendarioEventos } from "../../../hooks/useCalendarioEventos.js";
 import { listarAnuncios } from "../../../services/anunciosService.js";
 import { obtenerEstadisticasDashboard } from "../../../services/estadisticasService.js";
+import { usePreferencia } from "../../../hooks/usePreferencia.js";
 import styles from "./dashboard.module.css";
 
 const DIAS_MINI = ["D", "L", "M", "M", "J", "V", "S"];
@@ -66,7 +67,7 @@ export default function Dashboard() {
     () => new Date(hoy.getFullYear(), hoy.getMonth(), 1)
   );
   const [fechaSeleccionada, setFechaSeleccionada] = useState(null);
-  const [simbologiaAbierta, setSimbologiaAbierta] = useState(false);
+  const [simbologiaAbierta, setSimbologiaAbierta] = usePreferencia("dash:simbologia", false);
 
   const { nombre } = useSesion();
   const saludo = saludoPorHora(hoy.getHours());
@@ -205,6 +206,7 @@ export default function Dashboard() {
         </section>
 
         <TarjetaColapsable
+          id="dash-proximos"
           icono={Calendar}
           titulo="Próximos eventos"
           accion={
@@ -261,6 +263,7 @@ export default function Dashboard() {
         </TarjetaColapsable>
 
         <TarjetaColapsable
+          id="dash-anuncios"
           icono={Megaphone}
           titulo="Anuncios"
           accion={

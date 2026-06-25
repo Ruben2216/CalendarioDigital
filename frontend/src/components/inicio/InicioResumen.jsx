@@ -135,6 +135,7 @@ export default function InicioResumen({ rutaCalendario, rutaAnuncios }) {
       <div className={styles["rejilla"]}>
         <div className={styles["columna"]}>
           <TarjetaColapsable
+            id="inicio-proximos"
             icono={Calendar}
             titulo="Próximos eventos"
             accion={
@@ -189,6 +190,7 @@ export default function InicioResumen({ rutaCalendario, rutaAnuncios }) {
           </TarjetaColapsable>
 
           <TarjetaColapsable
+            id="inicio-anuncios"
             icono={Megaphone}
             titulo="Anuncios"
             accion={

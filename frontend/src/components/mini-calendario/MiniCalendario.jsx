@@ -3,6 +3,7 @@ import { Calendar, ChevronLeft, ChevronRight, ChevronDown, Clock, MapPin, Tag } 
 import {
   NOMBRES_MES, ahoraMexico, aClaveFecha, desdeClaveFecha, formatoHora, formatoFechaLarga,
 } from "../../lib/fechas.js";
+import { usePreferencia } from "../../hooks/usePreferencia.js";
 import styles from "./MiniCalendario.module.css";
 
 const DIAS_MINI = ["D", "L", "M", "M", "J", "V", "S"];
@@ -25,7 +26,7 @@ export default function MiniCalendario({
     () => new Date(hoy.getFullYear(), hoy.getMonth(), 1)
   );
   const [fechaSeleccionada, setFechaSeleccionada] = useState(null);
-  const [simbologiaAbierta, setSimbologiaAbierta] = useState(false);
+  const [simbologiaAbierta, setSimbologiaAbierta] = usePreferencia("mini:simbologia", false);
 
   const eventosPorFecha = useMemo(() => {
     const mapa = new Map();

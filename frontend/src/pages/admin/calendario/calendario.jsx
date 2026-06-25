@@ -29,6 +29,7 @@ import {
 import SelectorPlantel from "../../../components/selector-plantel/SelectorPlantel.jsx";
 import { avisoError } from "../../../lib/alertas.js";
 import { useSesion } from "../../../hooks/useSesion.js";
+import { usePreferencia } from "../../../hooks/usePreferencia.js";
 import VistaAnual from "./vistas/VistaAnual.jsx";
 import VistaLista from "./vistas/VistaLista.jsx";
 import VistaMesMovil from "./vistas/VistaMesMovil.jsx";
@@ -112,7 +113,7 @@ export default function Calendario({ soloLectura = false, publico = false }) {
   const [eventos, setEventos] = useState([]);                         // eventos (desde la BD)
   const [calendarios, setCalendarios] = useState([]);                 // catálogo de calendarios
   const [calendarioActivo, setCalendarioActivo] = useState(null);     // id del calendario en pantalla
-  const [vista, setVista] = useState("mes");                          // vista activa
+  const [vista, setVista] = usePreferencia("calendario:vista", "mes"); // vista activa (recordada)
   const [fechaActual, setFechaActual] = useState(hoy);                // mes/fecha que muestra FC
   const [tituloVista, setTituloVista] = useState("");                 // título que da FC (semana/anual/lista)
   const [fechaSeleccionada, setFechaSeleccionada] = useState(claveHoy); // día resaltado
@@ -137,7 +138,7 @@ export default function Calendario({ soloLectura = false, publico = false }) {
   const [anioPicker, setAnioPicker] = useState(() => hoy.getFullYear());
   const [vistaMenu, setVistaMenu] = useState(false);                    // menú desplegable de vista
   
-  const [panelAbierto, setPanelAbierto] = useState(false);
+  const [panelAbierto, setPanelAbierto] = usePreferencia("calendario:panel", false);
   const [filtrosModalAbierto, setFiltrosModalAbierto] = useState(false);
   const [esMobil, setEsMobil] = useState(
     () => typeof window !== "undefined" && window.matchMedia("(max-width: 760px)").matches
@@ -744,7 +745,7 @@ export default function Calendario({ soloLectura = false, publico = false }) {
           ) : (
             <h2 className={styles["calendario__titulo"]}>Calendario institucional</h2>
           )}
-          <span className={`etiqueta etiqueta--rojo ${styles["calendario__semestre"]}`}>
+          <span className={`etiqueta ${semestre.letra === "A" ? "etiqueta--marino" : "etiqueta--azul"} ${styles["calendario__semestre"]}`}>
             SEMESTRE {semestre.ciclo}-{semestre.letra}
           </span>
           {lectura && (
