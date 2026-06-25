@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect } from "react";
-import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, Outlet, useParams } from "react-router-dom";
 import { MensajeriaProvider } from "./context/MensajeriaContext.jsx";
 import { inicializarNotificaciones } from "./services/pushService.js";
 import Login from "./pages/login/login.jsx";
@@ -42,6 +42,23 @@ function ProtectedRoute({ roles }) {
   return <Outlet />;
 }
 
+function RedireccionNotif() {
+  const { destino } = useParams();
+  const raw = localStorage.getItem('sesion');
+  const sesion = raw ? JSON.parse(raw) : null;
+  if (!sesion) return <Navigate to="/login" replace />;
+
+  const mapa = {
+    admin:        { anuncios: '/anuncios', calendario: '/calendario', inicio: '/dashboard' },
+    superusuario: { anuncios: '/anuncios', calendario: '/calendario', inicio: '/dashboard' },
+    docente:      { anuncios: '/docente/anuncios', calendario: '/docente/calendario', inicio: '/docente/inicio' },
+    alumno:       { anuncios: '/alumno/anuncios', calendario: '/alumno/calendario', inicio: '/alumno/inicio' },
+    tutor:        { anuncios: '/tutor/calendario', calendario: '/tutor/calendario', inicio: '/tutor/calendario' },
+  };
+  const rutas = mapa[sesion.rol] || {};
+  return <Navigate to={rutas[destino] || rutas.inicio || '/login'} replace />;
+}
+
 function App() {
   // Registra el token FCM también al recargar la app si ya hay sesión iniciada
   useEffect(() => {
@@ -65,6 +82,9 @@ function App() {
       <Routes>
         <Route path="/"      element={<Login />} />
         <Route path="/login" element={<Login />} />
+
+        {/* Destino de las notificaciones push (redirige según rol) */}
+        <Route path="/ir/:destino" element={<RedireccionNotif />} />
 
         {/* Consulta pública del calendario (sin cuenta): solo eventos generales */}
         <Route

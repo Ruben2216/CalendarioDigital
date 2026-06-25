@@ -58,7 +58,7 @@ export default function ListaAnuncios({ anuncios, onEditar, onEliminar, mostrarA
                   )}
                   <span className={styles["anuncio__alcance"]}>
                     <MapPin size={11} />
-                    {a.plantel || "General"}
+                    {a.plantel || "General"}{a.turno ? ` · ${a.turno}` : ""}
                   </span>
                 </div>
               )}

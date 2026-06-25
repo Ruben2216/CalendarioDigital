@@ -1,0 +1,105 @@
+.fila {
+  position: relative;
+}
+
+.fila + .fila {
+  border-top: 1px solid #edf1f7;
+}
+
+.fila__cab {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 16px;
+  align-items: flex-start;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.fila__cab:hover {
+  background: var(--panel-soft);
+}
+
+.fila--sin-leer .fila__cab {
+  background: rgba(1, 71, 212, 0.04);
+}
+
+.fila__icono {
+  position: relative;
+  width: 33px;
+  height: 33px;
+  border-radius: 11px;
+  display: grid;
+  place-items: center;
+  flex: none;
+  margin-top: 1px;
+}
+
+.fila__icono--azul { background: var(--blue-soft); color: var(--blue); }
+.fila__icono--verde { background: var(--green-soft); color: var(--green); }
+.fila__icono--naranja { background: var(--orange-soft); color: var(--orange); }
+.fila__icono--gris { background: #f2f5f9; color: var(--muted); }
+
+/* Punto de no leído */
+.fila--sin-leer .fila__icono::after {
+  content: "";
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--blue);
+  box-shadow: 0 0 0 2px #fff;
+}
+
+.fila__copia {
+  min-width: 0;
+  flex: 1;
+}
+
+.fila__titulo {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 13px;
+  line-height: 1.25;
+  font-weight: 700;
+  color: #101828;
+}
+
+.fila__subtitulo {
+  display: block;
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.fila__chevron {
+  flex: none;
+  margin-top: 9px;
+  color: var(--muted-2);
+  transition: transform 0.2s ease;
+}
+
+.fila__chevron--abierto {
+  transform: rotate(180deg);
+}
+
+/* Detalle desplegado */
+.fila__detalle {
+  padding: 0 16px 14px 61px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: #475467;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  animation: notif-desplegar 0.18s ease;
+}
+
+@keyframes notif-desplegar {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: none; }
+}

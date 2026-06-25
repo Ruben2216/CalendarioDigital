@@ -21,9 +21,15 @@ self.addEventListener('activate', (event) => event.waitUntil(self.clients.claim(
 messaging.onBackgroundMessage((payload) => {
   const datos = payload.data || {};
   const notificationTitle = datos.title || 'Notificación';
+  const cuerpo = datos.body || '';
   const notificationOptions = {
-    body: datos.body || '',
+    body: cuerpo,
     icon: '/icono.png',
+    badge: '/icono.png',
+    requireInteraction: true,
+    renotify: true,
+    tag: datos.tipo && datos.id_anuncio ? `${datos.tipo}-${datos.id_anuncio}` : undefined,
+    actions: [{ action: 'abrir', title: 'Ver' }],
     data: { url: datos.url || '/' }
   };
   return self.registration.showNotification(notificationTitle, notificationOptions);

@@ -7,6 +7,7 @@ import logoCobach from "../../assets/img/logo-cobach.png";
 import { ZONA } from "../../lib/fechas.js";
 import { leerSesion } from "../../hooks/useSesion.js";
 import { useNotificaciones } from "../../hooks/useNotificaciones.js";
+import NotificacionFila from "../notificaciones/NotificacionFila.jsx";
 import { refrescarSesion } from "../../services/authService.js";
 import { useMensajeriaCtx } from "../../context/MensajeriaContext.jsx";
 import styles from "./Layout.module.css";
@@ -43,7 +44,7 @@ export default function Layout() {
     () => !window.matchMedia("(max-width: 920px)").matches
   );
   const [notifAbierto, setNotifAbierto] = useState(false);
-  const { notificaciones, notifSinLeer, marcarTodasLeidas, limpiarNotificaciones } = useNotificaciones();
+  const { notificaciones, notifSinLeer, marcarTodasLeidas, marcarLeida, limpiarNotificaciones } = useNotificaciones();
   const [cerrarSesionAbierto, setCerrarSesionAbierto] = useState(false);
   const [perfilAbierto, setPerfilAbierto] = useState(false);
 
@@ -240,23 +241,8 @@ export default function Layout() {
                           No tienes notificaciones.
                         </p>
                       ) : (
-                        notificaciones.map(({ id, icono: Icono, color, titulo, subtitulo, sinLeer }) => (
-                          <div
-                            key={id}
-                            className={`${styles["notif-fila"]} ${
-                              sinLeer ? styles["notif-fila--sin-leer"] : ""
-                            }`}
-                          >
-                            <span className={`${styles["notif-fila__icono"]} ${styles[`notif-fila__icono--${color}`]}`}>
-                              <Icono size={15} />
-                            </span>
-                            <div className={styles["notif-fila__copia"]}>
-                              <p className={styles["notif-fila__titulo"]}>{titulo}</p>
-                              <span className={styles["notif-fila__subtitulo"]}>
-                                {subtitulo}
-                              </span>
-                            </div>
-                          </div>
+                        notificaciones.map((n) => (
+                          <NotificacionFila key={n.id} notif={n} onMarcarLeida={marcarLeida} />
                         ))
                       )}
                     </div>

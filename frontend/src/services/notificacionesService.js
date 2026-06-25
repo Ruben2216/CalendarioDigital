@@ -18,6 +18,7 @@ export async function listarNotificaciones() {
         if (sesion.id_usuario != null) url.searchParams.set('id_usuario', sesion.id_usuario);
         if (sesion.rol) url.searchParams.set('rol', sesion.rol);
         if (sesion.plantel?.nombre) url.searchParams.set('plantel', sesion.plantel.nombre);
+        if (sesion.turno?.nombre) url.searchParams.set('turno', sesion.turno.nombre);
     }
     const resp = await fetch(url, { headers: headers() });
     if (!resp.ok) throw new Error('No se pudieron cargar las notificaciones.');
