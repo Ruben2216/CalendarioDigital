@@ -41,19 +41,41 @@ class Turno(models.Model):
         return self.nombre_turno
 
 
+class Semestre(models.Model):
+    id_semestre = models.IntegerField(primary_key=True)
+
+    class Meta:
+        db_table = 'Semestre'
+
+    def __str__(self):
+        return str(self.id_semestre)
+
+
+class Letra(models.Model):
+    id_letra = models.CharField(max_length=1, primary_key=True)
+
+    class Meta:
+        db_table = 'Letra'
+
+    def __str__(self):
+        return self.id_letra
+
+
 class Grupo(models.Model):
     id_grupo = models.BigAutoField(primary_key=True)
-    turno = models.ForeignKey(
-        Turno, on_delete=models.CASCADE, related_name='grupos'
+    semestre = models.ForeignKey(
+        Semestre, on_delete=models.CASCADE, related_name='grupos'
     )
-    letra = models.CharField(max_length=1)
-    semestre = models.IntegerField()
+    letra = models.ForeignKey(
+        Letra, on_delete=models.CASCADE, related_name='grupos'
+    )
 
     class Meta:
         db_table = 'Grupo'
+        unique_together = ('semestre', 'letra')
 
     def __str__(self):
-        return f'{self.semestre}-{self.letra} ({self.turno.nombre_turno})'
+        return f'{self.semestre_id}-{self.letra_id}'
 
 
 class Usuario(models.Model):
@@ -173,8 +195,12 @@ class Evento(models.Model):
     turno = models.ForeignKey(
         Turno, on_delete=models.CASCADE, null=True, blank=True, related_name='eventos'
     )
-    semestre = models.IntegerField(null=True, blank=True)
-    grupo = models.CharField(max_length=2, null=True, blank=True)
+    semestre = models.ForeignKey(
+        'Semestre', on_delete=models.SET_NULL, null=True, blank=True, related_name='eventos'
+    )
+    grupo = models.ForeignKey(
+        'Grupo', on_delete=models.SET_NULL, null=True, blank=True, related_name='eventos'
+    )
     creado_por = models.ForeignKey(
         Usuario, on_delete=models.SET_NULL, null=True, blank=True, related_name='eventos_creados'
     )
