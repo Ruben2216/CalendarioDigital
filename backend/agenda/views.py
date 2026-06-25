@@ -24,6 +24,7 @@ from .models import (
     Usuario, Rol, Conversacion, Mensaje, LecturaMensaje, SolicitudAdmin,
     UsuarioPlantel, Plantel, Turno, Calendario, TipoEvento, Evento, Anuncio,
     DispositivoFCM, Notificacion, GoogleOauthCredential, EventoGoogleSync,
+    Semestre, Letra, Grupo,
 )
 from .services.google_calendar import (
     sincronizar_creacion,
@@ -177,6 +178,8 @@ class LoginInstitucionalView(APIView):
             )
 
         codigo_turno = (datos.get('turno') or '').strip().upper()
+        clave_plantel = (datos.get('clavePlantel') or '').strip()
+        plantel_local = Plantel.objects.filter(clave=clave_plantel).first() if clave_plantel else None
         return Response({
             'token': datos.get('token', ''),
             'nombre': datos.get('nombres') or '',
@@ -188,8 +191,9 @@ class LoginInstitucionalView(APIView):
                 'matricula': datos.get('matricula'),
                 'curp': datos.get('curp'),
                 'plantel': {
-                    'id': None,
-                    'nombre': datos.get('plantel'),
+                    'id': str(plantel_local.id_plantel) if plantel_local else None,
+                    'nombre': plantel_local.nombre if plantel_local else datos.get('plantel'),
+                    'clave': clave_plantel or None,
                 },
                 'turno': {
                     'id': None,
@@ -962,8 +966,8 @@ def _evento_dict(ev, usuario):
         'horaFin': ev.hora_fin.strftime('%H:%M') if ev.hora_fin else '',
         'lugar': ev.lugar or '',
         'formato': 'punto' if ev.hora_inicio else 'rango',
-        'semestre': ev.semestre,
-        'grupo': ev.grupo,
+        'semestre': ev.semestre_id,
+        'grupo': ev.grupo.letra_id if ev.grupo else None,
         'plantel': ev.plantel.nombre if ev.plantel else None,
         'turno': ev.turno.nombre_turno if ev.turno else None,
         'id_calendario': ev.calendario_id,
@@ -1048,7 +1052,7 @@ class EventoListView(APIView):
             return Response({'error': 'Calendario no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
 
         qs = Evento.objects.filter(calendario=calendario).select_related(
-            'tipo_evento', 'plantel', 'turno', 'creado_por__rol'
+            'tipo_evento', 'plantel', 'turno', 'creado_por__rol', 'semestre', 'grupo__letra'
         )
         usuario = _usuario_sesion(request)
         plantel_para_todos = Q(plantel__isnull=True)
@@ -1075,15 +1079,42 @@ class EventoListView(APIView):
                 qs = qs.filter(cond_plantel & cond_turno)
         else:
             rol = request.query_params.get('rol')
+            plantel_id_param = request.query_params.get('plantel_id')
             plantel_nombre = request.query_params.get('plantel')
             turno_nombre = request.query_params.get('turno')
-            if rol == 'alumno' and plantel_nombre:
-                ids = _planteles_equivalentes(plantel_nombre)
-                cond_plantel = plantel_para_todos | Q(plantel_id__in=ids)
+            semestre_param = request.query_params.get('semestre')
+            grupo_param = (request.query_params.get('grupo') or '').strip().upper()
+
+            if rol == 'alumno' and (plantel_id_param or plantel_nombre):
+                if plantel_id_param:
+                    cond_plantel = plantel_para_todos | Q(plantel_id=plantel_id_param)
+                else:
+                    ids = _planteles_equivalentes(plantel_nombre)
+                    cond_plantel = plantel_para_todos | Q(plantel_id__in=ids)
+
                 cond_turno = turno_para_todos
                 if turno_nombre:
                     cond_turno = turno_para_todos | Q(turno__nombre_turno=turno_nombre)
-                qs = qs.filter(cond_plantel & cond_turno)
+
+                cond_semestre = Q(semestre__isnull=True)
+                if semestre_param:
+                    try:
+                        cond_semestre |= Q(semestre_id=int(semestre_param))
+                    except (ValueError, TypeError):
+                        pass
+
+                cond_grupo = Q(grupo__isnull=True)
+                if grupo_param and semestre_param:
+                    try:
+                        grp = Grupo.objects.filter(
+                            semestre_id=int(semestre_param), letra_id=grupo_param
+                        ).first()
+                        if grp:
+                            cond_grupo |= Q(grupo_id=grp.id_grupo)
+                    except (ValueError, TypeError):
+                        pass
+
+                qs = qs.filter(cond_plantel & cond_turno & cond_semestre & cond_grupo)
             else:
                 if not calendario.es_publico:
                     return Response([])
@@ -1105,7 +1136,7 @@ class EventoListView(APIView):
             return Response({'error': error}, status=status.HTTP_400_BAD_REQUEST)
 
         evento = Evento.objects.create(creado_por=usuario, **datos)
-        evento = Evento.objects.select_related('tipo_evento', 'plantel', 'turno', 'creado_por__rol').get(pk=evento.pk)
+        evento = Evento.objects.select_related('tipo_evento', 'plantel', 'turno', 'creado_por__rol', 'semestre', 'grupo__letra').get(pk=evento.pk)
         _notificar_evento(evento, 'creado')
         agregar_google = request.data.get('agregar_a_google_calendar', True)
         excluir = set() if agregar_google else {usuario.id_usuario}
@@ -1131,6 +1162,18 @@ class EventoListView(APIView):
 
         plantel = Plantel.objects.filter(nombre=d.get('plantel')).first() if d.get('plantel') else None
         turno = Turno.objects.filter(nombre_turno=d.get('turno')).first() if d.get('turno') else None
+
+        semestre_val = d.get('semestre')
+        grupo_val = (d.get('grupo') or '').strip().upper()
+        semestre_obj = None
+        if semestre_val is not None:
+            try:
+                semestre_obj = Semestre.objects.filter(id_semestre=int(semestre_val)).first()
+            except (ValueError, TypeError):
+                pass
+        grupo_obj = None
+        if semestre_obj and grupo_val:
+            grupo_obj = Grupo.objects.filter(semestre=semestre_obj, letra_id=grupo_val).first()
 
         if rol == 'admin':
             if calendario.clave != Calendario.CLAVE_ESCOLARIZADO:
@@ -1162,8 +1205,8 @@ class EventoListView(APIView):
             'lugar': (d.get('lugar') or '').strip(),
             'plantel': plantel,
             'turno': turno,
-            'semestre': d.get('semestre') or None,
-            'grupo': d.get('grupo') or None,
+            'semestre': semestre_obj,
+            'grupo': grupo_obj,
         }, None
 
 
@@ -1174,7 +1217,8 @@ class EventoDetailView(APIView):
         usuario = _usuario_sesion(request)
         try:
             evento = Evento.objects.select_related(
-                'tipo_evento', 'plantel', 'turno', 'creado_por__rol', 'calendario'
+                'tipo_evento', 'plantel', 'turno', 'creado_por__rol', 'calendario',
+                'semestre', 'grupo__letra'
             ).get(pk=id_evento)
         except Evento.DoesNotExist:
             return None, None
@@ -1194,7 +1238,7 @@ class EventoDetailView(APIView):
         for campo, valor in datos.items():
             setattr(evento, campo, valor)
         evento.save()
-        evento = Evento.objects.select_related('tipo_evento', 'plantel', 'turno', 'creado_por__rol').get(pk=evento.pk)
+        evento = Evento.objects.select_related('tipo_evento', 'plantel', 'turno', 'creado_por__rol', 'semestre', 'grupo__letra').get(pk=evento.pk)
         _notificar_evento(evento, 'actualizado')
         threading.Thread(target=sincronizar_actualizacion, args=(evento,), daemon=True).start()
         return Response(_evento_dict(evento, usuario))
@@ -1395,8 +1439,8 @@ class RegistrarDispositivoView(APIView):
         plantel = None
         plantel_id = d.get('plantel_id')
         plantel_nombre = d.get('plantel_nombre') or d.get('plantel')
-        if plantel_id is not None and str(plantel_id).isdigit():
-            plantel = Plantel.objects.filter(pk=int(plantel_id)).first()
+        if plantel_id is not None:
+            plantel = Plantel.objects.filter(pk=plantel_id).first()
         elif plantel_nombre:
             ids = _planteles_equivalentes(plantel_nombre)
             plantel = Plantel.objects.filter(pk__in=ids).first()
