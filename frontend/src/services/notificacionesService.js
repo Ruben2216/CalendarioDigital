@@ -1,6 +1,9 @@
 import { obtenerSesion } from './authService';
 
-const BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
+const BASE_URL =
+  window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    ? 'http://localhost:8000'
+    : (import.meta.env.VITE_BACKEND_URL ?? '');
 
 function headers() {
     return {

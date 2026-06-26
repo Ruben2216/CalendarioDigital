@@ -102,11 +102,11 @@ export default function Login() {
         }
         if (!resp.ok) {
           const errData = await resp.json().catch(() => ({}));
-          Swal.fire({
-            icon: 'error',
-            title: 'Acceso denegado',
-            text: errData.error || 'No fue posible autenticar tu cuenta.',
-          });
+          const googleErr = errData.google_error;
+          const msg = googleErr
+            ? `Google: ${googleErr.error} — ${googleErr.error_description || ''}`
+            : (errData.error || 'No fue posible autenticar tu cuenta.');
+          Swal.fire({ icon: 'error', title: 'Acceso denegado', text: msg });
           return;
         }
         const data = await resp.json().catch(() => ({}));

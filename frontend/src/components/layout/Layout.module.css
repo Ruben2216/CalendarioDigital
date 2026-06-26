@@ -911,19 +911,55 @@ button.usuario {
     padding: 16px 14px 18px;
   }
 
-  .barra-superior__divisor {
-    display: none;
+  /* Fila única compacta — sin salto a segunda línea */
+  .barra-superior {
+    flex-wrap: nowrap;
+    height: 58px;
+    padding: 0 14px;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .barra-superior__titulo {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .barra-superior__titulo h1 {
+    font-size: 14px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .barra-superior__titulo p {
     display: none;
   }
 
+  .barra-superior__divisor {
+    display: none;
+  }
+
   .barra-superior__derecha {
-    order: 3;
-    width: 100%;
+    order: 0;
+    width: auto;
     margin-left: 0;
-    justify-content: space-between;
+    gap: 8px;
+    justify-content: flex-end;
+    flex: none;
+  }
+
+  .plantel small {
+    display: none;
+  }
+
+  .plantel strong {
+    max-width: 84px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 12px;
   }
 
   .respaldo-notif {
@@ -938,7 +974,7 @@ button.usuario {
 
   .panel-notif {
     position: fixed;
-    top: 64px;
+    top: 66px;
     left: 12px;
     right: 12px;
     width: auto;
@@ -948,19 +984,20 @@ button.usuario {
 }
 
 @media (max-width: 480px) {
+  .barra-superior {
+    padding: 0 12px;
+    gap: 6px;
+  }
+
+  .barra-superior__titulo h1 {
+    font-size: 13px;
+  }
+
   .usuario__info {
     display: none;
   }
 
   .usuario > svg {
     display: none;
-  }
-
-  .plantel small {
-    display: none;
-  }
-
-  .plantel strong {
-    font-size: 12px;
   }
 }

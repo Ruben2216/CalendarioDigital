@@ -334,45 +334,40 @@
   font-weight: 700;
 }
 
-/* Modal: lista de planteles con checkbox */
-.planteles-check {
-  list-style: none;
-  margin: 0;
-  padding: 8px;
-  display: grid;
-  gap: 2px;
-  max-height: 200px;
-  overflow-y: auto;
-  border: 1px solid #dbe4f0;
-  border-radius: 10px;
-  background: #f8fbff;
-}
-
-.check {
-  display: flex;
+/* Modal: plantel seleccionado (chip con botón de quitar) */
+.plantel-seleccionado {
+  display: inline-flex;
   align-items: center;
-  gap: 9px;
-  padding: 7px 9px;
+  gap: 6px;
+  padding: 6px 10px;
   border-radius: 8px;
-  cursor: pointer;
-  transition: background-color 0.15s ease;
+  background: var(--blue-soft);
+  border: 1px solid var(--blue);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--blue);
 }
 
-.check:hover {
-  background: #eef3fb;
-}
-
-.check input {
-  width: 16px;
-  height: 16px;
-  accent-color: var(--blue);
-  cursor: pointer;
+.plantel-seleccionado svg {
   flex: none;
 }
 
-.check__texto {
-  font-size: 13px;
-  color: #344054;
+.plantel-seleccionado__quitar {
+  display: grid;
+  place-items: center;
+  border: none;
+  background: none;
+  color: var(--blue);
+  cursor: pointer;
+  padding: 0;
+  margin-left: 2px;
+  opacity: 0.65;
+  transition: opacity 0.15s ease;
+  line-height: 0;
+}
+
+.plantel-seleccionado__quitar:hover {
+  opacity: 1;
 }
 
 .aviso-campo {

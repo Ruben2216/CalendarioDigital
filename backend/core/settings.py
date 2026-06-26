@@ -31,6 +31,20 @@ _allowed_hosts = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1')
 ALLOWED_HOSTS = [h.strip() for h in _allowed_hosts.split(',') if h.strip()]
 if '.devtunnels.ms' not in ALLOWED_HOSTS:
     ALLOWED_HOSTS.append('.devtunnels.ms')
+if '.trycloudflare.com' not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append('.trycloudflare.com')
+
+# Cloudflare tunnels terminan TLS y reenvían como HTTP internamente
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+CSRF_TRUSTED_ORIGINS = [
+    'http://localhost:5173',
+    'http://localhost:8000',
+    'http://127.0.0.1:5173',
+    'http://127.0.0.1:8000',
+    'https://*.devtunnels.ms',
+    'https://*.trycloudflare.com',
+]
 
 
 # Application definition
@@ -156,6 +170,7 @@ else:
     ]
     CORS_ALLOWED_ORIGIN_REGEXES = [
         r"^https://.*\.devtunnels\.ms$",
+        r"^https://.*\.trycloudflare\.com$",
     ]
 
 from corsheaders.defaults import default_headers

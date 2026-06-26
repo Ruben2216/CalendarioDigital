@@ -714,7 +714,7 @@ class CrearAdminView(APIView):
 
 
 class ActualizarAdminView(APIView):
-    """Superusuario edita nombre y/o asignación de plantel+turno de un admin."""
+    """Superusuario edita nombre, asignación de plantel+turno y/o rol de un usuario."""
     permission_classes = [permissions.AllowAny]
 
     def patch(self, request, id_usuario):
@@ -730,6 +730,18 @@ class ActualizarAdminView(APIView):
         plantel_id = request.data.get('plantel_id')
         turno_id = request.data.get('turno_id')
         nombre = (request.data.get('nombre') or '').strip()
+        nuevo_rol = request.data.get('rol')
+
+        if nuevo_rol == 'docente':
+            try:
+                rol_obj = Rol.objects.get(nombre_rol='docente')
+            except Rol.DoesNotExist:
+                return Response({'error': 'Rol no válido.'}, status=status.HTTP_400_BAD_REQUEST)
+            usuario.rol = rol_obj
+            usuario.save(update_fields=['rol'])
+            if nombre:
+                Usuario.objects.filter(pk=usuario.pk).update(nombre=nombre)
+            return Response({'ok': True, 'rol': nuevo_rol}, status=status.HTTP_200_OK)
 
         if plantel_id and turno_id:
             try:
@@ -1813,7 +1825,7 @@ class GoogleAuthView(APIView):
             except requests.RequestException:
                 return Response(status=status.HTTP_503_SERVICE_UNAVAILABLE)
             if token_resp.status_code != 200:
-                return Response(status=status.HTTP_400_BAD_REQUEST)
+                return Response({'google_error': token_resp.json()}, status=status.HTTP_400_BAD_REQUEST)
             calendar_tokens = token_resp.json()
             id_token = calendar_tokens.get('id_token')
         else:

@@ -47,7 +47,12 @@ function adminAFila(u) {
   };
 }
 
-const FORM_VACIO = { nombre: "", correo: "", turno: "matutino", planteles: [], usuarioId: null };
+const ROLES_EDICION = [
+  { id: "admin", etiqueta: "Administrador" },
+  { id: "docente", etiqueta: "Docente / Administrativo" },
+];
+
+const FORM_VACIO = { nombre: "", correo: "", turno: "matutino", planteles: [], usuarioId: null, rol: "admin" };
 
 function iniciales(nombre) {
   return nombre
@@ -139,6 +144,7 @@ export default function Usuarios() {
       turno: usuario.turno,
       planteles: [...usuario.planteles],
       usuarioId: usuario.id_usuario ?? null,
+      rol: "admin",
     });
     setModalAbierto(true);
   };
@@ -165,7 +171,8 @@ export default function Usuarios() {
 
   const guardar = async (e) => {
     e.preventDefault();
-    if (form.planteles.length === 0) return;
+    const rolFinal = editando ? form.rol : "admin";
+    if (rolFinal === "admin" && form.planteles.length === 0) return;
 
     const nombre = form.nombre.trim();
     const correo = form.correo.trim();
@@ -174,17 +181,24 @@ export default function Usuarios() {
 
     if (editando) {
       const usuarioEditando = usuarios.find((u) => u.id === editando);
-      if (usuarioEditando?.id_usuario && plantelId && turnoId) {
+      if (usuarioEditando?.id_usuario) {
+        const payload = { nombre, rol: form.rol };
+        if (rolFinal === "admin" && plantelId && turnoId) {
+          payload.plantel_id = plantelId;
+          payload.turno_id = turnoId;
+        }
         try {
-          await actualizarAdmin(usuarioEditando.id_usuario, {
-            nombre,
-            plantel_id: plantelId,
-            turno_id: turnoId,
-          });
+          await actualizarAdmin(usuarioEditando.id_usuario, payload);
         } catch (err) {
           avisoError(err.message || "No se pudo actualizar el usuario");
           return;
         }
+      }
+      if (rolFinal !== "admin") {
+        setUsuarios((prev) => prev.filter((u) => u.id !== editando));
+        setModalAbierto(false);
+        avisoExito("Acceso de administrador revocado. El usuario volverá a su rol según sus credenciales institucionales.");
+        return;
       }
       setUsuarios((prev) =>
         prev.map((u) =>
@@ -513,41 +527,59 @@ export default function Usuarios() {
             </select>
           </label>
 
-          <p className={styles["rol-nota"]}>
-            <ShieldCheck size={13} />
-            <span>Se registrará como <b>{ROL.etiqueta}</b>. {ROL.descripcion}</span>
-          </p>
-
-          <div className="formulario__campo">
-            <span className="formulario__etiqueta">
-              Plantel donde puede gestionar fechas
-            </span>
-            <BuscadorPlantelInline
-              excluirIds={plantelesDisponibles.filter(p => form.planteles.includes(p.nombre)).map(p => p.id)}
-              onSeleccionar={(p) => { if (!form.planteles.includes(p.nombre)) alternarPlantel(p.nombre); }}
-              placeholder="Buscar plantel…"
-            />
-            <ul className={styles["planteles-check"]}>
-              {plantelesDisponibles.map((p) => (
-                <li key={p.id}>
-                  <label className={styles["check"]}>
-                    <input
-                      type="checkbox"
-                      checked={form.planteles.includes(p.nombre)}
-                      onChange={() => alternarPlantel(p.nombre)}
-                    />
-                    <span className={styles["check__texto"]}>{p.nombre}</span>
-                  </label>
-                </li>
-              ))}
-              {plantelesDisponibles.length === 0 && (
-                <li className={styles["aviso-campo"]}>Cargando planteles…</li>
+          {editando ? (
+            <label className="formulario__campo">
+              <span className="formulario__etiqueta">Rol</span>
+              <select value={form.rol} onChange={fijarCampo("rol")}>
+                {ROLES_EDICION.map((r) => (
+                  <option key={r.id} value={r.id}>{r.etiqueta}</option>
+                ))}
+              </select>
+              {form.rol !== "admin" && (
+                <span className={styles["aviso-campo"]}>
+                  Al guardar, el usuario perderá acceso de administrador. Su rol dependerá de sus credenciales institucionales.
+                </span>
               )}
-            </ul>
-            {form.planteles.length === 0 && plantelesDisponibles.length > 0 && (
-              <span className={styles["aviso-campo"]}>Selecciona un plantel.</span>
-            )}
-          </div>
+            </label>
+          ) : (
+            <p className={styles["rol-nota"]}>
+              <ShieldCheck size={13} />
+              <span>Se registrará como <b>{ROL.etiqueta}</b>. {ROL.descripcion}</span>
+            </p>
+          )}
+
+          {(!editando || form.rol === "admin") && (
+            <div className="formulario__campo">
+              <span className="formulario__etiqueta">
+                Plantel donde puede gestionar fechas
+              </span>
+              {form.planteles.length > 0 ? (
+                <div className={styles["plantel-seleccionado"]}>
+                  <MapPin size={13} />
+                  <span>{form.planteles[0]}</span>
+                  <button
+                    type="button"
+                    className={styles["plantel-seleccionado__quitar"]}
+                    onClick={() => setForm((prev) => ({ ...prev, planteles: [] }))}
+                    aria-label="Quitar plantel"
+                  >
+                    <X size={13} />
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <BuscadorPlantelInline
+                    onSeleccionar={(p) => alternarPlantel(p.nombre)}
+                    placeholder="Buscar plantel…"
+                    autoFocus={false}
+                  />
+                  {plantelesDisponibles.length > 0 && (
+                    <span className={styles["aviso-campo"]}>Selecciona un plantel.</span>
+                  )}
+                </>
+              )}
+            </div>
+          )}
         </form>
       </Modal>
     </section>

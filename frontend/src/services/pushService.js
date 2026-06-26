@@ -3,7 +3,10 @@ import { messaging } from "./firebaseConfig";
 import Swal from "sweetalert2";
 
 const VAPID_KEY = import.meta.env.VITE_VAPID_KEY;
-const BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
+const BASE_URL =
+  window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    ? 'http://localhost:8000'
+    : (import.meta.env.VITE_BACKEND_URL ?? '');
 
 let _escuchandoPrimerPlano = false;
 
