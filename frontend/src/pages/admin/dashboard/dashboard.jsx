@@ -87,8 +87,15 @@ export default function Dashboard() {
   const eventosPorFecha = useMemo(() => {
     const mapa = new Map();
     for (const evento of eventos) {
-      if (!mapa.has(evento.fecha)) mapa.set(evento.fecha, []);
-      mapa.get(evento.fecha).push(evento);
+      const inicio = desdeClaveFecha(evento.fecha);
+      const fin = evento.fechaFin ? desdeClaveFecha(evento.fechaFin) : inicio;
+      const cursor = new Date(inicio);
+      while (cursor <= fin) {
+        const clave = aClaveFecha(cursor);
+        if (!mapa.has(clave)) mapa.set(clave, []);
+        mapa.get(clave).push(evento);
+        cursor.setDate(cursor.getDate() + 1);
+      }
     }
     return mapa;
   }, [eventos]);
