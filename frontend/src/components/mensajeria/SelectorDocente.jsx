@@ -16,7 +16,7 @@ function iniciales(nombre) {
     .join('');
 }
 
-export default function SelectorDocente({ abierto, onCerrar, onSeleccionar, idPlantel, esSuperadmin, rol, titulo = 'Contactar personal' }) {
+export default function SelectorDocente({ abierto, onCerrar, onSeleccionar, idPlantel, idUsuario, esSuperadmin, rol, titulo = 'Contactar personal' }) {
   const [usuarios, setUsuarios] = useState([]);
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState(null);
@@ -26,15 +26,21 @@ export default function SelectorDocente({ abierto, onCerrar, onSeleccionar, idPl
     setCargando(true);
     setError(null);
 
-    const base = `${BACKEND}/api/usuarios/?excluir=superusuario,alumno${rol ? `&rol=${rol}` : ''}`;
-    const url = esSuperadmin ? base : `${base}&plantel=${idPlantel}`;
+    let url;
+    if (idUsuario) {
+      // Docente contactando admin: endpoint dedicado que filtra por plantel+turno del docente
+      url = `${BACKEND}/api/mensajeria/admins/?id_usuario=${idUsuario}`;
+    } else {
+      const base = `${BACKEND}/api/usuarios/?excluir=superusuario,alumno${rol ? `&rol=${rol}` : ''}`;
+      url = esSuperadmin ? base : `${base}&plantel=${idPlantel}`;
+    }
 
     fetch(url, { headers: { 'Accept': 'application/json' } })
       .then((r) => r.json())
       .then((data) => setUsuarios(Array.isArray(data) ? data : data.usuarios ?? []))
       .catch(() => setError('No se pudieron cargar los usuarios.'))
       .finally(() => setCargando(false));
-  }, [abierto, idPlantel, esSuperadmin, rol]);
+  }, [abierto, idPlantel, idUsuario, esSuperadmin, rol]);
 
   return (
     <Modal

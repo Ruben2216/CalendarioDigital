@@ -327,7 +327,11 @@ class ConversacionListView(APIView):
         except (TypeError, ValueError, Usuario.DoesNotExist):
             return Response({'error': 'Usuario destino no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
 
-        if usuario.rol.nombre_rol != 'superusuario':
+        rol_usuario = usuario.rol.nombre_rol
+        rol_otro = otro.rol.nombre_rol
+
+        # El superusuario puede hablar con todos; cualquiera puede hablar con el superusuario.
+        if rol_usuario != 'superusuario' and rol_otro != 'superusuario':
             planteles_usuario = set(usuario.planteles_asignados.values_list('plantel_id', flat=True))
             planteles_otro = set(otro.planteles_asignados.values_list('plantel_id', flat=True))
             if not planteles_usuario.intersection(planteles_otro):
@@ -337,14 +341,18 @@ class ConversacionListView(APIView):
                 )
 
         id_a, id_b = Conversacion.par_ordenado(usuario.id_usuario, otro.id_usuario)
-        
-        # Encontrar plantel en común para la conversación
+
+        # Plantel para la conversación: en común si existe, si no el del docente, si no el primero disponible
         planteles_usuario = set(usuario.planteles_asignados.values_list('plantel_id', flat=True))
         planteles_otro = set(otro.planteles_asignados.values_list('plantel_id', flat=True))
         interseccion = planteles_usuario.intersection(planteles_otro)
         plantel_id = list(interseccion)[0] if interseccion else None
         if not plantel_id:
-            plantel_id = list(planteles_usuario)[0] if planteles_usuario else list(planteles_otro)[0] if planteles_otro else Plantel.objects.first().pk
+            plantel_id = (
+                list(planteles_usuario)[0] if planteles_usuario
+                else list(planteles_otro)[0] if planteles_otro
+                else Plantel.objects.first().pk
+            )
 
         conv, _ = Conversacion.objects.get_or_create(
             participante_a_id=id_a,
@@ -443,10 +451,17 @@ class UsuarioListView(APIView):
         if rol:
             qs = qs.filter(rol__nombre_rol=rol)
         if id_plantel:
-            try:
-                qs = qs.filter(planteles_asignados__plantel_id=int(id_plantel))
-            except (TypeError, ValueError):
-                pass
+            turno_param = request.query_params.get('turno')
+            if turno_param:
+                up_subq = UsuarioPlantel.objects.filter(
+                    usuario=OuterRef('pk'),
+                    plantel_id=id_plantel,
+                ).filter(
+                    Q(turno__nombre_turno=turno_param) | Q(turno__nombre_turno='Mixto')
+                )
+                qs = qs.filter(Exists(up_subq))
+            else:
+                qs = qs.filter(planteles_asignados__plantel_id=id_plantel)
         excluir_roles = [r.strip() for r in request.query_params.get('excluir', '').split(',') if r.strip()]
         if excluir_roles:
             qs = qs.exclude(rol__nombre_rol__in=excluir_roles)
@@ -460,6 +475,69 @@ class UsuarioListView(APIView):
             'planteles': [{'plantel': up.plantel.nombre, 'turno': up.turno.nombre_turno} for up in u.planteles_asignados.all()],
             'rol':     u.rol.nombre_rol,
         } for u in qs])
+
+
+class AdminsDisponiblesView(APIView):
+    """Admins que puede contactar un docente: solo de sus planteles y en su turno."""
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        usuario = _usuario_sesion(request)
+        if not usuario:
+            return Response({'error': 'No autenticado.'}, status=status.HTTP_401_UNAUTHORIZED)
+
+        asignaciones = UsuarioPlantel.objects.filter(
+            usuario=usuario
+        ).select_related('plantel', 'turno')
+
+        admin_ids = set()
+        for up in asignaciones:
+            up_subq = UsuarioPlantel.objects.filter(
+                usuario=OuterRef('pk'),
+                plantel=up.plantel,
+            ).filter(
+                Q(turno__nombre_turno=up.turno.nombre_turno) | Q(turno__nombre_turno='Mixto')
+            )
+            ids = (
+                Usuario.objects
+                .filter(rol__nombre_rol='admin', activo=True)
+                .filter(Exists(up_subq))
+                .exclude(pk=usuario.pk)
+                .values_list('pk', flat=True)
+            )
+            admin_ids.update(ids)
+
+        admins = (
+            Usuario.objects
+            .filter(pk__in=admin_ids)
+            .select_related('rol')
+            .prefetch_related('planteles_asignados__plantel', 'planteles_asignados__turno')
+        )
+        superadmins = (
+            Usuario.objects
+            .filter(rol__nombre_rol='superusuario', activo=True)
+            .select_related('rol')
+            .prefetch_related('planteles_asignados__plantel', 'planteles_asignados__turno')
+            .exclude(pk=usuario.pk)
+        )
+
+        vistos = set()
+        resultado = []
+        for u in list(admins) + list(superadmins):
+            if u.pk in vistos:
+                continue
+            vistos.add(u.pk)
+            resultado.append({
+                'id':       u.id_usuario,
+                'nombre':   u.nombre or u.correo,
+                'correo':   u.correo,
+                'planteles': [
+                    {'plantel': up.plantel.nombre, 'turno': up.turno.nombre_turno}
+                    for up in u.planteles_asignados.all()
+                ],
+            })
+
+        return Response(resultado)
 
 
 def _solicitud_dict(s):

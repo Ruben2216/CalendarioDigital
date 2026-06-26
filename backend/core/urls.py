@@ -9,6 +9,7 @@ from agenda.views import (
     MensajeListView,
     MarcarLeidoView,
     UsuarioListView,
+    AdminsDisponiblesView,
     SolicitudAdminView,
     MiSolicitudAdminView,
     ResolverSolicitudAdminView,
@@ -70,6 +71,7 @@ urlpatterns = [
 
     # Mensajería
     path('api/usuarios/', UsuarioListView.as_view(), name='usuarios-list'),
+    path('api/mensajeria/admins/', AdminsDisponiblesView.as_view(), name='admins-disponibles'),
     path('api/mensajeria/docentes/', DocentesListView.as_view(), name='docentes-list'),
     path('api/mensajeria/conversaciones/', ConversacionListView.as_view(), name='conversaciones'),
     path('api/mensajeria/conversaciones/<int:id_conv>/mensajes/', MensajeListView.as_view(), name='mensajes'),

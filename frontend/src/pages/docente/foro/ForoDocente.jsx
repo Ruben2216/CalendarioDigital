@@ -159,9 +159,8 @@ export default function ForoDocente() {
         abierto={selectorAdminAbierto}
         onCerrar={() => setSelectorAdminAbierto(false)}
         onSeleccionar={handleSeleccionarAdmin}
-        idPlantel={plantel?.id ?? null}
+        idUsuario={id_usuario}
         esSuperadmin={false}
-        rol="admin"
         titulo="Contactar administrador"
       />
     </div>
