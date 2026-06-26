@@ -22,13 +22,15 @@ messaging.onBackgroundMessage((payload) => {
   const datos = payload.data || {};
   const notificationTitle = datos.title || 'Notificación';
   const cuerpo = datos.body || '';
+  const idRef = datos.id_anuncio || datos.id_evento || '';
+  const tag = `${datos.tipo || 'notif'}-${idRef}`;
   const notificationOptions = {
     body: cuerpo,
     icon: '/icono.png',
     badge: '/icono.png',
     requireInteraction: true,
+    tag,
     renotify: true,
-    tag: datos.tipo && datos.id_anuncio ? `${datos.tipo}-${datos.id_anuncio}` : undefined,
     actions: [{ action: 'abrir', title: 'Ver' }],
     data: { url: datos.url || '/' }
   };

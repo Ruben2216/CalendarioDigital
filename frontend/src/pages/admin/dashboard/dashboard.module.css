@@ -414,7 +414,7 @@
   background: var(--punto-color, transparent);
 }
 
-.dia--hoy::after { background: #fff; }
+.dia--hoy::after { display: none; }
 
 /* Simbología colapsable */
 .simbologia {

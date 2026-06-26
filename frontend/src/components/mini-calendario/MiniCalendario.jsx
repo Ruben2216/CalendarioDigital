@@ -31,8 +31,15 @@ export default function MiniCalendario({
   const eventosPorFecha = useMemo(() => {
     const mapa = new Map();
     for (const ev of eventos) {
-      if (!mapa.has(ev.fecha)) mapa.set(ev.fecha, []);
-      mapa.get(ev.fecha).push(ev);
+      const inicio = desdeClaveFecha(ev.fecha);
+      const fin = ev.fechaFin ? desdeClaveFecha(ev.fechaFin) : inicio;
+      const cursor = new Date(inicio);
+      while (cursor <= fin) {
+        const clave = aClaveFecha(cursor);
+        if (!mapa.has(clave)) mapa.set(clave, []);
+        mapa.get(clave).push(ev);
+        cursor.setDate(cursor.getDate() + 1);
+      }
     }
     return mapa;
   }, [eventos]);

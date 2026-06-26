@@ -150,7 +150,7 @@
   background: var(--punto-color, transparent);
 }
 
-.dia--hoy::after { background: #fff; }
+.dia--hoy::after { display: none; }
 
 .dia-eventos {
   margin: 12px 14px 0;
