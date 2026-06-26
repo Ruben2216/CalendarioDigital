@@ -73,6 +73,6 @@ def enviar_anuncio(anuncio) -> str:
     return enviar_a_temas(
         temas,
         anuncio.titulo,
-        (anuncio.descripcion or '')[:180],
-        {'tipo': 'anuncio', 'id_anuncio': anuncio.id_anuncio},
+        (anuncio.descripcion or '')[:1500],
+        {'tipo': 'anuncio', 'id_anuncio': anuncio.id_anuncio, 'url': '/ir/anuncios'},
     )

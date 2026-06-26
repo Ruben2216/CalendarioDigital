@@ -624,6 +624,7 @@ export default function Calendario({ soloLectura = false, publico = false }) {
     e.preventDefault();
     if (!formEvento.fecha || !calendarioActivo) return;
     const { todoElDia, especifico, formato, agregarAGoogleCalendar, ...resto } = formEvento;
+    const dirigidoEspecifico = especifico && Boolean(formEvento.plantel);
     const datos = {
       ...resto,
       id_calendario: calendarioActivo,
@@ -635,8 +636,8 @@ export default function Calendario({ soloLectura = false, publico = false }) {
       horaFin: todoElDia ? "" : formEvento.horaFin,
       plantel: formEvento.plantel || null,
       turno: formEvento.turno || null,
-      semestre: especifico && formEvento.semestre ? Number(formEvento.semestre) : null,
-      grupo: especifico && formEvento.grupo ? formEvento.grupo : null,
+      semestre: dirigidoEspecifico && formEvento.semestre ? Number(formEvento.semestre) : null,
+      grupo: dirigidoEspecifico && formEvento.grupo ? formEvento.grupo : null,
     };
     try {
       if (eventoEditando) {

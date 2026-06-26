@@ -5,7 +5,9 @@ import { AUDIENCIAS, COLORES_ANUNCIO } from "../../data/anuncios.js";
 import SelectorPlantel from "../selector-plantel/SelectorPlantel.jsx";
 import styles from "./ModalAnuncio.module.css";
 
-export default function ModalAnuncio({ anuncio, esAdmin = false, plantelesAdmin = [], onCerrar, onGuardar }) {
+const TURNOS_DISPONIBLES = ["Matutino", "Vespertino", "Mixto"];
+
+export default function ModalAnuncio({ anuncio, esAdmin = false, plantelesAdmin = [], turnosAdmin = [], onCerrar, onGuardar }) {
   const [form, setForm] = useState(() =>
     anuncio
       ? {
@@ -13,6 +15,7 @@ export default function ModalAnuncio({ anuncio, esAdmin = false, plantelesAdmin 
           descripcion: anuncio.descripcion,
           audiencia: anuncio.audiencia,
           plantel: anuncio.plantel || "",
+          turno: anuncio.turno || "",
           color: anuncio.color,
         }
       : {
@@ -20,6 +23,7 @@ export default function ModalAnuncio({ anuncio, esAdmin = false, plantelesAdmin 
           descripcion: "",
           audiencia: "todos",
           plantel: esAdmin ? plantelesAdmin[0] || "" : "",
+          turno: esAdmin ? turnosAdmin[0] || "" : "",
           color: "azul",
         }
   );
@@ -111,6 +115,28 @@ export default function ModalAnuncio({ anuncio, esAdmin = false, plantelesAdmin 
               onChange={(v) => setForm((prev) => ({ ...prev, plantel: v }))}
               textoTodos="General (todos los planteles)"
             />
+          )}
+        </label>
+
+        <label className="formulario__campo">
+          <span className="formulario__etiqueta">Turno</span>
+          {esAdmin ? (
+            turnosAdmin.length > 1 ? (
+              <select value={form.turno} onChange={fijar("turno")} required>
+                {turnosAdmin.map((t) => (
+                  <option key={t} value={t}>{t}</option>
+                ))}
+              </select>
+            ) : (
+              <input type="text" value={form.turno || "—"} disabled readOnly />
+            )
+          ) : (
+            <select value={form.turno} onChange={fijar("turno")}>
+              <option value="">Todos los turnos</option>
+              {TURNOS_DISPONIBLES.map((t) => (
+                <option key={t} value={t}>{t}</option>
+              ))}
+            </select>
           )}
         </label>
 

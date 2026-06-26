@@ -18,6 +18,17 @@ export default function FormularioEvento({
   const fij = (campo, valor) => onChange(campo, valor);
   const turnosVisibles = restringido && turnos.length ? turnos : TURNOS;
 
+  const esGeneral = !restringido && !form.plantel;
+
+  const cambiarPlantel = (valor) => {
+    fij('plantel', valor);
+    if (!valor) {
+      fij('especifico', false);
+      fij('semestre', '');
+      fij('grupo', '');
+    }
+  };
+
   return (
     <form id={id} className="formulario" onSubmit={onSubmit}>
 
@@ -128,7 +139,7 @@ export default function FormularioEvento({
           ) : (
             <SelectorPlantel
               value={form.plantel}
-              onChange={(v) => fij('plantel', v)}
+              onChange={cambiarPlantel}
               textoTodos="Todos"
             />
           )}
@@ -157,20 +168,26 @@ export default function FormularioEvento({
       <div className={styles['interruptor']}>
         <div>
           <span className="formulario__etiqueta">Dirigido a un grupo/semestre específico</span>
-          <p className={styles['interruptor__nota']}>Si está apagado, el evento aplica a todos.</p>
+          <p className={styles['interruptor__nota']}>
+            {esGeneral
+              ? 'No disponible para eventos de "Todos los planteles".'
+              : 'Si está apagado, el evento aplica a todos.'}
+          </p>
         </div>
         <button
           type="button"
           role="switch"
-          aria-checked={form.especifico}
-          className={`${styles['switch']} ${form.especifico ? styles['switch--on'] : ''}`}
-          onClick={() => fij('especifico', !form.especifico)}
+          aria-checked={form.especifico && !esGeneral}
+          disabled={esGeneral}
+          className={`${styles['switch']} ${form.especifico && !esGeneral ? styles['switch--on'] : ''}`}
+          style={esGeneral ? { opacity: 0.45, cursor: 'not-allowed' } : undefined}
+          onClick={() => { if (!esGeneral) fij('especifico', !form.especifico); }}
         >
           <span className={styles['switch__bolita']} />
         </button>
       </div>
 
-      {form.especifico && (
+      {form.especifico && !esGeneral && (
         <div className="formulario__fila">
           <label className="formulario__campo">
             <span className="formulario__etiqueta">Semestre</span>

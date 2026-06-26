@@ -19,9 +19,13 @@ export default function Anuncios() {
   const esAdmin = sesion?.rol === "admin";
   const esSuperusuario = sesion?.rol === "superusuario";
   // Planteles asignados al admin (un admin no crea anuncios generales).
-  const plantelesAdmin = (sesion?.planteles || [])
+  const plantelesAdmin = [...new Set((sesion?.planteles || [])
     .map((p) => p.plantel?.nombre)
-    .filter(Boolean);
+    .filter(Boolean))];
+  // Turnos asignados al admin (solo puede publicar en su turno)
+  const turnosAdmin = [...new Set((sesion?.planteles || [])
+    .map((p) => p.turno?.nombre)
+    .filter(Boolean))];
 
   const [anuncios, setAnuncios] = useState([]);
   const [cargando, setCargando] = useState(true);
@@ -165,6 +169,7 @@ export default function Anuncios() {
           anuncio={editando}
           esAdmin={esAdmin}
           plantelesAdmin={plantelesAdmin}
+          turnosAdmin={turnosAdmin}
           onCerrar={() => setModalAbierto(false)}
           onGuardar={guardar}
         />

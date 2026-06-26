@@ -20,6 +20,7 @@ export async function listarAnuncios({ publico = false, plantelFiltro = '' } = {
         if (sesion.id_usuario != null) url.searchParams.set('id_usuario', sesion.id_usuario);
         if (sesion.rol) url.searchParams.set('rol', sesion.rol);
         if (sesion.plantel?.nombre) url.searchParams.set('plantel', sesion.plantel.nombre);
+        if (sesion.turno?.nombre) url.searchParams.set('turno', sesion.turno.nombre);
     }
     // Filtro de plantel del superusuario
     if (plantelFiltro) url.searchParams.set('plantel_filtro', plantelFiltro);

@@ -265,6 +265,9 @@ class Anuncio(models.Model):
     plantel = models.ForeignKey(
         Plantel, on_delete=models.CASCADE, null=True, blank=True, related_name='anuncios'
     )
+    turno = models.ForeignKey(
+        'Turno', on_delete=models.CASCADE, null=True, blank=True, related_name='anuncios'
+    )
     creado_por = models.ForeignKey(
         Usuario, on_delete=models.SET_NULL, null=True, blank=True, related_name='anuncios_creados'
     )
@@ -409,6 +412,9 @@ class Notificacion(models.Model):
     audiencia      = models.CharField(max_length=20, default='todos')
     plantel        = models.ForeignKey(
         Plantel, on_delete=models.CASCADE, null=True, blank=True, related_name='notificaciones'
+    )
+    turno          = models.ForeignKey(
+        'Turno', on_delete=models.CASCADE, null=True, blank=True, related_name='notificaciones'
     )
 
     anuncio = models.ForeignKey(

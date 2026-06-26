@@ -28,6 +28,13 @@ export function marcarTodasLeidas(notificaciones) {
     guardar("notifLeidas", set);
 }
 
+export function marcarUnaLeida(id) {
+    const set = idsLeidas();
+    if (set.has(id)) return;
+    set.add(id);
+    guardar("notifLeidas", set);
+}
+
 export function limpiarTodas(notificaciones) {
     const set = idsOcultas();
     notificaciones.forEach((n) => set.add(n.id));

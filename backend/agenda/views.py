@@ -1110,6 +1110,38 @@ def _planteles_equivalentes(nombre):
     return ids
 
 
+_DIAS_SEMANA = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
+_MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio',
+          'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre']
+
+def _hora_12h(t):
+    h12 = t.hour % 12 or 12
+    return f"{h12}:{t.minute:02d} {'AM' if t.hour < 12 else 'PM'}"
+
+def _texto_evento(evento):
+    f = evento.fecha_inicio
+    fecha = f"{_DIAS_SEMANA[f.weekday()]} {f.day} de {_MESES[f.month - 1]} de {f.year}"
+    if evento.fecha_fin and evento.fecha_fin != f:
+        ff = evento.fecha_fin
+        fecha += f" al {ff.day} de {_MESES[ff.month - 1]}"
+    lineas = [f"Fecha: {fecha}"]
+
+    if evento.hora_inicio:
+        horas = _hora_12h(evento.hora_inicio)
+        if evento.hora_fin:
+            horas += f" - {_hora_12h(evento.hora_fin)}"
+        lineas.append(f"Hora: {horas}")
+    else:
+        lineas.append("Hora: Todo el día")
+
+    if evento.lugar:
+        lineas.append(f"Lugar: {evento.lugar}")
+
+    if evento.area:
+        lineas.append(f"Área: {evento.area}")
+
+    return "\n".join(lineas)
+
 def _notificar_evento(evento, accion):
     etiquetas = {
         'creado': 'Nuevo evento',
@@ -1117,10 +1149,7 @@ def _notificar_evento(evento, accion):
         'eliminado': 'Evento cancelado',
     }
     titulo = f"{etiquetas.get(accion, 'Evento')}: {evento.titulo}"
-    partes = [evento.fecha_inicio.strftime('%d/%m/%Y')]
-    if evento.lugar:
-        partes.append(evento.lugar)
-    mensaje = ' · '.join(partes)
+    mensaje = _texto_evento(evento)
 
     Notificacion.objects.create(
         categoria=Notificacion.CATEGORIA_EVENTO,
@@ -1128,6 +1157,7 @@ def _notificar_evento(evento, accion):
         mensaje=mensaje,
         audiencia='todos',
         plantel=evento.plantel,
+        turno=evento.turno,
         evento=evento if accion != 'eliminado' else None,
     )
 
@@ -1136,6 +1166,7 @@ def _notificar_evento(evento, accion):
         push.enviar_a_temas(temas, titulo, mensaje, {
             'tipo': f'evento_{accion}',
             'id_evento': evento.id_evento,
+            'url': '/ir/calendario',
         })
     except Exception:
         logger.exception('Fallo al enviar push del evento %s', evento.id_evento)
@@ -1364,6 +1395,7 @@ def _anuncio_dict(an, usuario):
         'color': an.color,
         'audiencia': an.audiencia,
         'plantel': an.plantel.nombre if an.plantel else None,
+        'turno': an.turno.nombre_turno if an.turno else None,
         'fecha': an.fecha_creacion.date().isoformat(),
         'puede_editar': an.puede_editar(usuario),
     }
@@ -1372,9 +1404,10 @@ class AnuncioListView(APIView):
     permission_classes = [permissions.AllowAny]
 
     def get(self, request):
-        qs = Anuncio.objects.select_related('plantel', 'creado_por__rol')
+        qs = Anuncio.objects.select_related('plantel', 'turno', 'creado_por__rol')
         usuario = _usuario_sesion(request)
         plantel_para_todos = Q(plantel__isnull=True)
+        turno_para_todos = Q(turno__isnull=True)
 
         if usuario:
             rol = usuario.rol.nombre_rol
@@ -1391,18 +1424,25 @@ class AnuncioListView(APIView):
                 qs = qs.filter(plantel_para_todos | Q(plantel_id__in=planteles))
             else:
                 planteles = list(usuario.planteles_asignados.values_list('plantel_id', flat=True))
+                turnos = list(usuario.planteles_asignados.values_list('turno_id', flat=True))
                 qs = qs.filter(
                     (plantel_para_todos | Q(plantel_id__in=planteles))
                     & Q(audiencia__in=[Anuncio.AUDIENCIA_TODOS, rol])
+                    & (turno_para_todos | Q(turno_id__in=turnos))
                 )
         else:
             rol = request.query_params.get('rol')
             plantel_nombre = request.query_params.get('plantel')
+            turno_nombre = request.query_params.get('turno')
             if rol == 'alumno' and plantel_nombre:
                 ids = _planteles_equivalentes(plantel_nombre)
+                cond_turno = turno_para_todos
+                if turno_nombre:
+                    cond_turno = turno_para_todos | Q(turno__nombre_turno=turno_nombre)
                 qs = qs.filter(
                     (plantel_para_todos | Q(plantel_id__in=ids))
                     & Q(audiencia__in=[Anuncio.AUDIENCIA_TODOS, 'alumno'])
+                    & cond_turno
                 )
             else:
                 qs = qs.filter(plantel_para_todos & Q(audiencia=Anuncio.AUDIENCIA_TODOS))
@@ -1423,7 +1463,7 @@ class AnuncioListView(APIView):
             return Response({'error': error}, status=status.HTTP_400_BAD_REQUEST)
 
         anuncio = Anuncio.objects.create(creado_por=usuario, **datos)
-        anuncio = Anuncio.objects.select_related('plantel', 'creado_por__rol').get(pk=anuncio.pk)
+        anuncio = Anuncio.objects.select_related('plantel', 'turno', 'creado_por__rol').get(pk=anuncio.pk)
 
         Notificacion.objects.create(
             categoria=Notificacion.CATEGORIA_ANUNCIO,
@@ -1431,6 +1471,7 @@ class AnuncioListView(APIView):
             mensaje=anuncio.descripcion,
             audiencia=anuncio.audiencia,
             plantel=anuncio.plantel,
+            turno=anuncio.turno,
             anuncio=anuncio,
         )
 
@@ -1456,13 +1497,31 @@ class AnuncioListView(APIView):
         color = (d.get('color') or 'azul').strip()
         plantel = Plantel.objects.filter(nombre=d.get('plantel')).first() if d.get('plantel') else None
 
+        turno_nombre = (d.get('turno') or '').strip()
+        turno = None
+
         if rol == 'admin':
             # El admin no crea anuncios generales: se fuerza a su plantel asignado
-            asignaciones = list(usuario.planteles_asignados.select_related('plantel').all())
+            asignaciones = list(usuario.planteles_asignados.select_related('plantel', 'turno').all())
             if not plantel:
                 return None, 'Debes seleccionar tu plantel.'
             if not any(a.plantel_id == plantel.id_plantel for a in asignaciones):
                 return None, 'Solo puedes publicar anuncios en tu plantel asignado.'
+            mis_turnos = {a.turno.nombre_turno: a.turno for a in asignaciones
+                          if a.plantel_id == plantel.id_plantel}
+            if turno_nombre:
+                if turno_nombre not in mis_turnos:
+                    return None, 'Solo puedes publicar en tu turno asignado.'
+                turno = mis_turnos[turno_nombre]
+            elif len(mis_turnos) == 1:
+                turno = next(iter(mis_turnos.values()))
+            else:
+                return None, 'Debes seleccionar el turno.'
+        else:
+            if turno_nombre and turno_nombre.lower() != 'todos':
+                turno = Turno.objects.filter(nombre_turno=turno_nombre).first()
+                if not turno:
+                    return None, 'Turno inválido.'
 
         return {
             'titulo': titulo,
@@ -1470,6 +1529,7 @@ class AnuncioListView(APIView):
             'audiencia': audiencia,
             'color': color,
             'plantel': plantel,
+            'turno': turno,
         }, None
 
 class AnuncioDetailView(APIView):
@@ -1478,7 +1538,7 @@ class AnuncioDetailView(APIView):
     def _obtener(self, request, id_anuncio):
         usuario = _usuario_sesion(request)
         try:
-            anuncio = Anuncio.objects.select_related('plantel', 'creado_por__rol').get(pk=id_anuncio)
+            anuncio = Anuncio.objects.select_related('plantel', 'turno', 'creado_por__rol').get(pk=id_anuncio)
         except Anuncio.DoesNotExist:
             return usuario, None
         return usuario, anuncio
@@ -1497,7 +1557,7 @@ class AnuncioDetailView(APIView):
         for campo, valor in datos.items():
             setattr(anuncio, campo, valor)
         anuncio.save()
-        anuncio = Anuncio.objects.select_related('plantel', 'creado_por__rol').get(pk=anuncio.pk)
+        anuncio = Anuncio.objects.select_related('plantel', 'turno', 'creado_por__rol').get(pk=anuncio.pk)
         return Response(_anuncio_dict(anuncio, usuario))
 
     def delete(self, request, id_anuncio):
@@ -1579,6 +1639,7 @@ def _notif_dict(n):
         'titulo': n.titulo,
         'mensaje': n.mensaje,
         'plantel': n.plantel.nombre if n.plantel else None,
+        'turno': n.turno.nombre_turno if n.turno else None,
         'referencia_id': n.evento_id or n.anuncio_id,
         'fecha': n.fecha_creacion.isoformat(),
     }
@@ -1592,9 +1653,10 @@ class NotificacionListView(APIView):
     permission_classes = [permissions.AllowAny]
 
     def get(self, request):
-        qs = Notificacion.objects.select_related('plantel')
+        qs = Notificacion.objects.select_related('plantel', 'turno')
         usuario = _usuario_sesion(request)
         general = Q(plantel__isnull=True)
+        turno_para_todos = Q(turno__isnull=True)
 
         if usuario:
             rol = usuario.rol.nombre_rol
@@ -1609,18 +1671,25 @@ class NotificacionListView(APIView):
                 qs = qs.filter(general | Q(plantel_id__in=planteles))
             else:
                 planteles = list(usuario.planteles_asignados.values_list('plantel_id', flat=True))
+                turnos = list(usuario.planteles_asignados.values_list('turno_id', flat=True))
                 qs = qs.filter(
                     (general | Q(plantel_id__in=planteles))
                     & Q(audiencia__in=['todos', rol])
+                    & (turno_para_todos | Q(turno_id__in=turnos))
                 )
         else:
             rol = request.query_params.get('rol')
             plantel_nombre = request.query_params.get('plantel')
+            turno_nombre = request.query_params.get('turno')
             if rol == 'alumno' and plantel_nombre:
                 ids = _planteles_equivalentes(plantel_nombre)
+                cond_turno = turno_para_todos
+                if turno_nombre:
+                    cond_turno = turno_para_todos | Q(turno__nombre_turno=turno_nombre)
                 qs = qs.filter(
                     (general | Q(plantel_id__in=ids))
                     & Q(audiencia__in=['todos', 'alumno'])
+                    & cond_turno
                 )
             else:
                 qs = qs.filter(general & Q(audiencia='todos'))
