@@ -155,14 +155,24 @@ export default function MiniCalendario({
             <p className={styles["dia-eventos__vacio"]}>No hay eventos para este día.</p>
           ) : (
             <ul className={styles["dia-eventos__lista"]}>
-              {eventosDelDia.map((ev) => (
+              {eventosDelDia.map((ev) => {
+                const etiq = etiquetaTipo(ev.tipo);
+                const tieneTituloReal = ev.titulo && ev.titulo !== etiq;
+                return (
                 <li key={ev.id} className={styles["dia-eventos__item"]}>
                   <div className={styles["dia-eventos__copia"]}>
-                    <p className={styles["dia-eventos__nombre"]}>{ev.titulo}</p>
+                    <p
+                      className={styles["dia-eventos__nombre"]}
+                      style={!tieneTituloReal ? { color: colorTipo(ev.tipo) } : undefined}
+                    >
+                      {tieneTituloReal ? ev.titulo : etiq}
+                    </p>
                     <div className={styles["dia-eventos__meta"]}>
-                      <span className="etiqueta" style={{ backgroundColor: colorTipo(ev.tipo) + '20', color: colorTipo(ev.tipo) }}>
-                        {etiquetaTipo(ev.tipo)}
-                      </span>
+                      {tieneTituloReal && (
+                        <span className="etiqueta" style={{ backgroundColor: colorTipo(ev.tipo) + '20', color: colorTipo(ev.tipo) }}>
+                          {etiq}
+                        </span>
+                      )}
                       {ev.horaInicio && (
                         <span className={styles["meta"]}>
                           <Clock size={11} />
@@ -178,7 +188,8 @@ export default function MiniCalendario({
                     </div>
                   </div>
                 </li>
-              ))}
+                );
+              })}
             </ul>
           )}
         </div>

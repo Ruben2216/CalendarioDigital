@@ -177,6 +177,25 @@
   width: 100%;
 }
 
+/* Monitores Full HD (1920x1080): la barra lateral se veia pequeña frente al
+   contenido ya ampliado. Se agranda --sidebar-w en la misma proporcion (1.25)
+   para reservar el espacio correcto, y se aplica zoom a la barra para escalar
+   logo, navegacion y pie sin reposicionar nada. La barra y el contenido leen
+   la misma variable, asi que siguen alineados (sin hueco ni solapamiento).
+   Solo afecta desde 1920px. */
+@media (min-width: 1920px) {
+  .aplicacion {
+    --sidebar-w: 275px; /* espacio que reserva el contenido = 220 * 1.25 */
+  }
+
+  .barra-lateral {
+    /* El zoom magnifica tambien el ancho: 220px * 1.25 = 275px en pantalla,
+       que coincide exacto con --sidebar-w (sin solapamiento ni hueco). */
+    width: 220px;
+    zoom: 1.25;
+  }
+}
+
 .respaldo {
   display: none;
   position: fixed;

@@ -8,6 +8,19 @@
   max-width: 100%;
 }
 
+/* Monitores Full HD (1920x1080): el contenido se veia demasiado pequeño
+   frente al ancho disponible. Se amplia proporcionalmente toda la vista
+   sin reposicionar elementos. Al ser un chat de altura fija, se divide la
+   altura por el mismo factor para que el zoom no desborde la pantalla ni
+   empuje la caja de escribir fuera de la vista.
+   Solo afecta a esta vista y solo desde 1920px. */
+@media (min-width: 1920px) {
+  .mensajeria {
+    zoom: 1.25;
+    height: calc((100vh - 70px - 42px) / 1.25);
+  }
+}
+
 .mensajeria__encabezado {
   display: flex;
   align-items: center;

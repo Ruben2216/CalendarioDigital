@@ -9,6 +9,15 @@
   max-width: 100%;
 }
 
+/* Monitores Full HD (1920x1080): el contenido se veia demasiado pequeño
+   frente al ancho disponible. Se amplia proporcionalmente toda la vista
+   sin reposicionar elementos. Solo afecta a esta vista y solo desde 1920px. */
+@media (min-width: 1920px) {
+  .calendario {
+    zoom: 1.25;
+  }
+}
+
 /* Encabezado */
 .calendario__encabezado {
   display: flex;

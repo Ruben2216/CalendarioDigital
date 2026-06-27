@@ -51,6 +51,14 @@ Content-Type: application/json
     "Usuario":"LOML100201HCSPRSA2",
     "Password":"25A0710225M0074"
 }
+### 
+POST http://192.168.100.5:8087/api/Seguridad/LoginAlumnos HTTP/1.1
+Content-Type: application/json
+
+{
+    "Usuario":"AASJ080801HCSLBNA8",
+    "Password":"23A0710042M0002"
+}
 ###
 POST /api/Seguridad/ObtenerDatosPorCorreo?correo=rperez@cobach.edu.mx HTTP/1.1
 Host: 192.168.100.5:8087

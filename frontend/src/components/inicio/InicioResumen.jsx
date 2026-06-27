@@ -152,6 +152,8 @@ export default function InicioResumen({ rutaCalendario, rutaAnuncios }) {
                 proximos.map((ev) => {
                   const fecha = desdeClaveFecha(ev.fecha);
                   const c = cuenta(diasRestantes(claveHoy, ev.fecha));
+                  const etiq = etiquetaTipo(ev.tipo);
+                  const tieneTituloReal = ev.titulo && ev.titulo !== etiq;
                   return (
                     <div key={ev.id} className={styles["evento"]}>
                       <div className={styles["evento__fecha"]}>
@@ -159,11 +161,18 @@ export default function InicioResumen({ rutaCalendario, rutaAnuncios }) {
                         <span>{ABREV_MES[fecha.getMonth()]}</span>
                       </div>
                       <div className={styles["evento__copia"]}>
-                        <h3 className={styles["evento__titulo"]}>{ev.titulo}</h3>
+                        <h3
+                          className={styles["evento__titulo"]}
+                          style={!tieneTituloReal ? { color: colorTipo(ev.tipo) } : undefined}
+                        >
+                          {tieneTituloReal ? ev.titulo : etiq}
+                        </h3>
                         <div className={styles["evento__meta"]}>
-                          <span className="etiqueta" style={{ backgroundColor: colorTipo(ev.tipo) + '20', color: colorTipo(ev.tipo) }}>
-                            {etiquetaTipo(ev.tipo)}
-                          </span>
+                          {tieneTituloReal && (
+                            <span className="etiqueta" style={{ backgroundColor: colorTipo(ev.tipo) + '20', color: colorTipo(ev.tipo) }}>
+                              {etiq}
+                            </span>
+                          )}
                           {ev.horaInicio && (
                             <span className={styles["meta"]}>
                               <Clock size={11} />

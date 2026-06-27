@@ -230,6 +230,8 @@ export default function Dashboard() {
               proximosEventos.map((evento) => {
                 const fecha = desdeClaveFecha(evento.fecha);
                 const c = cuenta(diasRestantes(claveHoy, evento.fecha));
+                const etiq = etiquetaTipo(evento.tipo);
+                const tieneTituloReal = evento.titulo && evento.titulo !== etiq;
                 return (
                   <div key={evento.id} className={styles["evento"]}>
                     <div className={styles["evento__fecha"]}>
@@ -237,11 +239,16 @@ export default function Dashboard() {
                       <span>{ABREV_MES[fecha.getMonth()]}</span>
                     </div>
                     <div className={styles["evento__copia"]}>
-                      <h3 className={styles["evento__titulo"]}>{evento.titulo}</h3>
+                      <h3
+                        className={styles["evento__titulo"]}
+                        style={!tieneTituloReal ? { color: colorTipo(evento.tipo) } : undefined}
+                      >
+                        {tieneTituloReal ? evento.titulo : etiq}
+                      </h3>
                       <div className={styles["evento__meta"]}>
-                        {etiquetaTipo(evento.tipo) !== evento.titulo && (
+                        {tieneTituloReal && (
                           <span className="etiqueta" style={{ backgroundColor: colorTipo(evento.tipo) + '20', color: colorTipo(evento.tipo) }}>
-                            {etiquetaTipo(evento.tipo)}
+                            {etiq}
                           </span>
                         )}
                         {evento.horaInicio && (

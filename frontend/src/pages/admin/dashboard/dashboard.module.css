@@ -618,6 +618,13 @@
   }
 }
 
+
+@media (min-width: 1920px) {
+  .rejilla {
+    zoom: 1.5;
+  }
+}
+
 @media (max-width: 480px) {
   .indicadores {
     grid-template-columns: 1fr;
