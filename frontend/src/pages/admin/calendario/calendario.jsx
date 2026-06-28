@@ -143,6 +143,12 @@ export default function Calendario({ soloLectura = false, publico = false }) {
   const [esMobil, setEsMobil] = useState(
     () => typeof window !== "undefined" && window.matchMedia("(max-width: 760px)").matches
   );
+  const [esMonitor, setEsMonitor] = useState(
+    () => typeof window !== "undefined" && window.matchMedia("(min-width: 1920px)").matches
+  );
+  const [altoVentana, setAltoVentana] = useState(
+    () => (typeof window !== "undefined" ? window.innerHeight : 800)
+  );
 
   // Info rápida
   const [popover, setPopover] = useState(null);
@@ -153,6 +159,7 @@ export default function Calendario({ soloLectura = false, publico = false }) {
   const [modalEvento, setModalEvento] = useState(false);
   const [formEvento, setFormEvento] = useState(FORM_EVENTO_VACIO);
   const [eventoEditando, setEventoEditando] = useState(null);
+  const [guardandoEvento, setGuardandoEvento] = useState(false);
 
   // Gestión de tipos de evento (simbología)
   const [tipoEditandoId, setTipoEditandoId] = useState(null);
@@ -162,6 +169,7 @@ export default function Calendario({ soloLectura = false, publico = false }) {
   const [nuevoNombre, setNuevoNombre] = useState("");
   const [nuevoColor, setNuevoColor] = useState(randomColor);
   const [nuevoPlantelId, setNuevoPlantelId] = useState("");
+  const [guardandoTipo, setGuardandoTipo] = useState(false);
 
   // null = verificando, false = no vinculado, { vinculado: true, email } = vinculado
   const [calVinculado, setCalVinculado] = useState(null);
@@ -195,6 +203,18 @@ export default function Calendario({ soloLectura = false, publico = false }) {
     const handler = (e) => setEsMobil(e.matches);
     mq.addEventListener("change", handler);
     return () => mq.removeEventListener("change", handler);
+  }, []);
+
+  useEffect(() => {
+    const mqMonitor = window.matchMedia("(min-width: 1920px)");
+    const onMonitor = (e) => setEsMonitor(e.matches);
+    const onResize = () => setAltoVentana(window.innerHeight);
+    mqMonitor.addEventListener("change", onMonitor);
+    window.addEventListener("resize", onResize);
+    return () => {
+      mqMonitor.removeEventListener("change", onMonitor);
+      window.removeEventListener("resize", onResize);
+    };
   }, []);
 
   useEffect(() => {
@@ -622,7 +642,7 @@ export default function Calendario({ soloLectura = false, publico = false }) {
 
   const guardarEvento = async (e) => {
     e.preventDefault();
-    if (!formEvento.fecha || !calendarioActivo) return;
+    if (!formEvento.fecha || !calendarioActivo || guardandoEvento) return;
     const { todoElDia, especifico, formato, agregarAGoogleCalendar, ...resto } = formEvento;
     const dirigidoEspecifico = especifico && Boolean(formEvento.plantel);
     const datos = {
@@ -639,6 +659,7 @@ export default function Calendario({ soloLectura = false, publico = false }) {
       semestre: dirigidoEspecifico && formEvento.semestre ? Number(formEvento.semestre) : null,
       grupo: dirigidoEspecifico && formEvento.grupo ? formEvento.grupo : null,
     };
+    setGuardandoEvento(true);
     try {
       if (eventoEditando) {
         await actualizarEvento(eventoEditando, datos);
@@ -652,6 +673,8 @@ export default function Calendario({ soloLectura = false, publico = false }) {
       avisoExito(eventoEditando ? "Evento actualizado" : "Evento creado");
     } catch (err) {
       avisoError(err.message || "No se pudo guardar el evento.");
+    } finally {
+      setGuardandoEvento(false);
     }
   };
 
@@ -709,7 +732,8 @@ export default function Calendario({ soloLectura = false, publico = false }) {
   };
 
   const guardarNuevoTipo = async () => {
-    if (!nuevoNombre.trim()) return;
+    if (!nuevoNombre.trim() || guardandoTipo) return;
+    setGuardandoTipo(true);
     try {
       const plantel_id = esAdmin
         ? (nuevoPlantelId || (sesion.planteles?.[0]?.plantel?.id ?? null))
@@ -722,6 +746,8 @@ export default function Calendario({ soloLectura = false, publico = false }) {
       setFormTipoVisible(false);
     } catch (err) {
       avisoError(err.message || "No se pudo crear el tipo.");
+    } finally {
+      setGuardandoTipo(false);
     }
   };
 
@@ -995,7 +1021,7 @@ export default function Calendario({ soloLectura = false, publico = false }) {
                   headerToolbar={false}
                   locale={esLocale}
                   firstDay={0}
-                  height={vista === "semana" ? 640 : 720}
+                  height={vista === "semana" ? 640 : (esMonitor ? Math.max(700, altoVentana - 220) : 720)}
                   expandRows
                   dayMaxEvents
                   nowIndicator
@@ -1266,7 +1292,7 @@ export default function Calendario({ soloLectura = false, publico = false }) {
                   </select>
                 )}
                 <div className={styles["simbologia__nuevo-acciones"]}>
-                  <button type="button" onClick={guardarNuevoTipo} disabled={!nuevoNombre.trim()}>
+                  <button type="button" onClick={guardarNuevoTipo} disabled={!nuevoNombre.trim() || guardandoTipo}>
                     Guardar
                   </button>
                   <button type="button" onClick={() => setFormTipoVisible(false)}>
@@ -1579,8 +1605,10 @@ export default function Calendario({ soloLectura = false, publico = false }) {
             <button type="button" className="boton boton--fantasma" onClick={() => setModalEvento(false)}>
               Cancelar
             </button>
-            <button type="submit" form="form-evento-calendario" className="boton boton--primario">
-              {eventoEditando ? "Guardar cambios" : "Crear evento"}
+            <button type="submit" form="form-evento-calendario" className="boton boton--primario" disabled={guardandoEvento}>
+              {guardandoEvento
+                ? "Guardando…"
+                : eventoEditando ? "Guardar cambios" : "Crear evento"}
             </button>
           </>
         }

@@ -17,7 +17,7 @@
 @media (min-width: 1920px) {
   .mensajeria {
     zoom: 1.25;
-    height: calc((100vh - 70px - 42px) / 1.25);
+    height: calc((100vh - 87.5px - 42px) / 1.25);
   }
 }
 

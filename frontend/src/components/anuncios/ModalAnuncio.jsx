@@ -28,15 +28,23 @@ export default function ModalAnuncio({ anuncio, esAdmin = false, plantelesAdmin 
         }
   );
 
+  const [enviando, setEnviando] = useState(false);
+
   const fijar = (campo) => (e) => setForm((prev) => ({ ...prev, [campo]: e.target.value }));
 
-  const enviar = (e) => {
+  const enviar = async (e) => {
     e.preventDefault();
-    onGuardar({
-      ...form,
-      titulo: form.titulo.trim(),
-      descripcion: form.descripcion.trim(),
-    });
+    if (enviando) return;
+    setEnviando(true);
+    try {
+      await onGuardar({
+        ...form,
+        titulo: form.titulo.trim(),
+        descripcion: form.descripcion.trim(),
+      });
+    } finally {
+      setEnviando(false);
+    }
   };
 
   return (
@@ -49,8 +57,10 @@ export default function ModalAnuncio({ anuncio, esAdmin = false, plantelesAdmin 
           <button type="button" className="boton boton--fantasma" onClick={onCerrar}>
             Cancelar
           </button>
-          <button type="submit" form="form-anuncio" className="boton boton--primario">
-            {anuncio ? "Guardar cambios" : "Publicar"}
+          <button type="submit" form="form-anuncio" className="boton boton--primario" disabled={enviando}>
+            {enviando
+              ? "Guardando…"
+              : anuncio ? "Guardar cambios" : "Publicar"}
           </button>
         </>
       }

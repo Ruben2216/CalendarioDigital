@@ -194,6 +194,10 @@
     width: 220px;
     zoom: 1.25;
   }
+
+  .barra-superior {
+    zoom: 1.25;
+  }
 }
 
 .respaldo {

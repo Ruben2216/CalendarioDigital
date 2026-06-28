@@ -72,6 +72,12 @@
   background: #f8fbff;
 }
 
+@media (min-width: 1920px) {
+  .modal__dialogo {
+    zoom: 1.25;
+  }
+}
+
 @keyframes modal-fundido {
   from {
     opacity: 0;

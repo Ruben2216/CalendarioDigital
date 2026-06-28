@@ -465,6 +465,118 @@
   color: #3c4043;
 }
 
+@media (min-width: 1920px) {
+  .login__panel {
+    width: clamp(26rem, 42%, 36rem);
+  }
+
+  .login__hero-kicker {
+    font-size: 1.5rem;
+  }
+
+  .login__hero-title {
+    font-size: 2.1rem;
+  }
+
+  .login__hero-title span {
+    font-size: 2.9rem;
+  }
+
+  .login__hero-text {
+    font-size: 1.05rem;
+  }
+
+  .login__logo {
+    max-width: min(60%, 17rem);
+  }
+
+  .login__title {
+    font-size: 1.75rem;
+  }
+
+  .login__subtitle {
+    font-size: 1rem;
+  }
+
+  .login__label {
+    font-size: 1rem;
+  }
+
+  .login__field {
+    height: clamp(3rem, 5vh, 3.6rem);
+  }
+
+  .login__field input {
+    font-size: 1.0625rem;
+  }
+
+  .login__field-icon {
+    width: 1.35rem;
+    height: 1.35rem;
+  }
+
+  .login__field-check {
+    width: 1.4rem;
+    height: 1.4rem;
+  }
+
+  .login__eye svg {
+    width: 1.35rem;
+    height: 1.35rem;
+  }
+
+  .login__role {
+    min-height: 4.4rem;
+    font-size: 1rem;
+  }
+
+  .login__role svg {
+    width: 1.35rem;
+    height: 1.35rem;
+  }
+
+  .login__submit {
+    height: 3.6rem;
+    font-size: 1.15rem;
+  }
+
+  .login__submit svg {
+    width: 1.4rem;
+    height: 1.4rem;
+  }
+
+  .google-btn {
+    height: 3.6rem;
+  }
+
+  .google-icon {
+    width: 1.4rem;
+    height: 1.4rem;
+  }
+
+  .google-text {
+    font-size: 1.15rem;
+  }
+
+  .login__feature-icon {
+    width: 2.6rem;
+    height: 2.6rem;
+  }
+
+  .login__feature-icon svg {
+    width: 1.3rem;
+    height: 1.3rem;
+  }
+
+  .login__feature-title {
+    font-size: 1rem;
+  }
+
+  .login__feature-desc {
+    font-size: 0.85rem;
+  }
+}
+
 @media (max-height: 700px) {
   .login {
     padding: clamp(0.5rem, 1.2vh, 1rem);
