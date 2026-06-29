@@ -77,9 +77,14 @@
   align-self: flex-start;
 }
 
+.burbuja__acciones {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
 .burbuja__aprobar {
   align-self: flex-start;
-  margin-top: 4px;
   padding: 6px 14px;
   border-radius: 8px;
   border: 1.5px solid var(--green);
@@ -94,5 +99,24 @@
 
 .burbuja__aprobar:hover {
   background: var(--green);
+  color: #fff;
+}
+
+.burbuja__rechazar {
+  align-self: flex-start;
+  padding: 6px 14px;
+  border-radius: 8px;
+  border: 1.5px solid var(--red, #e5484d);
+  background: var(--red-soft, #fdecec);
+  color: var(--red, #e5484d);
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.burbuja__rechazar:hover {
+  background: var(--red, #e5484d);
   color: #fff;
 }

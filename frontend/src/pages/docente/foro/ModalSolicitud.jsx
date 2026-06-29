@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Modal from '../../../components/modal/Modal.jsx';
 import FormularioEvento from '../../../components/formulario-evento/FormularioEvento.jsx';
 import { listarTipos } from '../../../services/eventosService.js';
@@ -15,15 +15,40 @@ const FORM_VACIO = {
   horaInicio: '',
   horaFin: '',
   lugar: '',
+  plantel: '',
+  turno: '',
   formato: 'punto',
   todoElDia: false,
+  especifico: false,
+  semestre: '',
+  grupo: '',
   recursos: [],
   observaciones: '',
 };
 
-export default function ModalSolicitud({ abierto, onCerrar, onEnviar, plantel }) {
-  const [form, setForm] = useState(FORM_VACIO);
+function turnosDe(asignaciones, nombrePlantel) {
+  return [...new Set(
+    asignaciones
+      .filter((a) => a.plantel?.nombre === nombrePlantel)
+      .map((a) => a.turno?.nombre)
+      .filter(Boolean),
+  )];
+}
+
+export default function ModalSolicitud({ abierto, onCerrar, onEnviar, asignaciones = [] }) {
+  const planteles = useMemo(
+    () => [...new Set(asignaciones.map((a) => a.plantel?.nombre).filter(Boolean))],
+    [asignaciones],
+  );
+
+  const [form, setForm] = useState(() => {
+    const plantel = planteles[0] || '';
+    return { ...FORM_VACIO, plantel, turno: turnosDe(asignaciones, plantel)[0] || '' };
+  });
   const [tipos, setTipos] = useState([]);
+  const [error, setError] = useState('');
+
+  const turnos = useMemo(() => turnosDe(asignaciones, form.plantel), [asignaciones, form.plantel]);
 
   useEffect(() => {
     listarTipos()
@@ -34,8 +59,15 @@ export default function ModalSolicitud({ abierto, onCerrar, onEnviar, plantel })
       .catch(() => setTipos([]));
   }, []);
 
-  const handleChange = (campo, valor) =>
+  const handleChange = (campo, valor) => {
+    if (error) setError('');
+    if (campo === 'plantel') {
+      const turnosP = turnosDe(asignaciones, valor);
+      setForm((prev) => ({ ...prev, plantel: valor, turno: turnosP[0] || '' }));
+      return;
+    }
     setForm((prev) => ({ ...prev, [campo]: valor }));
+  };
 
   const alternarRecurso = (recurso) =>
     setForm((prev) => ({
@@ -47,11 +79,21 @@ export default function ModalSolicitud({ abierto, onCerrar, onEnviar, plantel })
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!form.fecha || !form.titulo.trim()) return;
+    const tipoEtiqueta = tipos.find((t) => String(t.id) === String(form.tipo))?.etiqueta || '';
+    if (!form.fecha) {
+      setError('Selecciona una fecha de inicio para la solicitud.');
+      return;
+    }
+    if (!form.todoElDia && form.horaInicio && form.horaFin && form.horaFin < form.horaInicio) {
+      setError('La hora de fin no puede ser anterior a la de inicio.');
+      return;
+    }
+    setError('');
 
     onEnviar({
-      titulo:        form.titulo.trim(),
+      titulo:        form.titulo.trim() || tipoEtiqueta,
       tipo:          form.tipo,
+      tipoEtiqueta,
       area:          form.area,
       fecha:         form.fecha,
       fechaFin:      form.fechaFin || null,
@@ -60,10 +102,20 @@ export default function ModalSolicitud({ abierto, onCerrar, onEnviar, plantel })
       lugar:         form.lugar.trim(),
       recursos:      form.recursos,
       observaciones: form.observaciones.trim(),
-      plantel:       plantel?.nombre ?? '',
+      plantel:       form.plantel,
+      turno:         form.turno,
+      especifico:    form.especifico,
+      semestre:      form.especifico ? form.semestre : '',
+      grupo:         form.especifico ? form.grupo : '',
     });
 
-    setForm({ ...FORM_VACIO, tipo: tipos[0]?.id || '' });
+    const primerPlantel = planteles[0] || '';
+    setForm({
+      ...FORM_VACIO,
+      tipo: tipos[0]?.id || '',
+      plantel: primerPlantel,
+      turno: turnosDe(asignaciones, primerPlantel)[0] || '',
+    });
   };
 
   return (
@@ -86,6 +138,10 @@ export default function ModalSolicitud({ abierto, onCerrar, onEnviar, plantel })
         id="form-solicitud-docente"
         form={form}
         tipos={tipos}
+        restringido
+        planteles={planteles}
+        turnos={turnos}
+        error={error}
         onChange={handleChange}
         onSubmit={handleSubmit}
       />

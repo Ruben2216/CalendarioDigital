@@ -16,15 +16,16 @@ function iniciales(nombre) {
     .join('');
 }
 
-export default function SelectorDocente({ abierto, onCerrar, onSeleccionar, idPlantel, idUsuario, esSuperadmin, rol, titulo = 'Contactar personal' }) {
+export default function SelectorDocente({ abierto, onCerrar, onSeleccionar, idPlantel, idUsuario, esSuperadmin, rol, titulo = 'Contactar personal', lista = null }) {
   const [usuarios, setUsuarios] = useState([]);
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState(null);
 
+  const items = lista ?? usuarios;
+
   useEffect(() => {
-    if (!abierto) return;
-    setCargando(true);
-    setError(null);
+    if (!abierto || lista) return;
+    let activo = true;
 
     let url;
     if (idUsuario) {
@@ -35,12 +36,23 @@ export default function SelectorDocente({ abierto, onCerrar, onSeleccionar, idPl
       url = esSuperadmin ? base : `${base}&plantel=${idPlantel}`;
     }
 
-    fetch(url, { headers: { 'Accept': 'application/json' } })
-      .then((r) => r.json())
-      .then((data) => setUsuarios(Array.isArray(data) ? data : data.usuarios ?? []))
-      .catch(() => setError('No se pudieron cargar los usuarios.'))
-      .finally(() => setCargando(false));
-  }, [abierto, idPlantel, idUsuario, esSuperadmin, rol]);
+    const cargar = async () => {
+      setCargando(true);
+      setError(null);
+      try {
+        const r = await fetch(url, { headers: { 'Accept': 'application/json' } });
+        const data = await r.json();
+        if (activo) setUsuarios(Array.isArray(data) ? data : data.usuarios ?? []);
+      } catch {
+        if (activo) setError('No se pudieron cargar los usuarios.');
+      } finally {
+        if (activo) setCargando(false);
+      }
+    };
+    cargar();
+
+    return () => { activo = false; };
+  }, [abierto, idPlantel, idUsuario, esSuperadmin, rol, lista]);
 
   return (
     <Modal
@@ -57,11 +69,11 @@ export default function SelectorDocente({ abierto, onCerrar, onSeleccionar, idPl
         <p className={styles['selector__vacio']}>Cargando…</p>
       ) : error ? (
         <p className={styles['selector__vacio']}>{error}</p>
-      ) : usuarios.length === 0 ? (
+      ) : items.length === 0 ? (
         <p className={styles['selector__vacio']}>No hay usuarios disponibles en este plantel.</p>
       ) : (
         <ul className={styles['selector__lista']}>
-          {usuarios.map((u) => {
+          {items.map((u) => {
             const subtitulo = u.plantel || u.planteles?.[0]?.plantel || '';
             return (
               <li key={u.id}>

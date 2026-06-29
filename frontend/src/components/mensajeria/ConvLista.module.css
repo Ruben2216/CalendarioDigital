@@ -139,3 +139,17 @@
   border-radius: 20px;
   flex-shrink: 0;
 }
+
+.conv-item--no-leida .conv-item__nombre {
+  font-weight: 800;
+}
+
+.conv-item--no-leida .conv-item__preview {
+  color: var(--text-principal);
+  font-weight: 700;
+}
+
+.conv-item--no-leida .conv-item__hora {
+  color: var(--blue);
+  font-weight: 700;
+}

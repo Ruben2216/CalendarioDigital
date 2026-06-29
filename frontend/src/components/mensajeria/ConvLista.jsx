@@ -9,10 +9,11 @@ export default function ConvLista({ conversaciones, idActiva, onSeleccionar, tit
       <ul className={styles['conv-lista__lista']}>
         {conversaciones.map((conv) => {
           const ultimo = conv.mensajes[conv.mensajes.length - 1];
+          const sinLeer = conv.sin_leer ?? conv.sinLeer ?? 0;
           return (
             <li
               key={conv.id}
-              className={`${styles['conv-item']} ${conv.id === idActiva ? styles['conv-item--activa'] : ''}`}
+              className={`${styles['conv-item']} ${conv.id === idActiva ? styles['conv-item--activa'] : ''} ${sinLeer > 0 ? styles['conv-item--no-leida'] : ''}`}
               onClick={() => onSeleccionar(conv.id)}
             >
               <span className={`${styles['conv-item__avatar']} ${styles[`conv-item__avatar--${conv.colorAvatar}`]}`}>
@@ -25,8 +26,8 @@ export default function ConvLista({ conversaciones, idActiva, onSeleccionar, tit
                 </div>
                 <div className={styles['conv-item__preview']}>{ultimo?.texto ?? ''}</div>
               </div>
-              {conv.sinLeer > 0 && (
-                <span className={styles['conv-item__badge']}>{conv.sinLeer}</span>
+              {sinLeer > 0 && (
+                <span className={styles['conv-item__badge']}>{sinLeer}</span>
               )}
             </li>
           );
