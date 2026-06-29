@@ -1,14 +1,16 @@
 import {
-  Document, Page, View, Text, Image, StyleSheet,
+  Document, Page, View, Text, Image, StyleSheet, Font,
   Svg, Polygon, Line,
 } from "@react-pdf/renderer";
+
+Font.registerHyphenationCallback((palabra) => [palabra]);
 
 const ICONO = `${import.meta.env.BASE_URL}icono.png`;
 
 const DIAS_MINI = ["D", "L", "M", "M", "J", "V", "S"];
 const DIAS_MES = ["DOM", "LUN", "MAR", "MIÉ", "JUE", "VIE", "SÁB"];
-const MAX_CARRILES = 3; 
-const ALTO_SEMANAS = 430; 
+const MAX_CARRILES = 3;
+const ALTO_SEMANAS = 408;
 
 const NAVY = "#0a2060";      // azul
 const NAVY_CAB = "#1e3a5f";  // encabezado de días (mensual)
@@ -94,10 +96,10 @@ const s = StyleSheet.create({
   card: { borderWidth: 1, borderColor: LINEA, borderRadius: 8, padding: 14, backgroundColor: "#ffffff" },
   cardTitulo: { fontSize: 12, fontFamily: "Helvetica-Bold", color: NAVY, letterSpacing: 0.5 },
   cardSub: { fontSize: 7.5, color: TENUE, marginTop: 2, marginBottom: 10 },
-  simCardItem: { flexDirection: "row", alignItems: "center", marginBottom: 8 },
-  simCardCuad: { width: 13, height: 13, borderRadius: 3, marginRight: 9 },
+  simCardItem: { flexDirection: "row", alignItems: "flex-start", marginBottom: 8 },
+  simCardCuad: { width: 13, height: 13, borderRadius: 3, marginRight: 9, marginTop: 1 },
   simCardTxt: { fontSize: 8, fontFamily: "Helvetica-Bold", color: TEXTO, letterSpacing: 0.3,
-    textTransform: "uppercase", flexShrink: 1 },
+    textTransform: "uppercase", lineHeight: 1.25, flex: 1 },
   cardVacio: { fontSize: 7.5, color: TENUE, fontStyle: "italic" },
   cardDivisor: { borderTopWidth: 0.5, borderTopColor: LINEA, marginTop: 8, marginBottom: 9 },
   cardSeccion: { fontSize: 9.5, fontFamily: "Helvetica-Bold", color: NAVY, marginBottom: 6,
