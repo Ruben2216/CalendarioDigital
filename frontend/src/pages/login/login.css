@@ -3,7 +3,9 @@
   display: flex;
   flex-direction: column;
   height: 100vh;
+  height: 100dvh;
   max-height: 100vh;
+  max-height: 100dvh;
   width: 100%;
   overflow: hidden;
   color: #ffffff;
@@ -656,7 +658,9 @@
 
   .login {
     height: 100vh;
+    height: 100dvh;
     max-height: 100vh;
+    max-height: 100dvh;
     overflow: hidden;
     padding: 0;
     gap: 0;
@@ -702,7 +706,8 @@
     left: 50%;
     transform: translate(-50%, -50%);
     width: 85%;
-    height: fit-content;
+    height: auto;
+    max-height: 90dvh;
     z-index: 2;
     align-items: stretch;
     display: flex;
@@ -710,10 +715,11 @@
 
   .login__card {
     backdrop-filter: blur(0.5px);
-    border-radius: 1.75rem 1.75rem 1.75rem 1.75rem;
+    border-radius: 1.75rem;
     justify-content: flex-start;
-    height: 90%;
-    flex: 1;
+    height: auto;
+    max-height: 90dvh;
+    overflow-y: auto;
   }
 
   .login__logo {

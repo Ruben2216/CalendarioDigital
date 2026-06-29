@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState, useEffect } from "react";
+import { useCallback, useMemo, useRef, useState, useEffect, lazy, Suspense } from "react";
 
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
@@ -11,11 +11,11 @@ import esLocale from "@fullcalendar/core/locales/es";
 import {
   CalendarDays, CalendarRange, LayoutGrid, List, ChevronLeft, ChevronRight,
   ChevronDown, Plus, CalendarSync, Pencil, Trash2, Filter, Tag,
-  PanelRight, X, Clock, MapPin, Hourglass, Check, Eye,
+  PanelRight, X, Clock, MapPin, Hourglass, Check, Eye, Download,
 } from "lucide-react";
 import Modal from "../../../components/modal/Modal.jsx";
 import FormularioEvento from "../../../components/formulario-evento/FormularioEvento.jsx";
-import { avisoExito, confirmarEliminacion, confirmarAccion } from "../../../lib/alertas.js";
+import { avisoExito, avisoCreado, avisoEditado, avisoEliminado, confirmarEliminacion, confirmarAccion } from "../../../lib/alertas.js";
 import {
   NOMBRES_MES, ABREV_MES, aClaveFecha, desdeClaveFecha, sumarDias, minutosDe, formatoHora,
   formatoFechaLarga, calcularSemestre, ahoraMexico, rangoSemana,
@@ -37,6 +37,9 @@ import { urlAutorizacion, verificarVinculo, vincular, desvincular } from "../../
 import VistaSemanaMovil from "./vistas/VistaSemanaMovil.jsx";
 import styles from "./calendario.module.css";
 import "./fullcalendar.css";
+
+// El generador de PDF (@react-pdf/renderer) es pesado: se carga bajo demanda.
+const ModalExportarPdf = lazy(() => import("./pdf/ModalExportarPdf.jsx"));
 
 const COLOR_GRIS = "#97a3b6";
 
@@ -160,6 +163,13 @@ export default function Calendario({ soloLectura = false, publico = false }) {
   const [formEvento, setFormEvento] = useState(FORM_EVENTO_VACIO);
   const [eventoEditando, setEventoEditando] = useState(null);
   const [guardandoEvento, setGuardandoEvento] = useState(false);
+
+  // Exportar el calendario a PDF (no disponible para alumno ni acceso público)
+  const [modalExportar, setModalExportar] = useState(false);
+  const puedeExportar = !publico && !esAlumno;
+  const anioCicloActual = fechaActual.getMonth() >= 7
+    ? fechaActual.getFullYear()
+    : fechaActual.getFullYear() - 1;
 
   // Gestión de tipos de evento (simbología)
   const [tipoEditandoId, setTipoEditandoId] = useState(null);
@@ -670,7 +680,8 @@ export default function Calendario({ soloLectura = false, publico = false }) {
       setFechaSeleccionada(datos.fecha);
       api()?.gotoDate(datos.fecha);
       setModalEvento(false);
-      avisoExito(eventoEditando ? "Evento actualizado" : "Evento creado");
+      if (eventoEditando) avisoEditado("Evento actualizado");
+      else avisoCreado("Evento creado");
     } catch (err) {
       avisoError(err.message || "No se pudo guardar el evento.");
     } finally {
@@ -685,7 +696,7 @@ export default function Calendario({ soloLectura = false, publico = false }) {
     try {
       await eliminarEvento(ev.id);
       await cargarEventos(calendarioActivo);
-      avisoExito("Evento eliminado");
+      avisoEliminado("Evento eliminado");
     } catch (err) {
       avisoError(err.message || "No se pudo eliminar el evento.");
     }
@@ -972,6 +983,20 @@ export default function Calendario({ soloLectura = false, publico = false }) {
                 <PanelRight size={16} />
                 Simbología
               </button>
+
+              {/* Descargar el calendario en PDF */}
+              {puedeExportar && (
+                <button
+                  type="button"
+                  className={`boton boton--fantasma ${styles["barra__panel-btn"]}`}
+                  onClick={() => setModalExportar(true)}
+                  aria-label="Descargar PDF"
+                  title="Descargar el calendario en PDF"
+                >
+                  <Download size={16} />
+                  Descargar
+                </button>
+              )}
             </div>
           </div>
 
@@ -1305,6 +1330,22 @@ export default function Calendario({ soloLectura = false, publico = false }) {
 
         </aside>
       </div>
+
+      {/* Diálogo para descargar el calendario en PDF */}
+      {modalExportar && (
+        <Suspense fallback={null}>
+          <ModalExportarPdf
+            eventosFiltrados={eventosFiltrados}
+            eventosTodos={eventos}
+            tipos={tipos}
+            defaultAnioCiclo={anioCicloActual}
+            defaultAnio={fechaActual.getFullYear()}
+            defaultMes={fechaActual.getMonth()}
+            calendarioNombre={calActivo?.nombre}
+            onCerrar={() => setModalExportar(false)}
+          />
+        </Suspense>
+      )}
 
       {/* Info rápida del evento */}
       {popover && (

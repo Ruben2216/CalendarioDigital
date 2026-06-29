@@ -1,21 +1,64 @@
 import Swal from "sweetalert2";
 
-const Toast = Swal.mixin({
-  toast: true,
-  position: "top-end",
-  showConfirmButton: false,
-  timer: 2200,
-  timerProgressBar: true,
+const Modal = Swal.mixin({
+  buttonsStyling: false,
+  heightAuto: false,
+  scrollbarPadding: false,
+  customClass: {
+    confirmButton: "boton boton--primario",
+    cancelButton: "boton boton--fantasma",
+    actions: "swal-acciones",
+  },
 });
 
-export const avisoExito = (titulo) => Toast.fire({ icon: "success", title: titulo });
+// Éxito / info
+export const avisoExito = (titulo, texto) =>
+  Modal.fire({
+    icon: "success",
+    title: titulo,
+    text: texto,
+    timer: 1700,
+    timerProgressBar: true,
+    showConfirmButton: false,
+  });
 
-export const avisoError = (titulo) => Toast.fire({ icon: "error", title: titulo });
+// Avisos de acción
+const COLOR_ACCION = { verde: "#2e9d41", azul: "#0a3a9e", rojo: "#e5484d" };
 
-export const avisoInfo = (titulo) => Toast.fire({ icon: "info", title: titulo });
+const avisoAccion = (titulo, acento) =>
+  Modal.fire({
+    icon: "success",
+    iconColor: COLOR_ACCION[acento],
+    title: titulo,
+    timer: 1700,
+    timerProgressBar: true,
+    showConfirmButton: false,
+  });
+
+export const avisoCreado = (titulo) => avisoAccion(titulo, "verde");
+export const avisoEditado = (titulo) => avisoAccion(titulo, "azul");
+export const avisoEliminado = (titulo) => avisoAccion(titulo, "rojo");
+
+export const avisoInfo = (titulo, texto) =>
+  Modal.fire({
+    icon: "info",
+    title: titulo,
+    text: texto,
+    timer: 2200,
+    timerProgressBar: true,
+    showConfirmButton: false,
+  });
+
+export const avisoError = (titulo, texto) =>
+  Modal.fire({
+    icon: "error",
+    title: titulo,
+    text: texto,
+    confirmButtonText: "Entendido",
+  });
 
 export const confirmarEliminacion = (nombre) =>
-  Swal.fire({
+  Modal.fire({
     icon: "warning",
     title: "Eliminar evento",
     html: `¿Seguro que deseas eliminar <b>${nombre}</b>? Esta acción no se puede deshacer.`,
@@ -24,7 +67,6 @@ export const confirmarEliminacion = (nombre) =>
     cancelButtonText: "Cancelar",
     reverseButtons: true,
     focusCancel: true,
-    buttonsStyling: false,
     customClass: {
       confirmButton: "boton boton--peligro",
       cancelButton: "boton boton--fantasma",
@@ -40,7 +82,7 @@ export const confirmarAccion = ({
   cancelar = "Cancelar",
   peligro = false,
 }) =>
-  Swal.fire({
+  Modal.fire({
     icon: icono,
     title: titulo,
     html,
@@ -49,7 +91,6 @@ export const confirmarAccion = ({
     cancelButtonText: cancelar,
     reverseButtons: true,
     focusCancel: true,
-    buttonsStyling: false,
     customClass: {
       confirmButton: `boton ${peligro ? "boton--peligro" : "boton--primario"}`,
       cancelButton: "boton boton--fantasma",

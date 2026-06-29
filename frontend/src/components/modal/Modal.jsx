@@ -10,12 +10,19 @@ export default function Modal({ abierto, titulo, onCerrar, children, pie }) {
       if (e.key === "Escape") onCerrar();
     };
 
+    const el = document.documentElement;
+    const anchoScroll = window.innerWidth - el.clientWidth;
+    const overflowPrevio = el.style.overflow;
+    const paddingPrevio = el.style.paddingRight;
+    el.style.overflow = "hidden";
+    if (anchoScroll > 0) el.style.paddingRight = `${anchoScroll}px`;
+
     document.addEventListener("keydown", manejarTecla);
-    document.body.style.overflow = "hidden";
 
     return () => {
       document.removeEventListener("keydown", manejarTecla);
-      document.body.style.overflow = "";
+      el.style.overflow = overflowPrevio;
+      el.style.paddingRight = paddingPrevio;
     };
   }, [abierto, onCerrar]);
 
