@@ -1,13 +1,18 @@
 import TarjetaSolicitud from './TarjetaSolicitud.jsx';
 import styles from './BurbujaMensaje.module.css';
 
-export default function BurbujaMensaje({ mensaje, inicialesUsuario, esAdmin = false, onAprobar = null }) {
+export default function BurbujaMensaje({
+  mensaje,
+  inicialesUsuario,
+  esAdmin = false,
+  onAprobar = null,
+  onRechazar = null,
+  resuelta = false,
+}) {
   const esEnviado = mensaje.tipo === 'enviado';
-  const puedeAprobar =
-    esAdmin &&
-    !esEnviado &&
-    mensaje.solicitud?.tipo === 'solicitud_espacio' &&
-    typeof onAprobar === 'function';
+  const esSolicitudEspacio = mensaje.solicitud?.tipo === 'solicitud_espacio';
+  const puedeResolver = esAdmin && !esEnviado && esSolicitudEspacio && !resuelta;
+  const mostrarTexto = !esSolicitudEspacio && Boolean(mensaje.texto);
 
   return (
     <div className={`${styles['burbuja']} ${styles[`burbuja--${mensaje.tipo}`]}`}>
@@ -16,16 +21,29 @@ export default function BurbujaMensaje({ mensaje, inicialesUsuario, esAdmin = fa
         {mensaje.solicitud && (
           <TarjetaSolicitud solicitud={mensaje.solicitud} tipo={mensaje.tipo} />
         )}
-        <p className={styles['burbuja__texto']}>{mensaje.texto}</p>
+        {mostrarTexto && <p className={styles['burbuja__texto']}>{mensaje.texto}</p>}
         <span className={styles['burbuja__hora']}>{mensaje.hora}</span>
-        {puedeAprobar && (
-          <button
-            type="button"
-            className={styles['burbuja__aprobar']}
-            onClick={() => onAprobar(mensaje)}
-          >
-            Aprobar solicitud
-          </button>
+        {puedeResolver && (
+          <div className={styles['burbuja__acciones']}>
+            {typeof onAprobar === 'function' && (
+              <button
+                type="button"
+                className={styles['burbuja__aprobar']}
+                onClick={() => onAprobar(mensaje)}
+              >
+                Aprobar solicitud
+              </button>
+            )}
+            {typeof onRechazar === 'function' && (
+              <button
+                type="button"
+                className={styles['burbuja__rechazar']}
+                onClick={() => onRechazar(mensaje)}
+              >
+                Rechazar
+              </button>
+            )}
+          </div>
         )}
       </div>
     </div>

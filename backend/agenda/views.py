@@ -73,7 +73,7 @@ class LoginInstitucionalView(APIView):
             return self._login_alumno(user_name, password)
 
         usuario_local = None
-        if rol_solicitado in ('admin', 'superusuario', 'personal'):
+        if rol_solicitado in ('admin', 'superusuario', 'personal', 'docente'):
             try:
                 usuario_local = Usuario.objects.get(correo=user_name, activo=True)
             except Usuario.DoesNotExist:
@@ -276,10 +276,8 @@ class ConversacionListView(APIView):
 
         rol = usuario.rol.nombre_rol
         if rol == 'superusuario':
+            # El superusuario conserva visibilidad total (QUITAR A FUTURO)
             convs = Conversacion.objects.filter(activa=True)
-        elif rol == 'admin':
-            planteles_ids = usuario.planteles_asignados.values_list('plantel_id', flat=True)
-            convs = Conversacion.objects.filter(activa=True, plantel_id__in=planteles_ids)
         else:
             convs = Conversacion.objects.filter(activa=True).filter(
                 Q(participante_a=usuario) | Q(participante_b=usuario)
@@ -513,17 +511,9 @@ class AdminsDisponiblesView(APIView):
             .select_related('rol')
             .prefetch_related('planteles_asignados__plantel', 'planteles_asignados__turno')
         )
-        superadmins = (
-            Usuario.objects
-            .filter(rol__nombre_rol='superusuario', activo=True)
-            .select_related('rol')
-            .prefetch_related('planteles_asignados__plantel', 'planteles_asignados__turno')
-            .exclude(pk=usuario.pk)
-        )
-
         vistos = set()
         resultado = []
-        for u in list(admins) + list(superadmins):
+        for u in list(admins):
             if u.pk in vistos:
                 continue
             vistos.add(u.pk)
@@ -804,9 +794,10 @@ class SolicitudBroadcastView(APIView):
 
         id_plantel = request.data.get('id_plantel')
         hora_evento = request.data.get('hora_evento')
+        turno_explicito = (request.data.get('turno') or '').strip()
 
-        turno_buscado = None
-        if hora_evento:
+        turno_buscado = turno_explicito or None
+        if not turno_buscado and hora_evento:
             try:
                 horas, minutos = map(int, hora_evento.split(':'))
                 hora_minutos = horas * 60 + minutos
@@ -824,19 +815,12 @@ class SolicitudBroadcastView(APIView):
                 Q(turno__nombre_turno=turno_buscado) | Q(turno__nombre_turno='Mixto')
             )
 
-        admins = list(
+        destinatarios = list(
             Usuario.objects.filter(
                 rol__nombre_rol='admin',
                 activo=True,
             ).filter(Exists(up_subq))
         )
-        
-        superadmins = (
-            Usuario.objects
-            .filter(rol__nombre_rol='superusuario', activo=True)
-        )
-
-        destinatarios = admins + list(superadmins)
         if not destinatarios:
             return Response(
                 {'error': 'No hay administradores disponibles.'},

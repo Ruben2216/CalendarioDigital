@@ -10,6 +10,7 @@ export default function ChatPanel({
   inicialesUsuario,
   esAdmin = false,
   onAprobar = null,
+  onRechazar = null,
   cargando = false,
   onActualizar = null,
   onNuevaSolicitud = null,
@@ -103,15 +104,26 @@ export default function ChatPanel({
       </div>
 
       <div className={styles['chat-panel__mensajes']} ref={listaRef}>
-        {mensajes.map((m) => (
-          <BurbujaMensaje
-            key={m.id}
-            mensaje={m}
-            inicialesUsuario={inicialesUsuario}
-            esAdmin={esAdmin}
-            onAprobar={onAprobar}
-          />
-        ))}
+        {mensajes.map((m, i) => {
+          const resuelta =
+            m.solicitud?.tipo === 'solicitud_espacio' &&
+            mensajes
+              .slice(i + 1)
+              .some((x) =>
+                ['solicitud_aprobada', 'solicitud_rechazada'].includes(x.solicitud?.tipo),
+              );
+          return (
+            <BurbujaMensaje
+              key={m.id}
+              mensaje={m}
+              inicialesUsuario={inicialesUsuario}
+              esAdmin={esAdmin}
+              onAprobar={onAprobar}
+              onRechazar={onRechazar}
+              resuelta={resuelta}
+            />
+          );
+        })}
       </div>
 
       <div className={styles['chat-panel__entrada']}>

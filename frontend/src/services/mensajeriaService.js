@@ -103,15 +103,11 @@ export async function crearConversacion(idUsuario, idOtroUsuario) {
 
 export const obtenerOCrearConversacion = crearConversacion;
 
-export async function enviarSolicitudBroadcast(idUsuario, texto, metadatos = null, idPlantel = null, horaEvento = null) {
-  const body = { id_usuario: idUsuario, texto, metadatos };
-  if (idPlantel != null) body.id_plantel = idPlantel;
-  if (horaEvento)        body.hora_evento = horaEvento;
-  const res = await apiFetch(`${BACKEND}/api/mensajeria/solicitudes/`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) throw new Error('Error al enviar la solicitud');
+export async function listarAdminsSolicitud(idPlantel, turno) {
+  const params = new URLSearchParams({ rol: 'admin' });
+  if (idPlantel) params.set('plantel', idPlantel);
+  if (turno)     params.set('turno', turno);
+  const res = await apiFetch(`${BACKEND}/api/usuarios/?${params.toString()}`);
+  if (!res.ok) throw new Error('Error al cargar administradores');
   return res.json();
 }

@@ -11,6 +11,7 @@ export default function FormularioEvento({
   restringido = false,
   planteles = [],
   turnos = [],
+  error = '',
   onChange,
   onSubmit,
 }) {
@@ -91,6 +92,12 @@ export default function FormularioEvento({
           />
         </div>
       </div>
+
+      {error && (
+        <p style={{ color: 'var(--red, #e5484d)', fontSize: 13, fontWeight: 600, margin: '-2px 0 0' }}>
+          {error}
+        </p>
+      )}
 
       <div className={styles['interruptor']}>
         <div>
