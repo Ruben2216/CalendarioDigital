@@ -73,7 +73,7 @@ class LoginInstitucionalView(APIView):
             return self._login_alumno(user_name, password)
 
         usuario_local = None
-        if rol_solicitado in ('admin', 'superusuario'):
+        if rol_solicitado in ('admin', 'superusuario', 'personal'):
             try:
                 usuario_local = Usuario.objects.get(correo=user_name, activo=True)
             except Usuario.DoesNotExist:
@@ -121,15 +121,15 @@ class LoginInstitucionalView(APIView):
             )
 
         rol_real = usuario.rol.nombre_rol
-        # superusuario puede entrar por el botón Administrador (mismo endpoint de personal)
-        rol_compatible = rol_real == rol_solicitado or (
-            rol_solicitado == 'admin' and rol_real == 'superusuario'
-        )
-        if not rol_compatible:
-            return Response(
-                {'error': 'El perfil seleccionado no corresponde a tu cuenta.'},
-                status=status.HTTP_403_FORBIDDEN
+        if rol_solicitado != 'personal':
+            rol_compatible = rol_real == rol_solicitado or (
+                rol_solicitado == 'admin' and rol_real == 'superusuario'
             )
+            if not rol_compatible:
+                return Response(
+                    {'error': 'El perfil seleccionado no corresponde a tu cuenta.'},
+                    status=status.HTTP_403_FORBIDDEN
+                )
 
         datos_empleado = {}
         if rol_solicitado != 'alumno' and id_externo:
@@ -1800,7 +1800,7 @@ class GoogleCalendarCallbackView(APIView):
 class GoogleAuthView(APIView):
     """Verifica el ID token de Google y redirige al dashboard si el dominio es válido."""
 
-    INSTITUTIONAL_ROLES = frozenset({'admin', 'docente', 'alumno'})
+    INSTITUTIONAL_ROLES = frozenset({'admin', 'docente', 'alumno', 'personal'})
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):

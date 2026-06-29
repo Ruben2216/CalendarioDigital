@@ -248,6 +248,13 @@
   flex-shrink: 0;
 }
 
+.login__field-error {
+  width: 1.125rem;
+  height: 1.125rem;
+  color: #ef4444;
+  flex-shrink: 0;
+}
+
 .login__eye {
   display: flex;
   border: none;
@@ -518,6 +525,11 @@
   }
 
   .login__field-check {
+    width: 1.4rem;
+    height: 1.4rem;
+  }
+
+  .login__field-error {
     width: 1.4rem;
     height: 1.4rem;
   }

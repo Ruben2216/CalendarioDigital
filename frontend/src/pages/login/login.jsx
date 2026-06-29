@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import {Lock, Eye, EyeOff, CheckCircle2, ShieldCheck, Monitor, User, Home, Users, Clock, GraduationCap, LogIn,} from "lucide-react";
+import {Lock, Eye, EyeOff, CheckCircle2, XCircle, ShieldCheck, Monitor, User, Home, Users, Clock, GraduationCap, LogIn,} from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import logoCobach from "../../assets/img/logo-cobach.png";
 import calendarImg from "../../assets/img/imagen-login.jpg";
@@ -10,13 +10,12 @@ import { inicializarNotificaciones } from '../../services/pushService';
 import ModalConfiguracion from '../../components/ModalConfiguracion';
 
 const ROLES = [
-  { id: "admin", label: "Admin", icon: ShieldCheck },
-  { id: "docente", label: "Docente/administrativo", icon: Monitor },
+  { id: "personal", label: "Personal", icon: Monitor },
   { id: "alumno", label: "Alumno", icon: User },
   { id: "tutor", label: "Visitante", icon: Home },
 ];
 
-const INSTITUTIONAL_ROLES = new Set(["admin", "docente", "alumno"]);
+const INSTITUTIONAL_ROLES = new Set(["personal", "alumno"]);
 
 const FEATURES = [
   { icon: ShieldCheck, title: "Seguro", desc: "Protegemos tu información" },
@@ -29,7 +28,7 @@ export default function Login() {
   const [userName, setUserName] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [role, setRole] = useState("admin");
+  const [role, setRole] = useState("personal");
   const [showModalConfig, setShowModalConfig] = useState(false);
   const [pendingRoute, setPendingRoute] = useState(null);
   const navigate = useNavigate();
@@ -331,9 +330,14 @@ export default function Login() {
                     onChange={(e) => setUserName(e.target.value)}
                     required
                   />
-                  {userName.length >= 4 && (
-                    <CheckCircle2 className="login__field-check" />
-                  )}
+                  {userName.includes('@')
+                    ? userName.endsWith('@cobach.edu.mx') && userName.length > '@cobach.edu.mx'.length
+                      ? <CheckCircle2 className="login__field-check" />
+                      : <XCircle className="login__field-error" />
+                    : userName.length >= 4
+                      ? <CheckCircle2 className="login__field-check" />
+                      : null
+                  }
                 </div>
 
                 {/* Contraseña */}
