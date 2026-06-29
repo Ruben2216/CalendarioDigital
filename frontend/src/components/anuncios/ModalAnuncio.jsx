@@ -141,8 +141,15 @@ export default function ModalAnuncio({ anuncio, esAdmin = false, plantelesAdmin 
               <input type="text" value={form.turno || "—"} disabled readOnly />
             )
           ) : (
-            <select value={form.turno} onChange={fijar("turno")}>
-              <option value="">Todos los turnos</option>
+            <select
+              value={form.turno || "Mixto"}
+              onChange={(e) =>
+                setForm((prev) => ({
+                  ...prev,
+                  turno: e.target.value === "Mixto" ? "" : e.target.value,
+                }))
+              }
+            >
               {TURNOS_DISPONIBLES.map((t) => (
                 <option key={t} value={t}>{t}</option>
               ))}
