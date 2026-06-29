@@ -102,6 +102,26 @@ def _construir_body(evento):
 # Resolución de usuarios con acceso al evento
 # ---------------------------------------------------------------------------
 
+def _alumno_coincide(evento, cred):
+    """El alumno recibe el evento en el nivel más fino que el evento define:
+    grupo concreto > semestre completo > solo plantel+turno."""
+    if evento.grupo_id is not None:
+        return cred.grupo_id == evento.grupo_id
+    if evento.semestre_id is not None:
+        return cred.semestre_id == evento.semestre_id
+    return True
+
+
+def _q_eventos_visibles_alumno(cred):
+    """Mismo criterio que _alumno_coincide pero como filtro de queryset (backfill)."""
+    q = Q(grupo__isnull=True, semestre__isnull=True)
+    if cred.semestre_id is not None:
+        q |= Q(grupo__isnull=True, semestre_id=cred.semestre_id)
+    if cred.grupo_id is not None:
+        q |= Q(grupo_id=cred.grupo_id)
+    return q
+
+
 def _usuarios_con_acceso(evento):
     """Devuelve los usuarios que tienen Google Calendar vinculado Y pueden ver el evento."""
     from ..models import GoogleOauthCredential, UsuarioPlantel
@@ -136,8 +156,14 @@ def _usuarios_con_acceso(evento):
     resultado = []
     for c in credenciales:
         rol = c.usuario.rol.nombre_rol
-        if rol == 'superusuario' or c.usuario_id in ids_permitidos:
+        if rol == 'superusuario':
             resultado.append(c.usuario)
+            continue
+        if c.usuario_id not in ids_permitidos:
+            continue
+        if rol == 'alumno' and not _alumno_coincide(evento, c):
+            continue
+        resultado.append(c.usuario)
     return resultado
 
 
@@ -233,7 +259,7 @@ def sincronizar_eliminacion(evento):
 def backfill_usuario(usuario):
     """Sincroniza al Google Calendar del usuario todos los eventos que le son visibles
     y que aún no están sincronizados. Se llama al vincular la cuenta."""
-    from ..models import EventoGoogleSync, Evento, UsuarioPlantel
+    from ..models import EventoGoogleSync, Evento, GoogleOauthCredential, UsuarioPlantel
 
     service = _obtener_servicio(usuario)
     if not service:
@@ -259,6 +285,10 @@ def backfill_usuario(usuario):
         cond_plantel = plantel_para_todos | Q(plantel_id__in=plantel_ids)
         cond_turno = Q(turno__isnull=True) | Q(turno_id__in=turno_ids)
         eventos = Evento.objects.filter(cond_plantel & cond_turno)
+        if rol == 'alumno':
+            cred = GoogleOauthCredential.objects.filter(usuario=usuario).first()
+            if cred:
+                eventos = eventos.filter(_q_eventos_visibles_alumno(cred))
 
     ya_sincronizados = set(
         EventoGoogleSync.objects.filter(usuario=usuario).values_list('evento_id', flat=True)

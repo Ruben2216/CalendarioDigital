@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from "react";
-import {Lock, Eye, EyeOff, CheckCircle2, XCircle, ShieldCheck, Monitor, User, Home, Users, Clock, GraduationCap, LogIn,} from "lucide-react";
+import { useState, useEffect } from "react";
+import {Lock, Eye, EyeOff, CheckCircle2, XCircle, ShieldCheck, User, Home, Users, Clock, GraduationCap, LogIn,} from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import logoCobach from "../../assets/img/logo-cobach.png";
 import calendarImg from "../../assets/img/imagen-login.jpg";
@@ -10,12 +10,12 @@ import { inicializarNotificaciones } from '../../services/pushService';
 import ModalConfiguracion from '../../components/ModalConfiguracion';
 
 const ROLES = [
-  { id: "personal", label: "Personal", icon: Monitor },
-  { id: "alumno", label: "Alumno", icon: User },
+  { id: "institucional", label: "Personal/Alumno", icon: Users },
   { id: "tutor", label: "Visitante", icon: Home },
 ];
 
-const INSTITUTIONAL_ROLES = new Set(["personal", "alumno"]);
+const CURP_REGEX = /^[A-Z0-9]{18}$/i;
+const esCurp = (valor) => CURP_REGEX.test((valor || "").trim());
 
 const FEATURES = [
   { icon: ShieldCheck, title: "Seguro", desc: "Protegemos tu información" },
@@ -28,18 +28,14 @@ export default function Login() {
   const [userName, setUserName] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [role, setRole] = useState("personal");
+  const [role, setRole] = useState("institucional");
   const [showModalConfig, setShowModalConfig] = useState(false);
   const [pendingRoute, setPendingRoute] = useState(null);
   const navigate = useNavigate();
-  const roleRef = useRef(role);
 
-  const isInstitutionalAccess = INSTITUTIONAL_ROLES.has(role);
+  const isInstitutionalAccess = role === "institucional";
   const isPublicAccess = role === "tutor";
-
-  useEffect(() => {
-    roleRef.current = role;
-  }, [role]);
+  const esAlumno = esCurp(userName);
 
   // Si el usuario ya tiene sesión se envia directo a su interfaz en lugar de mostrarle el login
   // siempre y cuando le de click a la push notificacion
@@ -79,7 +75,6 @@ export default function Login() {
       const { code, redirect_uri } = event.data;
       if (!code) return;
 
-      const currentRole = roleRef.current;
       try {
         let backendBase = import.meta.env.VITE_BACKEND_URL ?? '';
         if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
@@ -93,7 +88,7 @@ export default function Login() {
             'X-Requested-With': 'XMLHttpRequest',
             'Accept': 'application/json',
           },
-          body: JSON.stringify({ code, redirect_uri, role: currentRole }),
+          body: JSON.stringify({ code, redirect_uri, role: 'personal' }),
         });
         if (resp.status === 204) {
           Swal.fire({ icon: 'error', title: 'Oops...', text: 'Solo se permiten cuentas institucionales' });
@@ -114,7 +109,7 @@ export default function Login() {
         const { token, nombre, sesion } = data;
         guardarSesion(token, { ...sesion, nombre });
 
-        const rolDestino = sesion?.rol ?? currentRole;
+        const rolDestino = sesion?.rol ?? 'personal';
         const rutaDestino =
           rolDestino === 'docente' ? '/docente/inicio'
             : rolDestino === 'alumno' ? '/alumno/calendario'
@@ -186,7 +181,8 @@ export default function Login() {
       return;
     }
 
-    const resultado = await loginInstitucional(userName, password, role);
+    const rolPeticion = esAlumno ? 'alumno' : 'personal';
+    const resultado = await loginInstitucional(userName, password, rolPeticion);
 
     if (!resultado.exito) {
       Swal.fire({
@@ -205,12 +201,12 @@ export default function Login() {
       ?? (Array.isArray(sesion.planteles) ? sesion.planteles[0]?.plantel : null);
     inicializarNotificaciones({
       id_usuario: sesion.id_usuario ?? null,
-      rol: sesion.rol ?? role,
+      rol: sesion.rol ?? rolPeticion,
       plantel_id: planoNotif?.id ?? null,
       plantel_nombre: planoNotif?.nombre ?? null,
     }).catch(() => {});
 
-    const rolDestino = sesion?.rol ?? role;
+    const rolDestino = sesion?.rol ?? rolPeticion;
     const rutaDestino =
       rolDestino === 'docente' ? '/docente/inicio'
         : rolDestino === 'alumno' ? '/alumno/inicio'
@@ -318,14 +314,14 @@ export default function Login() {
             {isInstitutionalAccess && (
               <>
                 <label className="login__label" htmlFor="userName">
-                  {role === "alumno" ? "CURP" : "Usuario"}
+                  {esAlumno ? "CURP" : "Usuario o CURP"}
                 </label>
                 <div className="login__field">
                   <User className="login__field-icon" />
                   <input
                     id="userName"
                     type="text"
-                    placeholder={role === "alumno" ? "CURP (18 caracteres)" : "usuario o correo@cobach.edu.mx"}
+                    placeholder="Correo, RFC o CURP"
                     value={userName}
                     onChange={(e) => setUserName(e.target.value)}
                     required
@@ -342,14 +338,14 @@ export default function Login() {
 
                 {/* Contraseña */}
                 <label className="login__label" htmlFor="password">
-                  {role === "alumno" ? "Contraseña (matrícula)" : "Contraseña"}
+                  {esAlumno ? "Contraseña (matrícula)" : "Contraseña"}
                 </label>
                 <div className="login__field">
                   <Lock className="login__field-icon" />
                   <input
                     id="password"
                     type={showPassword ? "text" : "password"}
-                    placeholder={role === "alumno" ? "Tu matrícula" : "••••••••••"}
+                    placeholder={esAlumno ? "Tu matrícula" : "••••••••••"}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required

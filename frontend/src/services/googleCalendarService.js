@@ -39,11 +39,18 @@ export async function verificarVinculo() {
 }
 
 export async function vincular(code, redirectUri) {
-    const id = obtenerSesion()?.id_usuario;
+    const sesion = obtenerSesion();
+    const cuerpo = { id_usuario: sesion?.id_usuario, code, redirect_uri: redirectUri };
+    if (sesion?.rol === 'alumno') {
+        if (sesion.plantel?.id) cuerpo.plantel_id = sesion.plantel.id;
+        if (sesion.turno?.nombre) cuerpo.turno_nombre = sesion.turno.nombre;
+        if (sesion.semestre != null) cuerpo.semestre = sesion.semestre;
+        if (sesion.grupo) cuerpo.grupo = sesion.grupo;
+    }
     const resp = await fetch(`${BASE_URL}/api/auth/google/calendar/vincular/`, {
         method: 'POST',
         headers: headers(),
-        body: JSON.stringify({ id_usuario: id, code, redirect_uri: redirectUri }),
+        body: JSON.stringify(cuerpo),
     });
     if (!resp.ok) {
         const err = await resp.json().catch(() => ({}));

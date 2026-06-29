@@ -228,7 +228,7 @@ export default function Calendario({ soloLectura = false, publico = false }) {
   }, []);
 
   useEffect(() => {
-    if (publico || !sesion?.id_usuario || sesion?.rol === 'alumno') return;
+    if (publico || !sesion?.id_usuario) return;
     verificarVinculo()
       .then((data) => setCalVinculado(data.vinculado ? data : false))
       .catch(() => setCalVinculado(false));

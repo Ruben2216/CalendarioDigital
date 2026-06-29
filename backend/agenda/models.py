@@ -110,6 +110,14 @@ class GoogleOauthCredential(models.Model):
     refresh_token = models.TextField(null=True, blank=True)
     scopes = models.TextField()
     expiry = models.DateTimeField()
+    semestre = models.ForeignKey(
+        'Semestre', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='credenciales_google'
+    )
+    grupo = models.ForeignKey(
+        'Grupo', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='credenciales_google'
+    )
 
     class Meta:
         db_table = 'GoogleOauthCredential'

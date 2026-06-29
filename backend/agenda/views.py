@@ -241,6 +241,37 @@ def _usuario_sesion(request):
         return None
 
 
+def _usuario_google(request):
+    """Resuelve el Usuario para operaciones de Google Calendar.
+
+    El personal llega con pk entera; el alumno llega con su UUID institucional
+    (id_api). El alumno puede no existir todavía como Usuario local: en ese caso
+    devuelve None y el POST de vinculación lo crea.
+    """
+    id_param = request.data.get('id_usuario') or request.query_params.get('id_usuario')
+    if id_param is None:
+        return None
+    id_str = str(id_param).strip()
+    if id_str.isdigit():
+        return Usuario.objects.select_related('rol').filter(pk=int(id_str), activo=True).first()
+    return Usuario.objects.select_related('rol').filter(id_api=id_str, activo=True).first()
+
+
+def _resolver_semestre_grupo(semestre_val, grupo_val):
+    """Convierte semestre (1-6) y letra de grupo en sus instancias del catálogo."""
+    semestre_obj = None
+    if semestre_val not in (None, ''):
+        try:
+            semestre_obj = Semestre.objects.filter(id_semestre=int(semestre_val)).first()
+        except (TypeError, ValueError):
+            semestre_obj = None
+    grupo_obj = None
+    letra = (str(grupo_val).strip().upper() if grupo_val else '')
+    if semestre_obj and letra:
+        grupo_obj = Grupo.objects.filter(semestre=semestre_obj, letra_id=letra).first()
+    return semestre_obj, grupo_obj
+
+
 class DocentesListView(APIView):
     permission_classes = [permissions.AllowAny]
 
@@ -1726,13 +1757,21 @@ def _email_desde_id_token(id_token):
 
 
 class GoogleCalendarCallbackView(APIView):
-    """Gestiona la vinculación de Google Calendar: estado (GET), vincular (POST), desvincular (DELETE)."""
+    """Gestiona la vinculación de Google Calendar: estado (GET), vincular (POST), desvincular (DELETE).
+
+    El personal opera con su Usuario local. El alumno no existe en la BD: al
+    vincular se crea un Usuario mínimo (rol alumno, identificado por su UUID
+    institucional en id_api) y su asignación plantel+turno en UsuarioPlantel,
+    para que el motor de sincronización lo trate igual que a cualquier usuario.
+    El semestre y grupo del alumno se guardan en la propia credencial para
+    afinar qué eventos recibe.
+    """
     permission_classes = [permissions.AllowAny]
 
     def get(self, request):
-        usuario = _usuario_sesion(request)
+        usuario = _usuario_google(request)
         if not usuario:
-            return Response({'error': 'No autenticado.'}, status=status.HTTP_401_UNAUTHORIZED)
+            return Response({'vinculado': False, 'email': None})
         try:
             cred = usuario.google_credentials
             return Response({'vinculado': True, 'email': cred.email_google})
@@ -1740,12 +1779,13 @@ class GoogleCalendarCallbackView(APIView):
             return Response({'vinculado': False, 'email': None})
 
     def post(self, request):
-        usuario = _usuario_sesion(request)
-        if not usuario:
+        usuario = _usuario_google(request)
+        id_param = request.data.get('id_usuario')
+        es_alumno_nuevo = usuario is None and id_param is not None and not str(id_param).strip().isdigit()
+        if usuario is None and not es_alumno_nuevo:
             return Response({'error': 'No autenticado.'}, status=status.HTTP_401_UNAUTHORIZED)
 
-        rol = usuario.rol.nombre_rol
-        if rol == 'tutor':
+        if usuario is not None and usuario.rol.nombre_rol == 'tutor':
             return Response({'error': 'No autorizado.'}, status=status.HTTP_403_FORBIDDEN)
 
         code = request.data.get('code')
@@ -1772,29 +1812,60 @@ class GoogleCalendarCallbackView(APIView):
 
         email_google = _email_desde_id_token(tokens.get('id_token', ''))
 
+        if usuario is None:
+            usuario = self._crear_o_actualizar_alumno(request, str(id_param).strip(), email_google)
+
         existing = GoogleOauthCredential.objects.filter(usuario=usuario).first()
         refresh_token = tokens.get('refresh_token') or (existing.refresh_token if existing else None)
 
+        defaults = {
+            'email_google': email_google,
+            'access_token': tokens['access_token'],
+            'refresh_token': refresh_token,
+            'scopes': tokens.get('scope', ''),
+            'expiry': expiry,
+        }
+        if usuario.rol.nombre_rol == 'alumno':
+            semestre_obj, grupo_obj = _resolver_semestre_grupo(
+                request.data.get('semestre'), request.data.get('grupo')
+            )
+            defaults['semestre'] = semestre_obj
+            defaults['grupo'] = grupo_obj
+
         _, created = GoogleOauthCredential.objects.update_or_create(
-            usuario=usuario,
-            defaults={
-                'email_google': email_google,
-                'access_token': tokens['access_token'],
-                'refresh_token': refresh_token,
-                'scopes': tokens.get('scope', ''),
-                'expiry': expiry,
-            },
+            usuario=usuario, defaults=defaults,
         )
         if created:
             threading.Thread(target=backfill_usuario, args=(usuario,), daemon=True).start()
         return Response({'status': 'Conexión con Google Calendar exitosa.', 'email': email_google})
 
     def delete(self, request):
-        usuario = _usuario_sesion(request)
+        usuario = _usuario_google(request)
         if not usuario:
-            return Response({'error': 'No autenticado.'}, status=status.HTTP_401_UNAUTHORIZED)
+            return Response(status=status.HTTP_204_NO_CONTENT)
         GoogleOauthCredential.objects.filter(usuario=usuario).delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+    def _crear_o_actualizar_alumno(self, request, uuid, email_google):
+        """Crea (o recupera) el Usuario mínimo del alumno y su asignación plantel+turno."""
+        rol_alumno, _ = Rol.objects.get_or_create(nombre_rol='alumno')
+        usuario = Usuario.objects.select_related('rol').filter(id_api=uuid).first()
+        if usuario is None:
+            correo = email_google or f'{uuid}@alumno.cobach'
+            if Usuario.objects.filter(correo=correo).exists():
+                correo = f'{uuid}@alumno.cobach'
+            usuario = Usuario.objects.create(
+                rol=rol_alumno, correo=correo, id_api=uuid, activo=True,
+            )
+
+        plantel_id = request.data.get('plantel_id')
+        plantel = Plantel.objects.filter(pk=plantel_id).first() if plantel_id else None
+        turno_nombre = (request.data.get('turno_nombre') or '').strip()
+        turno = Turno.objects.get_or_create(nombre_turno=turno_nombre)[0] if turno_nombre else None
+        if plantel and turno:
+            UsuarioPlantel.objects.get_or_create(usuario=usuario, plantel=plantel, turno=turno)
+
+        return usuario
 
 
 class GoogleAuthView(APIView):
