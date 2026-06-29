@@ -82,6 +82,7 @@ export function escucharPrimerPlano() {
       timerProgressBar: true,
       heightAuto: false,
       scrollbarPadding: false,
+      backdrop: false,
     });
   });
 }

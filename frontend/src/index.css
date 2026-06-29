@@ -47,7 +47,7 @@ body {
 }
 
 /* Fondo desenfocado alertas */
-.swal2-container.swal2-backdrop-show {
+.swal2-container.swal2-backdrop-show:not(:has(.swal2-toast)) {
   background: rgba(9, 22, 48, 0.45);
   -webkit-backdrop-filter: blur(3px);
   backdrop-filter: blur(3px);
