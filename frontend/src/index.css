@@ -45,3 +45,15 @@ body {
 .swal-acciones {
   gap: 10px;
 }
+
+/* Fondo desenfocado alertas */
+.swal2-container.swal2-backdrop-show {
+  background: rgba(9, 22, 48, 0.45);
+  -webkit-backdrop-filter: blur(3px);
+  backdrop-filter: blur(3px);
+}
+
+body.swal2-shown:not(.swal2-toast-shown) {
+  overflow: visible !important;
+  padding-right: 0 !important;
+}

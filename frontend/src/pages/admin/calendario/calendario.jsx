@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import Modal from "../../../components/modal/Modal.jsx";
 import FormularioEvento from "../../../components/formulario-evento/FormularioEvento.jsx";
-import { avisoExito, confirmarEliminacion, confirmarAccion } from "../../../lib/alertas.js";
+import { avisoExito, avisoCreado, avisoEditado, avisoEliminado, confirmarEliminacion, confirmarAccion } from "../../../lib/alertas.js";
 import {
   NOMBRES_MES, ABREV_MES, aClaveFecha, desdeClaveFecha, sumarDias, minutosDe, formatoHora,
   formatoFechaLarga, calcularSemestre, ahoraMexico, rangoSemana,
@@ -680,7 +680,8 @@ export default function Calendario({ soloLectura = false, publico = false }) {
       setFechaSeleccionada(datos.fecha);
       api()?.gotoDate(datos.fecha);
       setModalEvento(false);
-      avisoExito(eventoEditando ? "Evento actualizado" : "Evento creado");
+      if (eventoEditando) avisoEditado("Evento actualizado");
+      else avisoCreado("Evento creado");
     } catch (err) {
       avisoError(err.message || "No se pudo guardar el evento.");
     } finally {
@@ -695,7 +696,7 @@ export default function Calendario({ soloLectura = false, publico = false }) {
     try {
       await eliminarEvento(ev.id);
       await cargarEventos(calendarioActivo);
-      avisoExito("Evento eliminado");
+      avisoEliminado("Evento eliminado");
     } catch (err) {
       avisoError(err.message || "No se pudo eliminar el evento.");
     }
