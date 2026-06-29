@@ -681,7 +681,7 @@ class CrearAdminView(APIView):
             )
 
         try:
-            plantel = Plantel.objects.get(pk=int(plantel_id))
+            plantel = Plantel.objects.get(pk=plantel_id)
             turno = Turno.objects.get(pk=int(turno_id))
         except (Plantel.DoesNotExist, Turno.DoesNotExist, TypeError, ValueError):
             return Response({'error': 'Plantel o turno no encontrado.'}, status=status.HTTP_400_BAD_REQUEST)
@@ -745,7 +745,7 @@ class ActualizarAdminView(APIView):
 
         if plantel_id and turno_id:
             try:
-                plantel = Plantel.objects.get(pk=int(plantel_id))
+                plantel = Plantel.objects.get(pk=plantel_id)
                 turno = Turno.objects.get(pk=int(turno_id))
             except (Plantel.DoesNotExist, Turno.DoesNotExist, TypeError, ValueError):
                 return Response({'error': 'Plantel o turno no encontrado.'}, status=status.HTTP_400_BAD_REQUEST)
