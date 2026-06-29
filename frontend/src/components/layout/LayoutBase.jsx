@@ -7,6 +7,7 @@ import Modal from "../modal/Modal.jsx";
 import NotificacionesPanel from "./NotificacionesPanel.jsx";
 import logoCobach from "../../assets/img/logo-cobach.png";
 import { ZONA } from "../../lib/fechas.js";
+import { abreviarAdscripcion } from "./layoutUtils.js";
 import styles from "./Layout.module.css";
 
 // Cáscara común a todos los layouts (admin, alumno/tutor, docente).
@@ -188,7 +189,11 @@ export default function LayoutBase({
             <div className={styles["plantel"]}>
               <div>
                 <small>{plantelHeader.label}</small>
-                <strong>{plantelHeader.valor}</strong>
+                <strong>
+                  {esMovil
+                    ? abreviarAdscripcion(plantelHeader.valor)
+                    : plantelHeader.valor}
+                </strong>
               </div>
               {plantelHeader.conChevron && <ChevronDown size={14} />}
             </div>

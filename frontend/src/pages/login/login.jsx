@@ -13,7 +13,7 @@ const ROLES = [
   { id: "admin", label: "Admin", icon: ShieldCheck },
   { id: "docente", label: "Docente/administrativo", icon: Monitor },
   { id: "alumno", label: "Alumno", icon: User },
-  { id: "tutor", label: "Padre/Tutor", icon: Home },
+  { id: "tutor", label: "Visitante", icon: Home },
 ];
 
 const INSTITUTIONAL_ROLES = new Set(["admin", "docente", "alumno"]);
