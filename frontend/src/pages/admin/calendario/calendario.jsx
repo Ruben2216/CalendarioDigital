@@ -981,19 +981,6 @@ export default function Calendario({ soloLectura = false, publico = false }) {
                 {hayFiltros && <span className={styles["barra__panel-punto"]} />}
               </button>
 
-              {/* Mostrar/ocultar el panel lateral (simbología) */}
-              <button
-                type="button"
-                className={`boton boton--fantasma ${styles["barra__panel-btn"]}`}
-                aria-pressed={panelAbierto}
-                onClick={() => setPanelAbierto((v) => !v)}
-                aria-label="Simbología"
-                title={panelAbierto ? "Ocultar simbología" : "Mostrar simbología"}
-              >
-                <PanelRight size={16} />
-                Simbología
-              </button>
-
               {/* Descargar el calendario en PDF */}
               {puedeExportar && (
                 <button
@@ -1007,6 +994,19 @@ export default function Calendario({ soloLectura = false, publico = false }) {
                   Descargar
                 </button>
               )}
+
+              {/* Mostrar/ocultar el panel lateral (simbología) */}
+              <button
+                type="button"
+                className={`boton boton--fantasma ${styles["barra__panel-btn"]}`}
+                aria-pressed={panelAbierto}
+                onClick={() => setPanelAbierto((v) => !v)}
+                aria-label="Simbología"
+                title={panelAbierto ? "Ocultar simbología" : "Mostrar simbología"}
+              >
+                <PanelRight size={16} />
+                Simbología
+              </button>
             </div>
           </div>
 

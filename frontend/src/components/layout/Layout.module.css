@@ -177,6 +177,19 @@
   width: 100%;
 }
 
+.aplicacion--compacto.aplicacion--peek .barra-lateral {
+  transform: translateX(0);
+}
+
+.zona-peek {
+  position: fixed;
+  left: 0;
+  top: 70px;
+  bottom: 0;
+  width: 14px;
+  z-index: 19;
+}
+
 /* Monitores Full HD (1920x1080): la barra lateral se veia pequeña frente al
    contenido ya ampliado. Se agranda --sidebar-w en la misma proporcion (1.25)
    para reservar el espacio correcto, y se aplica zoom a la barra para escalar
@@ -566,7 +579,8 @@ button.usuario {
   box-shadow: 0 24px 48px rgba(9, 22, 48, 0.18);
   overflow-x: hidden;
   overflow-y: auto;
-  max-height: 480px;
+  max-height: min(480px, calc(100dvh - 84px - env(safe-area-inset-bottom)));
+  padding-bottom: env(safe-area-inset-bottom);
   z-index: 40;
   animation: panel-fundido 0.16s ease;
 }
@@ -913,54 +927,15 @@ button.usuario {
   }
 
   .barra-superior {
-    height: auto;
-    padding: 12px 16px;
-    gap: 12px;
-    flex-wrap: wrap;
-    background: rgba(255, 255, 255, 0.8);
-    backdrop-filter: blur(12px) saturate(140%);
-    -webkit-backdrop-filter: blur(12px) saturate(140%);
-    border-bottom-color: rgba(229, 235, 244, 0.55);
-  }
-
-  .barra-superior__titulo {
-    flex: 1;
-  }
-
-  .barra-superior__derecha {
-    margin-left: auto;
-    gap: 12px;
-  }
-}
-
-@media (max-width: 720px) {
-  .contenido {
-    padding: 16px 14px 18px;
-  }
-
-  /* Fila única compacta — sin salto a segunda línea */
-  .barra-superior {
-    flex-wrap: nowrap;
-    height: 58px;
+    height: 60px;
     padding: 0 14px;
-    gap: 8px;
-    align-items: center;
+    gap: 10px;
+    flex-wrap: nowrap;
+    background: #ffffff;
+    border-bottom-color: rgba(229, 235, 244, 0.9);
   }
 
   .barra-superior__titulo {
-    flex: 1;
-    min-width: 0;
-    overflow: hidden;
-  }
-
-  .barra-superior__titulo h1 {
-    font-size: 14px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .barra-superior__titulo p {
     display: none;
   }
 
@@ -969,12 +944,20 @@ button.usuario {
   }
 
   .barra-superior__derecha {
-    order: 0;
-    width: auto;
-    margin-left: 0;
-    gap: 8px;
-    justify-content: flex-end;
-    flex: none;
+    display: contents;
+  }
+
+  .barra-superior__menu { order: 1; }
+  .plantel { order: 2; margin-right: auto; min-width: 0; }
+  .notificaciones { order: 3; }
+  .menu-perfil { order: 4; }
+
+  .usuario__info {
+    display: none;
+  }
+
+  .usuario > svg {
+    display: none;
   }
 
   .plantel small {
@@ -982,11 +965,21 @@ button.usuario {
   }
 
   .plantel strong {
-    max-width: 150px;
+    max-width: 52vw;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    font-size: 12px;
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 720px) {
+  .contenido {
+    padding: 16px 14px 18px;
+  }
+
+  .barra-superior {
+    height: 58px;
   }
 
   .respaldo-notif {
@@ -1011,28 +1004,21 @@ button.usuario {
 }
 
 @media (max-width: 480px) {
-  .menu-perfil__panel{
-    zoom: 1.25;
-  }
 
   .barra-superior {
     padding: 0 12px;
-    gap: 6px;
   }
 
-  .barra-superior__titulo h1 {
-    font-size: 13px;
-  }
-
+  .plantel,
   .plantel strong {
-    max-width: 110px;
+    max-width: 46vw;
   }
 
-  .usuario__info {
-    display: none;
-  }
-
-  .usuario > svg {
-    display: none;
+  .menu-perfil__panel {
+    position: fixed;
+    top: 64px;
+    right: 12px;
+    left: auto;
+    width: min(300px, calc(100vw - 24px));
   }
 }
