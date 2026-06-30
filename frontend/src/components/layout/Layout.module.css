@@ -177,6 +177,19 @@
   width: 100%;
 }
 
+.aplicacion--compacto.aplicacion--peek .barra-lateral {
+  transform: translateX(0);
+}
+
+.zona-peek {
+  position: fixed;
+  left: 0;
+  top: 70px;
+  bottom: 0;
+  width: 14px;
+  z-index: 19;
+}
+
 /* Monitores Full HD (1920x1080): la barra lateral se veia pequeña frente al
    contenido ya ampliado. Se agranda --sidebar-w en la misma proporcion (1.25)
    para reservar el espacio correcto, y se aplica zoom a la barra para escalar
