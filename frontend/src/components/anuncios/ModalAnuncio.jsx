@@ -29,19 +29,26 @@ export default function ModalAnuncio({ anuncio, esAdmin = false, plantelesAdmin 
   );
 
   const [enviando, setEnviando] = useState(false);
+  const [error, setError] = useState("");
 
-  const fijar = (campo) => (e) => setForm((prev) => ({ ...prev, [campo]: e.target.value }));
+  const fijar = (campo) => (e) => {
+    if (error) setError("");
+    setForm((prev) => ({ ...prev, [campo]: e.target.value }));
+  };
 
   const enviar = async (e) => {
     e.preventDefault();
     if (enviando) return;
+    const titulo = form.titulo.trim();
+    const descripcion = form.descripcion.trim();
+    if (!titulo || !descripcion) {
+      setError("El título y la descripción son obligatorios.");
+      return;
+    }
+    setError("");
     setEnviando(true);
     try {
-      await onGuardar({
-        ...form,
-        titulo: form.titulo.trim(),
-        descripcion: form.descripcion.trim(),
-      });
+      await onGuardar({ ...form, titulo, descripcion });
     } finally {
       setEnviando(false);
     }
@@ -87,6 +94,12 @@ export default function ModalAnuncio({ anuncio, esAdmin = false, plantelesAdmin 
             onChange={fijar("descripcion")}
           />
         </label>
+
+        {error && (
+          <p style={{ color: "var(--red, #e5484d)", fontSize: 13, fontWeight: 600, margin: "-2px 0 0" }}>
+            {error}
+          </p>
+        )}
 
         <div className="formulario__fila">
           <label className="formulario__campo">

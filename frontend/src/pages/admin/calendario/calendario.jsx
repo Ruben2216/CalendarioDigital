@@ -21,6 +21,7 @@ import {
   formatoFechaLarga, calcularSemestre, ahoraMexico, rangoSemana,
 } from "../../../lib/fechas.js";
 import { AREAS, SEMESTRES, GRUPOS, TURNOS, alcanceEvento } from "../../../data/calendario.js";
+import { validarEvento } from "../../../lib/validaciones.js";
 import {
   listarCalendarios, listarTipos, listarEventos,
   crearEvento, actualizarEvento, eliminarEvento,
@@ -163,6 +164,7 @@ export default function Calendario({ soloLectura = false, publico = false }) {
   const [formEvento, setFormEvento] = useState(FORM_EVENTO_VACIO);
   const [eventoEditando, setEventoEditando] = useState(null);
   const [guardandoEvento, setGuardandoEvento] = useState(false);
+  const [errorEvento, setErrorEvento] = useState(null);
 
   // Exportar el calendario a PDF (no disponible para alumno ni acceso público)
   const [modalExportar, setModalExportar] = useState(false);
@@ -625,6 +627,7 @@ export default function Calendario({ soloLectura = false, publico = false }) {
   // CRUD
   const abrirNuevoEvento = () => {
     setEventoEditando(null);
+    setErrorEvento(null);
     setFormEvento({
       ...FORM_EVENTO_VACIO,
       fecha: fechaSeleccionada || claveHoy,
@@ -638,6 +641,7 @@ export default function Calendario({ soloLectura = false, publico = false }) {
 
   const abrirEditarEvento = (ev) => {
     setEventoEditando(ev.id);
+    setErrorEvento(null);
     setFormEvento({
       titulo: ev.titulo, tipo: ev.tipo, area: ev.area || "", fecha: ev.fecha,
       fechaFin: ev.fechaFin || "", horaInicio: ev.horaInicio || "",
@@ -652,7 +656,13 @@ export default function Calendario({ soloLectura = false, publico = false }) {
 
   const guardarEvento = async (e) => {
     e.preventDefault();
-    if (!formEvento.fecha || !calendarioActivo || guardandoEvento) return;
+    if (!calendarioActivo || guardandoEvento) return;
+    const errorValidacion = validarEvento(formEvento, { hoy: claveHoy });
+    if (errorValidacion) {
+      setErrorEvento(errorValidacion);
+      return;
+    }
+    setErrorEvento(null);
     const { todoElDia, especifico, formato, agregarAGoogleCalendar, ...resto } = formEvento;
     const dirigidoEspecifico = especifico && Boolean(formEvento.plantel);
     const datos = {
@@ -1661,7 +1671,12 @@ export default function Calendario({ soloLectura = false, publico = false }) {
           restringido={esAdmin}
           planteles={misPlanteles}
           turnos={misTurnos}
-          onChange={(campo, valor) => setFormEvento((prev) => ({ ...prev, [campo]: valor }))}
+          error={errorEvento}
+          minFecha={claveHoy}
+          onChange={(campo, valor) => {
+            if (errorEvento) setErrorEvento(null);
+            setFormEvento((prev) => ({ ...prev, [campo]: valor }));
+          }}
           onSubmit={guardarEvento}
         />
         {(esAdmin || esSuperusuario) && calVinculado?.vinculado && !eventoEditando && (

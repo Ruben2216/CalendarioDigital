@@ -58,7 +58,12 @@ export default function ChatPanel({ conversacion, onEnviar, inicialesUsuario }) 
 
       <div className={styles['chat-panel__mensajes']} ref={listaRef}>
         {conversacion.mensajes.map((m) => (
-          <BurbujaMensaje key={m.id} mensaje={m} inicialesUsuario={inicialesUsuario} />
+          <BurbujaMensaje
+            key={m.id}
+            mensaje={m}
+            inicialesUsuario={inicialesUsuario}
+            inicialesOtro={conversacion.iniciales}
+          />
         ))}
       </div>
 

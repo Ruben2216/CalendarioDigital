@@ -112,8 +112,7 @@ export default function ForoDocente() {
       ],
     };
 
-    const textoMensaje = datos.observaciones
-      || `Solicitud de espacio para "${datos.titulo}" el ${datos.fecha}.`;
+    const textoMensaje = 'Solicitud de espacio o evento';
 
     try {
       const admins = await listarAdminsSolicitud(plantelId, datos.turno || null);

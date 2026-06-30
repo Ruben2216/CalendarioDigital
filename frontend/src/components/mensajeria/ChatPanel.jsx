@@ -117,6 +117,7 @@ export default function ChatPanel({
               key={m.id}
               mensaje={m}
               inicialesUsuario={inicialesUsuario}
+              inicialesOtro={inicialesOtro}
               esAdmin={esAdmin}
               onAprobar={onAprobar}
               onRechazar={onRechazar}
