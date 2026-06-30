@@ -87,6 +87,10 @@ def _construir_body(evento):
             'description': description,
             'start': {'dateTime': inicio_dt.isoformat(), 'timeZone': 'America/Mexico_City'},
             'end': {'dateTime': fin_dt.isoformat(), 'timeZone': 'America/Mexico_City'},
+            'reminders': {
+                'useDefault': False,
+                'overrides': [{'method': 'popup', 'minutes': 1440}],
+            },
         }
     else:
         fecha_fin = (evento.fecha_fin or evento.fecha_inicio) + timedelta(days=1)
@@ -95,6 +99,10 @@ def _construir_body(evento):
             'description': description,
             'start': {'date': evento.fecha_inicio.isoformat()},
             'end': {'date': fecha_fin.isoformat()},
+            'reminders': {
+                'useDefault': False,
+                'overrides': [{'method': 'popup', 'minutes': 960}],
+            },
         }
 
 

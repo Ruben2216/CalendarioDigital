@@ -41,8 +41,7 @@ function construirMes(anio, mes, eventosPorDia, colorPorTipo) {
       dia: fecha.getDate(),
       enMes,
       finde: fecha.getDay() === 0 || fecha.getDay() === 6,
-      color: evs.length ? colorPorTipo(evs[0].tipo) : null,
-      varios: evs.length > 1,
+      colores: evs.map(ev => colorPorTipo(ev.tipo)).filter((c, i, a) => a.indexOf(c) === i),
     };
   });
 
@@ -71,7 +70,7 @@ function construirMesDetalle(anio, mes, eventos, colorPorTipo) {
         dia: fecha.getDate(),
         enMes: fecha.getMonth() === mes,
         finde: fecha.getDay() === 0 || fecha.getDay() === 6,
-        color: null,
+        colores: [],
       };
     });
 
@@ -107,8 +106,9 @@ function construirMesDetalle(anio, mes, eventos, colorPorTipo) {
 
     for (let d = 0; d < 7; d++) {
       if (!dias[d].enMes) continue;
-      const cubre = segmentos.find((seg) => seg.startCol <= d && d <= seg.endCol);
-      if (cubre) dias[d].color = cubre.color;
+      const cubren = segmentos.filter((seg) => seg.startCol <= d && d <= seg.endCol);
+      const coloresUnicos = [...new Set(cubren.map(seg => seg.color))];
+      if (coloresUnicos.length) dias[d].colores = coloresUnicos;
     }
     semanas.push({ dias, carriles });
   }

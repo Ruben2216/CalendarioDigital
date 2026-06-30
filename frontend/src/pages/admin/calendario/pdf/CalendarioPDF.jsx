@@ -1,6 +1,6 @@
 import {
   Document, Page, View, Text, Image, StyleSheet, Font,
-  Svg, Polygon, Line,
+  Svg, Polygon, Line, Rect,
 } from "@react-pdf/renderer";
 
 Font.registerHyphenationCallback((palabra) => [palabra]);
@@ -9,8 +9,8 @@ const ICONO = `${import.meta.env.BASE_URL}icono.png`;
 
 const DIAS_MINI = ["D", "L", "M", "M", "J", "V", "S"];
 const DIAS_MES = ["DOM", "LUN", "MAR", "MIÉ", "JUE", "VIE", "SÁB"];
-const MAX_CARRILES = 3;
-const ALTO_SEMANAS = 408;
+const MAX_CARRILES = 5;
+const ALTO_SEMANA = 85;
 
 const NAVY = "#0a2060";      // azul
 const NAVY_CAB = "#1e3a5f";  // encabezado de días (mensual)
@@ -31,6 +31,19 @@ function textoLegible(hex) {
   const b = parseInt(c.slice(4, 6), 16);
   const lum = 0.299 * r + 0.587 * g + 0.114 * b;
   return lum > 165 ? TEXTO : "#ffffff";
+}
+
+function textoSobreColores(colores) {
+  const lums = colores.map((hex) => {
+    const c = (hex || "").replace("#", "");
+    if (c.length !== 6) return 0;
+    const r = parseInt(c.slice(0, 2), 16);
+    const g = parseInt(c.slice(2, 4), 16);
+    const b = parseInt(c.slice(4, 6), 16);
+    return 0.299 * r + 0.587 * g + 0.114 * b;
+  });
+  const avg = lums.reduce((a, b) => a + b, 0) / lums.length;
+  return avg > 165 ? TEXTO : "#ffffff";
 }
 
 function tinte(hex, a) {
@@ -63,7 +76,7 @@ const s = StyleSheet.create({
 
   // Encabezado (anual / mensual)
   cab: { flexDirection: "row", alignItems: "center", borderBottomWidth: 2,
-    borderBottomColor: NAVY, paddingBottom: 8, marginBottom: 12 },
+    borderBottomColor: NAVY, paddingBottom: 8, marginBottom: 5 },
   cabLogo: { width: 40, height: 40, marginRight: 12, objectFit: "contain" },
   cabTitulo: { fontSize: 18, fontFamily: "Helvetica-Bold", color: NAVY, letterSpacing: 0.5 },
   cabSub: { fontSize: 10, color: TENUE, marginTop: 3 },
@@ -98,7 +111,7 @@ const s = StyleSheet.create({
   cardSub: { fontSize: 7.5, color: TENUE, marginTop: 2, marginBottom: 10 },
   simCardItem: { flexDirection: "row", alignItems: "flex-start", marginBottom: 8 },
   simCardCuad: { width: 13, height: 13, borderRadius: 3, marginRight: 9, marginTop: 1 },
-  simCardTxt: { fontSize: 8, fontFamily: "Helvetica-Bold", color: TEXTO, letterSpacing: 0.3,
+  simCardTxt: { fontSize: 7, fontFamily: "Helvetica-Bold", color: TEXTO, letterSpacing: 0.3,
     textTransform: "uppercase", lineHeight: 1.25, flex: 1 },
   cardVacio: { fontSize: 7.5, color: TENUE, fontStyle: "italic" },
   cardDivisor: { borderTopWidth: 0.5, borderTopColor: LINEA, marginTop: 8, marginBottom: 9 },
@@ -109,16 +122,16 @@ const s = StyleSheet.create({
   semTexto: { fontSize: 8, color: TENUE },
 
   // Eventos del mes (dentro de la tarjeta — solo mensual)
-  item: { flexDirection: "row", alignItems: "flex-start", paddingVertical: 3,
+  item: { flexDirection: "row", alignItems: "flex-start", paddingVertical: 2,
     borderBottomWidth: 0.5, borderBottomColor: LINEA },
-  itemPunto: { width: 7, height: 7, borderRadius: 3.5, marginRight: 5, marginTop: 1.5 },
+  itemPunto: { width: 6, height: 6, borderRadius: 3, marginRight: 5, marginTop: 1 },
   itemCuerpo: { flexGrow: 1, flexShrink: 1 },
-  itemTitulo: { fontSize: 7.5, fontFamily: "Helvetica-Bold", color: TEXTO },
+  itemTitulo: { fontSize: 7, fontFamily: "Helvetica-Bold", color: TEXTO },
   itemDia: { color: TENUE, fontFamily: "Helvetica" },
-  itemMeta: { fontSize: 6.5, color: TENUE, marginTop: 1 },
+  itemMeta: { fontSize: 6, color: TENUE, marginTop: 0 },
 
   // MENSUAL: título del mes 
-  mesTitulo: { marginBottom: 8 },
+  mesTitulo: { position: "absolute",right: 18, top: 14, alignItems: "flex-end", marginBottom: 8 },
   mtLinea: { flexDirection: "row", alignItems: "baseline" },
   mtNombre: { fontSize: 26, fontFamily: "Helvetica-Bold", color: NAVY },
   mtAnio: { fontSize: 26, fontFamily: "Helvetica-Bold", color: ACCENT, marginLeft: 7 },
@@ -143,11 +156,51 @@ const s = StyleSheet.create({
     alignItems: "center", justifyContent: "center" },
   numChipTxt: { fontSize: 8.5, fontFamily: "Helvetica-Bold" },
   carriles: { position: "absolute", left: 3, right: 3, bottom: 4 },
-  carril: { flexDirection: "row", marginTop: 2 },
-  seg: { borderBottomWidth: 3, paddingHorizontal: 2, paddingBottom: 1, justifyContent: "flex-end" },
-  segTexto: { fontSize: 6, fontFamily: "Helvetica-Bold", maxLines: 1, textOverflow: "ellipsis" },
+  carril: { flexDirection: "row", marginTop: 1 },
+  seg: { borderBottomWidth: 2, paddingHorizontal: 2, paddingBottom: 0, justifyContent: "flex-end" },
+  segTexto: { fontSize: 5, fontFamily: "Helvetica-Bold", maxLines: 1, textOverflow: "ellipsis" },
   masEventos: { fontSize: 5.5, color: TENUE, marginTop: 2, marginLeft: 2 },
 });
+
+function ChipMulticolor({ colores, dia, size, fontSize, paddingTop }) {
+  const W = size, H = size, R = size <= 14 ? 3 : 4;
+  const n = Math.min(colores.length, 4);
+  const txtColor = textoSobreColores(colores);
+  return (
+    <View style={{ width: W, height: H, borderRadius: R, overflow: "hidden", position: "relative" }}>
+      <Svg width={W} height={H} style={{ position: "absolute", top: 0, left: 0 }}>
+        {n === 1 && (
+          <Rect x={0} y={0} width={W} height={H} fill={colores[0]} />
+        )}
+        {n === 2 && (
+          <>
+            <Polygon points={`0,0 ${W},0 0,${H}`} fill={colores[0]} />
+            <Polygon points={`${W},0 ${W},${H} 0,${H}`} fill={colores[1]} />
+          </>
+        )}
+        {n === 3 && (
+          <>
+            <Polygon points={`0,0 ${W / 2},0 0,${H}`} fill={colores[0]} />
+            <Polygon points={`${W / 2},0 ${W},0 ${W},${H}`} fill={colores[1]} />
+            <Rect x={0} y={H * 0.6} width={W} height={H * 0.4} fill={colores[2]} />
+          </>
+        )}
+        {n >= 4 && (
+          <>
+            <Rect x={0}     y={0}     width={W / 2} height={H / 2} fill={colores[0]} />
+            <Rect x={W / 2} y={0}     width={W / 2} height={H / 2} fill={colores[1]} />
+            <Rect x={0}     y={H / 2} width={W / 2} height={H / 2} fill={colores[2]} />
+            <Rect x={W / 2} y={H / 2} width={W / 2} height={H / 2} fill={colores[3]} />
+          </>
+        )}
+      </Svg>
+      <Text style={{
+        position: "absolute", top: paddingTop, left: 0, width: W,
+        textAlign: "center", fontSize, fontFamily: "Helvetica-Bold", color: txtColor,
+      }}>{dia}</Text>
+    </View>
+  );
+}
 
 /* Compartido (anual, mensual) */
 
@@ -257,12 +310,14 @@ function MiniMes({ mes }) {
                 <View key={j} style={s.celda}>
                   {!celda.enMes ? (
                     <Text style={[s.diaNum, { color: "#d1d5db" }]}>{celda.dia}</Text>
-                  ) : celda.color ? (
-                    <View style={[s.diaChip, { backgroundColor: celda.color }]}>
-                      <Text style={[s.diaChipTexto, { color: textoLegible(celda.color) }]}>
-                        {celda.dia}
-                      </Text>
-                    </View>
+                  ) : celda.colores.length ? (
+                    <ChipMulticolor
+                      colores={celda.colores}
+                      dia={celda.dia}
+                      size={14}
+                      fontSize={7.5}
+                      paddingTop={3}
+                    />
                   ) : (
                     <Text style={[s.diaNum, { color: celda.finde ? TENUE : TEXTO }]}>
                       {celda.dia}
@@ -332,17 +387,21 @@ function SemanaMes({ semana, alto }) {
         {semana.dias.map((c, i) => {
           const fondo = !c.enMes
             ? s.celdaFueraBg
-            : c.color
-              ? { backgroundColor: tinte(c.color, 0.12) }
+            : c.colores.length
+              ? { backgroundColor: tinte(c.colores[0], 0.12) }
               : c.finde
                 ? s.celdaFindeBg
                 : null;
           return (
             <View key={i} style={[s.celdaFondo, fondo]}>
-              {c.enMes && c.color ? (
-                <View style={[s.numChip, { backgroundColor: c.color }]}>
-                  <Text style={[s.numChipTxt, { color: textoLegible(c.color) }]}>{c.dia}</Text>
-                </View>
+              {c.enMes && c.colores.length ? (
+                <ChipMulticolor
+                  colores={c.colores}
+                  dia={c.dia}
+                  size={17}
+                  fontSize={8.5}
+                  paddingTop={4}
+                />
               ) : (
                 <Text style={[s.celdaNum, { color: !c.enMes ? SUAVE : c.finde ? TENUE : TEXTO }]}>
                   {c.dia}
@@ -365,7 +424,7 @@ function SemanaMes({ semana, alto }) {
 
 function DocumentoMensual({ datos }) {
   const semLetra = datos.mes === 0 || datos.mes >= 7 ? "A" : "B";
-  const altoSemana = Math.floor(ALTO_SEMANAS / datos.semanas.length);
+  const altoSemana = ALTO_SEMANA;
   return (
     <Document
       title={`Calendario ${datos.nombreMes} ${datos.anio}`}
