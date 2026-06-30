@@ -81,6 +81,7 @@ export default function Usuarios() {
   const [modalAbierto, setModalAbierto] = useState(false);
   const [form, setForm] = useState(FORM_VACIO);
   const [editando, setEditando] = useState(null);
+  const [modoBusqueda, setModoBusqueda] = useState("correo");
 
   useEffect(() => {
     let vigente = true;
@@ -133,6 +134,7 @@ export default function Usuarios() {
   const abrirNuevo = () => {
     setEditando(null);
     setForm(FORM_VACIO);
+    setModoBusqueda("correo");
     setModalAbierto(true);
   };
 
@@ -172,7 +174,6 @@ export default function Usuarios() {
   const guardar = async (e) => {
     e.preventDefault();
     const rolFinal = editando ? form.rol : "admin";
-    if (rolFinal === "admin" && form.planteles.length === 0) return;
 
     const nombre = form.nombre.trim();
     const correo = form.correo.trim();
@@ -180,6 +181,7 @@ export default function Usuarios() {
     const turnoId = _turnoIdDesdeForm();
 
     if (editando) {
+      if (rolFinal === "admin" && form.planteles.length === 0) return;
       const usuarioEditando = usuarios.find((u) => u.id === editando);
       if (usuarioEditando?.id_usuario) {
         const payload = { nombre, rol: form.rol };
@@ -208,13 +210,17 @@ export default function Usuarios() {
         ),
       );
     } else {
-      if (!plantelId || !turnoId) {
-        avisoError("Plantel o turno no válido. Verifica la conexión con el servidor.");
+      if (modoBusqueda === "nombre" && (!plantelId || !turnoId)) {
+        avisoError("Selecciona un plantel y turno.");
         return;
       }
+      const payload = { correo };
+      if (nombre) payload.nombre = nombre;
+      if (turnoId) payload.turno_id = turnoId;
+      if (plantelId) payload.plantel_id = plantelId;
       let res;
       try {
-        res = await crearAdmin({ nombre, correo, plantel_id: plantelId, turno_id: turnoId });
+        res = await crearAdmin(payload);
       } catch (err) {
         avisoError(err.message || "No se pudo crear el administrador");
         return;
@@ -222,7 +228,7 @@ export default function Usuarios() {
       setUsuarios((prev) => [
         ...prev,
         {
-          id: res.id_usuario,
+          id: `adm-${res.id_usuario}`,
           id_usuario: res.id_usuario,
           nombre: res.nombre,
           correo: res.correo,
@@ -494,38 +500,77 @@ export default function Usuarios() {
         }
       >
         <form id="form-usuario" className="formulario" onSubmit={guardar}>
-          <div className="formulario__campo">
-            <span className="formulario__etiqueta">Nombre completo</span>
-            <BuscadorUsuarioInline
-              value={form.nombre}
-              required
-              onChange={(texto) =>
-                setForm((prev) => ({ ...prev, nombre: texto, usuarioId: null }))
-              }
-              onSeleccionar={(u) =>
-                setForm((prev) => ({
-                  ...prev,
-                  nombre: u.nombre,
-                  correo: u.correo,
-                  usuarioId: u.id,
-                }))
-              }
-            />
-          </div>
+          {!editando && (
+            <div className={styles["modo-busqueda"]}>
+              <button
+                type="button"
+                className={modoBusqueda === "correo" ? styles["modo-busqueda__activo"] : ""}
+                onClick={() => { setModoBusqueda("correo"); setForm(FORM_VACIO); }}
+              >
+                Por correo
+              </button>
+              <button
+                type="button"
+                className={modoBusqueda === "nombre" ? styles["modo-busqueda__activo"] : ""}
+                onClick={() => { setModoBusqueda("nombre"); setForm(FORM_VACIO); }}
+              >
+                Por nombre en BD
+              </button>
+            </div>
+          )}
 
-          <label className="formulario__campo">
-            <span className="formulario__etiqueta">Correo institucional</span>
-            <input type="email" required placeholder="usuario@cobach.edu.mx" value={form.correo} onChange={fijarCampo("correo")} />
-          </label>
+          {(!editando && modoBusqueda === "correo") ? (
+            <>
+              <label className="formulario__campo">
+                <span className="formulario__etiqueta">Correo institucional</span>
+                <input
+                  type="email"
+                  required
+                  placeholder="usuario@cobach.edu.mx"
+                  value={form.correo}
+                  onChange={fijarCampo("correo")}
+                />
+              </label>
+              <label className="formulario__campo">
+                <span className="formulario__etiqueta">Turno</span>
+                <select value={form.turno} onChange={fijarCampo("turno")}>
+                  {opcionesTurno.map((t) => (
+                    <option key={t.id} value={t.id}>{t.etiqueta}</option>
+                  ))}
+                </select>
+              </label>
+            </>
+          ) : (
+            <div className="formulario__campo">
+              <span className="formulario__etiqueta">Nombre completo</span>
+              <BuscadorUsuarioInline
+                value={form.nombre}
+                required
+                onChange={(texto) =>
+                  setForm((prev) => ({ ...prev, nombre: texto, usuarioId: null }))
+                }
+                onSeleccionar={(u) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    nombre: u.nombre,
+                    correo: u.correo,
+                    usuarioId: u.id,
+                  }))
+                }
+              />
+            </div>
+          )}
 
-          <label className="formulario__campo">
-            <span className="formulario__etiqueta">Turno</span>
-            <select value={form.turno} onChange={fijarCampo("turno")}>
-              {opcionesTurno.map((t) => (
-                <option key={t.id} value={t.id}>{t.etiqueta}</option>
-              ))}
-            </select>
-          </label>
+          {(editando || modoBusqueda === "nombre") && (
+            <label className="formulario__campo">
+              <span className="formulario__etiqueta">Turno</span>
+              <select value={form.turno} onChange={fijarCampo("turno")}>
+                {opcionesTurno.map((t) => (
+                  <option key={t.id} value={t.id}>{t.etiqueta}</option>
+                ))}
+              </select>
+            </label>
+          )}
 
           {editando ? (
             <label className="formulario__campo">

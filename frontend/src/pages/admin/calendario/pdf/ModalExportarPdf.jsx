@@ -27,6 +27,7 @@ export default function ModalExportarPdf({
   defaultAnio,
   defaultMes,
   calendarioNombre,
+  plantelesAsignados = [],
   onCerrar,
 }) {
   const [vista, setVista] = useState("anual");
@@ -43,7 +44,12 @@ export default function ModalExportarPdf({
     e.preventDefault();
     setGenerando(true);
     try {
-      const eventos = aplicarFiltros ? eventosFiltrados : eventosTodos;
+      let eventos = aplicarFiltros ? eventosFiltrados : eventosTodos;
+      // Con filtros activos y plantel asignado: solo los eventos de ese plantel
+      // (excluye los generales de todos los planteles, que tienen plantel == null).
+      if (aplicarFiltros && plantelesAsignados.length > 0) {
+        eventos = eventos.filter((ev) => ev.plantel && plantelesAsignados.includes(ev.plantel));
+      }
       let documento;
       let nombre;
       if (vista === "mensual") {
@@ -130,7 +136,9 @@ export default function ModalExportarPdf({
           <span className={styles.opcionTexto}>
             <span className={styles.opcionTitulo}>Aplicar los filtros activos en pantalla</span>
             <span className={styles.opcionDesc}>
-              Respeta tipo, plantel, turno y semestre seleccionados. Desactívalo para incluir todos los eventos.
+              {plantelesAsignados.length > 0
+                ? "Respeta los filtros de tipo, turno, semestre y fechas, e incluye únicamente los eventos de tu plantel (no los generales de todos los planteles). Desactívalo para incluir todos los eventos."
+                : "Respeta tipo, plantel, turno y semestre seleccionados. Desactívalo para incluir todos los eventos."}
             </span>
           </span>
         </label>

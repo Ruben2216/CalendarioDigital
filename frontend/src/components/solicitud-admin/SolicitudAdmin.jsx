@@ -189,7 +189,6 @@ export default function SolicitudAdmin({ abierto, onCerrar }) {
                 type="email"
                 required
                 placeholder="usuario@cobach.edu.mx"
-                //obtener el correo de la sesion del usuario
                 value={form.correo}
                 onChange={fijar("correo")}
               />

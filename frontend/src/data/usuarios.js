@@ -3,7 +3,7 @@ export const ROL = {
   id: "admin",
   etiqueta: "Administrador",
   color: "azul",
-  descripcion: "Puede agregar y modificar fechas en sus planteles asignados.",
+  descripcion: "Puede agregar y modificar fechas en su plantel asignado.",
 };
 
 export const ESTADOS = [

@@ -168,6 +168,7 @@ class LoginInstitucionalView(APIView):
             'sesion': {
                 'id_usuario': usuario.id_usuario,
                 'rol': usuario.rol.nombre_rol,
+                'correo': usuario.correo or '',
                 'planteles': [
                     {
                         'plantel': {
@@ -695,17 +696,40 @@ class CrearAdminView(APIView):
         plantel_id = request.data.get('plantel_id')
         turno_id = request.data.get('turno_id')
 
-        if not correo or not plantel_id or not turno_id:
-            return Response(
-                {'error': 'correo, plantel_id y turno_id son requeridos.'},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        if not correo:
+            return Response({'error': 'correo es requerido.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        try:
-            plantel = Plantel.objects.get(pk=plantel_id)
-            turno = Turno.objects.get(pk=int(turno_id))
-        except (Plantel.DoesNotExist, Turno.DoesNotExist, TypeError, ValueError):
-            return Response({'error': 'Plantel o turno no encontrado.'}, status=status.HTTP_400_BAD_REQUEST)
+        if plantel_id:
+            try:
+                plantel = Plantel.objects.get(pk=plantel_id)
+                turno = Turno.objects.get(pk=int(turno_id)) if turno_id else None
+                if turno is None:
+                    turno, _ = Turno.objects.get_or_create(nombre_turno='Matutino')
+            except (Plantel.DoesNotExist, Turno.DoesNotExist, TypeError, ValueError):
+                return Response({'error': 'Plantel o turno no encontrado.'}, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            datos = obtener_datos_por_correo(correo)
+            if not datos or es_alumno(datos):
+                return Response(
+                    {'error': 'Correo no encontrado o corresponde a un alumno.'},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+            if not nombre:
+                nombre = (datos.get('nombre') or '').strip()
+            adscripcion = (datos.get('adscripcion') or datos.get('nombreAdscripcion') or '').strip()
+            plantel = Plantel.objects.filter(nombre__iexact=adscripcion).first() if adscripcion else None
+            if not plantel:
+                return Response(
+                    {'error': f'Plantel "{adscripcion}" no encontrado en el sistema.'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            if turno_id:
+                try:
+                    turno = Turno.objects.get(pk=int(turno_id))
+                except (Turno.DoesNotExist, TypeError, ValueError):
+                    return Response({'error': 'Turno no encontrado.'}, status=status.HTTP_400_BAD_REQUEST)
+            else:
+                turno, _ = Turno.objects.get_or_create(nombre_turno='Matutino')
 
         try:
             rol_admin = Rol.objects.get(nombre_rol='admin')
@@ -1016,12 +1040,10 @@ class TipoEventoListView(APIView):
             plantel = None
         else:
             plantel_id = request.data.get('plantel_id')
-            ids = list(usuario.planteles_asignados.values_list('plantel_id', flat=True))
-            try:
-                plantel_id = int(plantel_id)
-            except (TypeError, ValueError):
+            if not plantel_id:
                 return Response({'error': 'Plantel inválido.'}, status=status.HTTP_400_BAD_REQUEST)
-            if plantel_id not in ids:
+            ids = [str(pid) for pid in usuario.planteles_asignados.values_list('plantel_id', flat=True)]
+            if str(plantel_id) not in ids:
                 return Response({'error': 'No tienes acceso a ese plantel.'}, status=status.HTTP_403_FORBIDDEN)
             plantel = Plantel.objects.get(pk=plantel_id)
 
@@ -2001,6 +2023,7 @@ class GoogleAuthView(APIView):
             'sesion': {
                 'id_usuario': usuario.id_usuario,
                 'rol': usuario.rol.nombre_rol,
+                'correo': usuario.correo or '',
                 'planteles': [
                     {
                         'plantel': {'id': up.plantel.id_plantel, 'nombre': up.plantel.nombre},
