@@ -15,6 +15,7 @@ import { useCalendarioEventos } from "../../../hooks/useCalendarioEventos.js";
 import { listarAnuncios } from "../../../services/anunciosService.js";
 import { obtenerEstadisticasDashboard } from "../../../services/estadisticasService.js";
 import { usePreferencia } from "../../../hooks/usePreferencia.js";
+import { RANGOS_PROXIMOS, limiteRango } from "../../../lib/rangosEventos.js";
 import styles from "./dashboard.module.css";
 
 const DIAS_MINI = ["D", "L", "M", "M", "J", "V", "S"];
@@ -55,6 +56,9 @@ export default function Dashboard() {
     return () => { vigente = false; };
   }, []);
 
+  // máximo de anuncios mostrados en el panel principal (admin, superusuario)
+  const anunciosResumen = useMemo(() => anuncios.slice(0, 5), [anuncios]); 
+
   const [estadisticas, setEstadisticas] = useState(null);
   useEffect(() => {
     let vigente = true;
@@ -68,6 +72,7 @@ export default function Dashboard() {
   );
   const [fechaSeleccionada, setFechaSeleccionada] = useState(null);
   const [simbologiaAbierta, setSimbologiaAbierta] = usePreferencia("dash:simbologia", false);
+  const [rangoProximos, setRangoProximos] = usePreferencia("dash:rangoProximos", "semana");
 
   const { nombre } = useSesion();
   const saludo = saludoPorHora(hoy.getHours());
@@ -118,10 +123,12 @@ export default function Dashboard() {
   };
 
   const proximosEventos = useMemo(() => {
+    // Se muestran los eventos desde hoy hasta el límite del rango elegido (1 semana, 15 días, 1 mes)
+    const limite = limiteRango(hoy, rangoProximos);
     return eventos
-      .filter((evento) => evento.fecha >= claveHoy)
+      .filter((evento) => evento.fecha >= claveHoy && evento.fecha <= limite)
       .sort((a, b) => a.fecha.localeCompare(b.fecha));
-  }, [eventos, claveHoy]);
+  }, [eventos, claveHoy, hoy, rangoProximos]);
 
   const { eventosMes, eventosSemana } = useMemo(() => {
     const prefijoMes = claveHoy.slice(0, 7); // "YYYY-MM"
@@ -223,9 +230,21 @@ export default function Dashboard() {
             </button>
           }
         >
+          <div className={styles["rango"]} role="group" aria-label="Rango de próximos eventos">
+            {RANGOS_PROXIMOS.map((r) => (
+              <button
+                key={r.id}
+                type="button"
+                className={`${styles["rango__btn"]} ${rangoProximos === r.id ? styles["rango__btn--activo"] : ""}`}
+                onClick={() => setRangoProximos(r.id)}
+              >
+                {r.etiqueta}
+              </button>
+            ))}
+          </div>
           <div className={styles["eventos"]}>
             {proximosEventos.length === 0 ? (
-              <p className={styles["eventos__vacio"]}>No hay eventos próximos.</p>
+              <p className={styles["eventos__vacio"]}>No hay eventos próximos en este rango.</p>
             ) : (
               proximosEventos.map((evento) => {
                 const fecha = desdeClaveFecha(evento.fecha);
@@ -287,7 +306,7 @@ export default function Dashboard() {
             </button>
           }
         >
-          <ListaAnuncios anuncios={anuncios} mostrarAudiencia />
+          <ListaAnuncios anuncios={anunciosResumen} mostrarAudiencia />
         </TarjetaColapsable>
       </div>
 

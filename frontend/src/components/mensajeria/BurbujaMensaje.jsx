@@ -4,6 +4,7 @@ import styles from './BurbujaMensaje.module.css';
 export default function BurbujaMensaje({
   mensaje,
   inicialesUsuario,
+  inicialesOtro = '',
   esAdmin = false,
   onAprobar = null,
   onRechazar = null,
@@ -16,7 +17,7 @@ export default function BurbujaMensaje({
 
   return (
     <div className={`${styles['burbuja']} ${styles[`burbuja--${mensaje.tipo}`]}`}>
-      <span className={styles['burbuja__avatar']}>{esEnviado ? inicialesUsuario : ''}</span>
+      <span className={styles['burbuja__avatar']}>{esEnviado ? inicialesUsuario : inicialesOtro}</span>
       <div className={styles['burbuja__contenido']}>
         {mensaje.solicitud && (
           <TarjetaSolicitud solicitud={mensaje.solicitud} tipo={mensaje.tipo} />

@@ -8,6 +8,8 @@ import {
 } from "../../lib/fechas.js";
 import { listarAnuncios } from "../../services/anunciosService.js";
 import { useSesion } from "../../hooks/useSesion.js";
+import { usePreferencia } from "../../hooks/usePreferencia.js";
+import { RANGOS_PROXIMOS, limiteRango } from "../../lib/rangosEventos.js";
 import { useCalendarioEventos } from "../../hooks/useCalendarioEventos.js";
 import MiniCalendario from "../mini-calendario/MiniCalendario.jsx";
 import ListaAnuncios from "../anuncios/ListaAnuncios.jsx";
@@ -52,6 +54,9 @@ export default function InicioResumen({ rutaCalendario, rutaAnuncios }) {
     return () => { vigente = false; };
   }, []);
 
+  // máximo de anuncios mostrados en el inicio (alumno, docente, personal)
+  const anunciosResumen = useMemo(() => anuncios.slice(0, 5), [anuncios]); 
+
   const saludo = saludoPorHora(hoy.getHours());
 
   const fechaLarga = useMemo(() => {
@@ -72,6 +77,14 @@ export default function InicioResumen({ rutaCalendario, rutaAnuncios }) {
       .sort((a, b) => a.fecha.localeCompare(b.fecha) || (a.horaInicio || "").localeCompare(b.horaInicio || "")),
     [eventos, claveHoy]
   );
+
+  // Rango elegido para los próximos eventos
+  const [rangoProximos, setRangoProximos] = usePreferencia("inicio:rangoProximos", "semana");
+
+  const proximosResumen = useMemo(() => {
+    const limite = limiteRango(hoy, rangoProximos);
+    return proximos.filter((e) => e.fecha <= limite);
+  }, [proximos, hoy, rangoProximos]);
 
   const eventosHoy = useMemo(() => eventos.filter((e) => e.fecha === claveHoy), [eventos, claveHoy]);
 
@@ -145,11 +158,23 @@ export default function InicioResumen({ rutaCalendario, rutaAnuncios }) {
               </button>
             }
           >
+            <div className={styles["rango"]} role="group" aria-label="Rango de próximos eventos">
+              {RANGOS_PROXIMOS.map((r) => (
+                <button
+                  key={r.id}
+                  type="button"
+                  className={`${styles["rango__btn"]} ${rangoProximos === r.id ? styles["rango__btn--activo"] : ""}`}
+                  onClick={() => setRangoProximos(r.id)}
+                >
+                  {r.etiqueta}
+                </button>
+              ))}
+            </div>
             <div className={styles["eventos"]}>
-              {proximos.length === 0 ? (
-                <p className={styles["eventos__vacio"]}>No hay eventos próximos.</p>
+              {proximosResumen.length === 0 ? (
+                <p className={styles["eventos__vacio"]}>No hay eventos próximos en este rango.</p>
               ) : (
-                proximos.map((ev) => {
+                proximosResumen.map((ev) => {
                   const fecha = desdeClaveFecha(ev.fecha);
                   const c = cuenta(diasRestantes(claveHoy, ev.fecha));
                   const etiq = etiquetaTipo(ev.tipo);
@@ -211,7 +236,7 @@ export default function InicioResumen({ rutaCalendario, rutaAnuncios }) {
               )
             }
           >
-            <ListaAnuncios anuncios={anuncios} soloTitulo />
+            <ListaAnuncios anuncios={anunciosResumen} soloTitulo />
           </TarjetaColapsable>
         </div>
 

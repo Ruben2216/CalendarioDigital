@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import Modal from '../../../components/modal/Modal.jsx';
 import FormularioEvento from '../../../components/formulario-evento/FormularioEvento.jsx';
 import { listarTipos } from '../../../services/eventosService.js';
+import { validarEvento } from '../../../lib/validaciones.js';
+import { ahoraMexico, aClaveFecha } from '../../../lib/fechas.js';
 import styles from './ModalSolicitud.module.css';
 
 const RECURSOS = ['Cañón', 'Micrófono', 'Audiovisual', 'Cancha', 'Laboratorio', 'Sala de cómputo'];
@@ -46,7 +48,7 @@ export default function ModalSolicitud({ abierto, onCerrar, onEnviar, asignacion
     return { ...FORM_VACIO, plantel, turno: turnosDe(asignaciones, plantel)[0] || '' };
   });
   const [tipos, setTipos] = useState([]);
-  const [error, setError] = useState('');
+  const [error, setError] = useState(null);
 
   const turnos = useMemo(() => turnosDe(asignaciones, form.plantel), [asignaciones, form.plantel]);
 
@@ -60,7 +62,7 @@ export default function ModalSolicitud({ abierto, onCerrar, onEnviar, asignacion
   }, []);
 
   const handleChange = (campo, valor) => {
-    if (error) setError('');
+    if (error) setError(null);
     if (campo === 'plantel') {
       const turnosP = turnosDe(asignaciones, valor);
       setForm((prev) => ({ ...prev, plantel: valor, turno: turnosP[0] || '' }));
@@ -80,15 +82,12 @@ export default function ModalSolicitud({ abierto, onCerrar, onEnviar, asignacion
   const handleSubmit = (e) => {
     e.preventDefault();
     const tipoEtiqueta = tipos.find((t) => String(t.id) === String(form.tipo))?.etiqueta || '';
-    if (!form.fecha) {
-      setError('Selecciona una fecha de inicio para la solicitud.');
+    const errorValidacion = validarEvento(form, { hoy: aClaveFecha(ahoraMexico()) });
+    if (errorValidacion) {
+      setError(errorValidacion);
       return;
     }
-    if (!form.todoElDia && form.horaInicio && form.horaFin && form.horaFin < form.horaInicio) {
-      setError('La hora de fin no puede ser anterior a la de inicio.');
-      return;
-    }
-    setError('');
+    setError(null);
 
     onEnviar({
       titulo:        form.titulo.trim() || tipoEtiqueta,
@@ -142,6 +141,7 @@ export default function ModalSolicitud({ abierto, onCerrar, onEnviar, asignacion
         planteles={planteles}
         turnos={turnos}
         error={error}
+        minFecha={aClaveFecha(ahoraMexico())}
         onChange={handleChange}
         onSubmit={handleSubmit}
       />

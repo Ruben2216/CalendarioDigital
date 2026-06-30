@@ -64,7 +64,8 @@ export default function ListaAnuncios({ anuncios, onEditar, onEliminar, mostrarA
               )}
             </div>
 
-            {conAcciones ? (
+            <span className={styles["anuncio__fecha"]}>{fechaCorta(a.fecha)}</span>
+            {conAcciones && (
               <div className={styles["anuncio__acciones"]}>
                 {onEditar && (
                   <button type="button" onClick={() => onEditar(a)} aria-label="Editar" title="Editar">
@@ -83,8 +84,6 @@ export default function ListaAnuncios({ anuncios, onEditar, onEliminar, mostrarA
                   </button>
                 )}
               </div>
-            ) : (
-              <span className={styles["anuncio__fecha"]}>{fechaCorta(a.fecha)}</span>
             )}
           </div>
         );

@@ -101,6 +101,35 @@
 }
 
 /* Próximos eventos */
+.rango {
+  display: flex;
+  gap: 6px;
+  padding: 10px 14px 2px;
+  flex-wrap: wrap;
+}
+
+.rango__btn {
+  padding: 5px 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--panel);
+  color: var(--muted-2);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.rango__btn:hover {
+  background: var(--panel-soft);
+}
+
+.rango__btn--activo {
+  background: var(--blue-soft);
+  color: var(--blue);
+  border-color: var(--blue);
+}
+
 .eventos {
   padding: 4px 0;
 }

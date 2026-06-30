@@ -438,7 +438,7 @@ export default function Usuarios() {
                               <Check size={15} />
                             </button>
                           )}
-                          {u.estado !== "rechazado" && (
+                          {u.estado === "pendiente" && (
                             <button
                               type="button"
                               className={styles["acciones__rechazar"]}

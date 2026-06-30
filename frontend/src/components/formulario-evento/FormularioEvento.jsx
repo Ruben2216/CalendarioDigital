@@ -11,13 +11,21 @@ export default function FormularioEvento({
   restringido = false,
   planteles = [],
   turnos = [],
-  error = '',
+  error = null,
+  minFecha = '',
   onChange,
   onSubmit,
 }) {
   const set = (campo) => (e) => onChange(campo, e.target.value);
   const fij = (campo, valor) => onChange(campo, valor);
   const turnosVisibles = restringido && turnos.length ? turnos : TURNOS;
+
+  const errorDe = (campo) =>
+    error?.campo === campo ? (
+      <p style={{ color: 'var(--red, #e5484d)', fontSize: 13, fontWeight: 600, margin: '-2px 0 0' }}>
+        {error.mensaje}
+      </p>
+    ) : null;
 
   const esGeneral = !restringido && !form.plantel;
 
@@ -68,6 +76,7 @@ export default function FormularioEvento({
           <span className="formulario__etiqueta">Fecha inicio</span>
           <SelectorFecha
             value={form.fecha}
+            min={minFecha}
             onChange={(v) => fij('fecha', v)}
           />
         </div>
@@ -93,11 +102,7 @@ export default function FormularioEvento({
         </div>
       </div>
 
-      {error && (
-        <p style={{ color: 'var(--red, #e5484d)', fontSize: 13, fontWeight: 600, margin: '-2px 0 0' }}>
-          {error}
-        </p>
-      )}
+      {errorDe('fecha')}
 
       <div className={styles['interruptor']}>
         <div>
@@ -133,6 +138,8 @@ export default function FormularioEvento({
           </div>
         </div>
       )}
+
+      {errorDe('hora')}
 
       <div className="formulario__fila">
         <label className="formulario__campo">
