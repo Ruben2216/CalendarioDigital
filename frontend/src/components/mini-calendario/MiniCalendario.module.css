@@ -88,6 +88,10 @@
   text-transform: uppercase;
 }
 
+.calendario__dia-semana--finde {
+  color: var(--red);
+}
+
 .dia {
   aspect-ratio: 1;
   position: relative;
@@ -111,6 +115,10 @@
 
 .dia--apagado {
   color: #c0c8d5;
+}
+
+.dia--finde:not(.dia--hoy):not(.dia--seleccionado):not(.dia--apagado) {
+  color: var(--red);
 }
 
 .dia--hoy {

@@ -62,6 +62,7 @@ export default function MiniCalendario({
         dia: fecha.getDate(),
         delMes: fecha.getMonth() === mes,
         esHoy: clave === claveHoy,
+        finde: i % 7 === 0 || i % 7 === 6, 
         color: evs.length ? colorTipo(evs[0].tipo) : null,
       };
     });
@@ -123,7 +124,14 @@ export default function MiniCalendario({
 
         <div className={styles["calendario__rejilla"]}>
           {DIAS_MINI.map((dia, i) => (
-            <span key={i} className={styles["calendario__dia-semana"]}>{dia}</span>
+            <span
+              key={i}
+              className={`${styles["calendario__dia-semana"]} ${
+                i === 0 || i === 6 ? styles["calendario__dia-semana--finde"] : ""
+              }`}
+            >
+              {dia}
+            </span>
           ))}
 
           {celdas.map((celda) => (
@@ -134,8 +142,10 @@ export default function MiniCalendario({
               aria-pressed={fechaSeleccionada === celda.clave}
               style={celda.color ? { "--punto-color": celda.color } : undefined}
               className={`${styles["dia"]} ${celda.delMes ? "" : styles["dia--apagado"]} ${
-                celda.esHoy ? styles["dia--hoy"] : ""
-              } ${fechaSeleccionada === celda.clave ? styles["dia--seleccionado"] : ""}`}
+                celda.finde ? styles["dia--finde"] : ""
+              } ${celda.esHoy ? styles["dia--hoy"] : ""} ${
+                fechaSeleccionada === celda.clave ? styles["dia--seleccionado"] : ""
+              }`}
             >
               {celda.dia}
             </button>
