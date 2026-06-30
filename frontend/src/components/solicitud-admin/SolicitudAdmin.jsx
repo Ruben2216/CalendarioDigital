@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
-import { ShieldCheck, Send, Clock, MapPin } from "lucide-react";
+import { ShieldCheck, Send, Clock, MapPin, X } from "lucide-react";
 import Modal from "../modal/Modal.jsx";
 import { avisoExito, avisoError, avisoInfo } from "../../lib/alertas.js";
 import { useSesion } from "../../hooks/useSesion.js";
 import { miSolicitudPendiente, enviarSolicitud } from "../../services/solicitudesService.js";
-import { obtenerPlanteles } from "../../services/authService.js";
+import BuscadorPlantelInline from "../buscador-plantel/BuscadorPlantelInline.jsx";
 import styles from "./SolicitudAdmin.module.css";
 
 // Turnos válidos: excluyentes entre sí (Mixto = cubre ambos)
@@ -25,21 +25,20 @@ function formatoFecha(iso) {
 export default function SolicitudAdmin({ abierto, onCerrar }) {
   const { nombre, correo: correoPerfil } = useSesion();
 
-  const inicial = (primerPlantel = "") => ({
+  const inicial = () => ({
     nombre:  nombre || "",
     correo:  correoPerfil || "",
-    plantel: primerPlantel,
+    plantel: "",
     turno:   "matutino",
     motivo:  "",
   });
 
   const [form, setForm] = useState(() => inicial());
-  const [planteles, setPlanteles] = useState([]);
   const [pendiente, setPendiente] = useState(null);
   const [cargando, setCargando] = useState(false);
   const [enviando, setEnviando] = useState(false);
 
-  // Al abrir, carga planteles reales y verifica solicitud pendiente en paralelo.
+  // Al abrir, verifica si ya hay una solicitud pendiente.
   useEffect(() => {
     if (!abierto) return undefined;
     let vigente = true;
@@ -47,11 +46,10 @@ export default function SolicitudAdmin({ abierto, onCerrar }) {
     async function cargar() {
       setCargando(true);
       try {
-        const [s, ps] = await Promise.all([miSolicitudPendiente(), obtenerPlanteles()]);
+        const s = await miSolicitudPendiente();
         if (!vigente) return;
         setPendiente(s);
-        setPlanteles(ps);
-        setForm(inicial(ps[0]?.nombre ?? ""));
+        setForm(inicial());
       } catch {
         if (vigente) setPendiente(null);
       } finally {
@@ -110,7 +108,7 @@ export default function SolicitudAdmin({ abierto, onCerrar }) {
               type="submit"
               form="form-solicitud-admin"
               className="boton boton--primario"
-              disabled={enviando || cargando}
+              disabled={enviando || cargando || !form.plantel}
             >
               <Send size={16} />
               {enviando ? "Enviando…" : "Enviar solicitud"}
@@ -197,27 +195,38 @@ export default function SolicitudAdmin({ abierto, onCerrar }) {
               />
             </label>
 
-            <div className="formulario__fila">
-              <label className="formulario__campo">
-                <span className="formulario__etiqueta">Plantel</span>
-                <select value={form.plantel} onChange={fijar("plantel")} disabled={cargando || planteles.length === 0}>
-                  {planteles.length === 0
-                    ? <option value="">Cargando planteles…</option>
-                    : planteles.map(p => (
-                        <option key={p.id} value={p.nombre}>{p.nombre}</option>
-                      ))
-                  }
-                </select>
-              </label>
-              <label className="formulario__campo">
-                <span className="formulario__etiqueta">Turno</span>
-                <select value={form.turno} onChange={fijar("turno")}>
-                  {TURNOS.map((t) => (
-                    <option key={t.id} value={t.id}>{t.etiqueta}</option>
-                  ))}
-                </select>
-              </label>
+            <div className="formulario__campo">
+              <span className="formulario__etiqueta">Plantel</span>
+              {form.plantel ? (
+                <div className={styles["plantel-seleccionado"]}>
+                  <MapPin size={13} />
+                  <span>{form.plantel}</span>
+                  <button
+                    type="button"
+                    className={styles["plantel-seleccionado__quitar"]}
+                    onClick={() => setForm((prev) => ({ ...prev, plantel: "" }))}
+                    aria-label="Quitar plantel"
+                  >
+                    <X size={13} />
+                  </button>
+                </div>
+              ) : (
+                <BuscadorPlantelInline
+                  onSeleccionar={(p) => setForm((prev) => ({ ...prev, plantel: p.nombre }))}
+                  placeholder="Buscar plantel por nombre o número…"
+                  autoFocus={false}
+                />
+              )}
             </div>
+
+            <label className="formulario__campo">
+              <span className="formulario__etiqueta">Turno</span>
+              <select value={form.turno} onChange={fijar("turno")}>
+                {TURNOS.map((t) => (
+                  <option key={t.id} value={t.id}>{t.etiqueta}</option>
+                ))}
+              </select>
+            </label>
 
             <label className="formulario__campo">
               <span className="formulario__etiqueta">Motivo (opcional)</span>
