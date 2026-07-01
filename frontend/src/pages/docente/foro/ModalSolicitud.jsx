@@ -6,7 +6,7 @@ import { validarEvento } from '../../../lib/validaciones.js';
 import { ahoraMexico, aClaveFecha } from '../../../lib/fechas.js';
 import styles from './ModalSolicitud.module.css';
 
-const RECURSOS = ['Cañón', 'Micrófono', 'Audiovisual', 'Cancha', 'Laboratorio', 'Sala de cómputo'];
+const RECURSOS = ['Cañón', 'Micrófono', 'Audiovisual', 'Cancha', 'Laboratorio', 'Sala de cómputo', 'Mesas',];
 
 const FORM_VACIO = {
   titulo: '',

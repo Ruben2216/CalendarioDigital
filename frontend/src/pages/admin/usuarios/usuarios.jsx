@@ -6,7 +6,7 @@ import {
 import Modal from "../../../components/modal/Modal.jsx";
 import { avisoExito, avisoError, confirmarAccion, confirmarEliminacion } from "../../../lib/alertas.js";
 import { ROL, ESTADOS, TURNOS } from "../../../data/usuarios.js";
-import { listarSolicitudes, listarAdministradores, resolverSolicitud, crearAdmin, actualizarAdmin } from "../../../services/solicitudesService.js";
+import { listarSolicitudes, listarAdministradores, resolverSolicitud, eliminarSolicitud, crearAdmin, actualizarAdmin } from "../../../services/solicitudesService.js";
 import { obtenerPlanteles, obtenerTurnos } from "../../../services/authService.js";
 import BuscadorPlantelInline from "../../../components/buscador-plantel/BuscadorPlantelInline.jsx";
 import BuscadorUsuarioInline from "../../../components/buscador-usuario/BuscadorUsuarioInline.jsx";
@@ -288,8 +288,14 @@ export default function Usuarios() {
   const eliminar = async (usuario) => {
     const { isConfirmed } = await confirmarEliminacion(usuario.nombre);
     if (!isConfirmed) return;
+    try {
+      await eliminarSolicitud(usuario.solicitudId);
+    } catch (err) {
+      avisoError(err.message || "No se pudo eliminar la solicitud");
+      return;
+    }
     setUsuarios((prev) => prev.filter((u) => u.id !== usuario.id));
-    avisoExito("Usuario eliminado");
+    avisoExito("Solicitud eliminada");
   };
 
   // Opciones de turno: desde BD si cargaron, si no desde TURNOS estáticos.
@@ -463,15 +469,17 @@ export default function Usuarios() {
                           >
                             <Pencil size={15} />
                           </button>
-                          <button
-                            type="button"
-                            className={styles["acciones__borrar"]}
-                            onClick={() => eliminar(u)}
-                            aria-label="Eliminar"
-                            title="Eliminar"
-                          >
-                            <Trash2 size={15} />
-                          </button>
+                          {u.estado !== "activo" && (
+                            <button
+                              type="button"
+                              className={styles["acciones__borrar"]}
+                              onClick={() => eliminar(u)}
+                              aria-label="Eliminar solicitud"
+                              title="Eliminar solicitud"
+                            >
+                              <Trash2 size={15} />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -514,7 +522,7 @@ export default function Usuarios() {
                 className={modoBusqueda === "nombre" ? styles["modo-busqueda__activo"] : ""}
                 onClick={() => { setModoBusqueda("nombre"); setForm(FORM_VACIO); }}
               >
-                Por nombre en BD
+                Por nombre 
               </button>
             </div>
           )}

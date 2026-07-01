@@ -88,3 +88,14 @@ export async function resolverSolicitud(idSolicitud, accion) {
     if (!resp.ok) throw new Error(datos.error || 'No se pudo procesar la solicitud.');
     return datos.solicitud;
 }
+
+// Elimina la solicitud de la BD. No afecta al usuario ni a su rol.
+export async function eliminarSolicitud(idSolicitud) {
+    const url = new URL(`/api/solicitudes-admin/${idSolicitud}/`, window.location.origin);
+    url.searchParams.set('id_usuario', idUsuario());
+    const resp = await fetch(url, { method: 'DELETE', headers: headers() });
+    if (!resp.ok) {
+        const datos = await resp.json().catch(() => ({}));
+        throw new Error(datos.error || 'No se pudo eliminar la solicitud.');
+    }
+}

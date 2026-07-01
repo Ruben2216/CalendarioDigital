@@ -681,6 +681,20 @@ class ResolverSolicitudAdminView(APIView):
 
         return Response({'solicitud': _solicitud_dict(solicitud)}, status=status.HTTP_200_OK)
 
+    def delete(self, request, id_solicitud):
+        """Elimina la solicitud de la BD. No afecta al Usuario ni a su rol."""
+        admin = _usuario_sesion(request)
+        if not admin or admin.rol.nombre_rol not in ('admin', 'superusuario'):
+            return Response({'error': 'No autorizado.'}, status=status.HTTP_403_FORBIDDEN)
+
+        try:
+            solicitud = SolicitudAdmin.objects.get(pk=id_solicitud)
+        except SolicitudAdmin.DoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
+        solicitud.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
 
 class CrearAdminView(APIView):
     """Superusuario da de alta un admin directamente con plantel y turno."""

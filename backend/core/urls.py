@@ -65,6 +65,7 @@ urlpatterns = [
     path('api/solicitudes-admin/', SolicitudAdminView.as_view(), name='solicitudes-admin'),
     path('api/solicitudes-admin/mia/', MiSolicitudAdminView.as_view(), name='mi-solicitud-admin'),
     path('api/solicitudes-admin/<int:id_solicitud>/resolver/', ResolverSolicitudAdminView.as_view(), name='resolver-solicitud-admin'),
+    path('api/solicitudes-admin/<int:id_solicitud>/', ResolverSolicitudAdminView.as_view(), name='solicitud-admin-detail'),
     path('api/usuarios/asignar-planteles/', GuardarConfiguracionPlantelesView.as_view(), name='asignar-planteles'),
     path('api/usuarios/crear-admin/', CrearAdminView.as_view(), name='crear-admin'),
     path('api/usuarios/<int:id_usuario>/actualizar/', ActualizarAdminView.as_view(), name='actualizar-admin'),
