@@ -1,6 +1,7 @@
 import {
   aClaveFecha, desdeClaveFecha, NOMBRES_MES, ABREV_MES, formatoHora,
 } from "../../../../lib/fechas.js";
+import { coloresDeDia } from "../../../../lib/colores.js";
 import { alcanceEvento } from "../../../../data/calendario.js";
 
 const COLOR_GRIS = "#97a3b6";
@@ -41,7 +42,7 @@ function construirMes(anio, mes, eventosPorDia, colorPorTipo) {
       dia: fecha.getDate(),
       enMes,
       finde: fecha.getDay() === 0 || fecha.getDay() === 6,
-      colores: evs.map(ev => colorPorTipo(ev.tipo)).filter((c, i, a) => a.indexOf(c) === i),
+      colores: coloresDeDia(evs, colorPorTipo),
     };
   });
 

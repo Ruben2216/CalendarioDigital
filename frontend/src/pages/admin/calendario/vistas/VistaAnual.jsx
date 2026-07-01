@@ -1,14 +1,18 @@
 import { useMemo } from "react";
 import { aClaveFecha, NOMBRES_MES } from "../../../../lib/fechas.js";
+import { coloresDeDia } from "../../../../lib/colores.js";
+import DiaMulticolor from "../../../../components/dia-multicolor/DiaMulticolor.jsx";
 import styles from "./VistaAnual.module.css";
 
 const DIAS_MINI = ["D", "L", "M", "M", "J", "V", "S"];
 
+/* Rejilla fija de 6 semanas para que todos los meses tengan el mismo alto */
+const SEMANAS_MES = 6;
+
 /* Construye las celdas (numeros de dia) de un mes */
 function construirMes(anio, mes, eventosPorDia, claveHoy) {
   const primerDiaSemana = new Date(anio, mes, 1).getDay();
-  const diasEnMes = new Date(anio, mes + 1, 0).getDate();
-  const total = Math.ceil((primerDiaSemana + diasEnMes) / 7) * 7;
+  const total = SEMANAS_MES * 7;
   const inicio = new Date(anio, mes, 1 - primerDiaSemana);
 
   return Array.from({ length: total }, (_, i) => {
@@ -92,33 +96,30 @@ export default function VistaAnual({
                 <span key={i} className={styles["mini__dia-semana"]}>{d}</span>
               ))}
 
-              {m.celdas.map((celda) => (
-                <button
-                  type="button"
-                  key={celda.clave}
-                  onClick={() => onSeleccionarDia(celda.clave)}
-                  aria-pressed={celda.clave === fechaSeleccionada}
-                  className={`${styles["mini__dia"]} ${celda.delMes ? "" : styles["mini__dia--fuera"]} ${
-                    celda.delMes && celda.finde ? styles["mini__dia--finde"] : ""
-                  } ${celda.esHoy ? styles["mini__dia--hoy"] : ""} ${
-                    celda.clave === fechaSeleccionada ? styles["mini__dia--sel"] : ""
-                  }`}
-                >
-                  <span className={styles["mini__num"]}>{celda.dia}</span>
-                  {celda.delMes && celda.evs.length > 0 && (
-                    <span className={styles["mini__puntos"]}>
-                      {celda.evs.slice(0, 3).map((ev) => (
-                        <span
-                          key={ev.id}
-                          className={styles["mini__punto-ev"]}
-                          style={{ backgroundColor: colorTipo(ev.tipo) }}
-                          title={ev.titulo}
-                        />
-                      ))}
-                    </span>
-                  )}
-                </button>
-              ))}
+              {m.celdas.map((celda) => {
+                const colores = celda.delMes ? coloresDeDia(celda.evs, colorTipo) : [];
+                const acentos = `${celda.esHoy ? styles["mini__num--hoy"] : ""} ${
+                  celda.clave === fechaSeleccionada ? styles["mini__num--sel"] : ""
+                }`.trim();
+                return (
+                  <button
+                    type="button"
+                    key={celda.clave}
+                    onClick={() => onSeleccionarDia(celda.clave)}
+                    aria-pressed={celda.clave === fechaSeleccionada}
+                    className={`${styles["mini__dia"]} ${celda.delMes ? "" : styles["mini__dia--fuera"]} ${
+                      celda.delMes && celda.finde ? styles["mini__dia--finde"] : ""
+                    }`}
+                  >
+                    <DiaMulticolor
+                      dia={celda.dia}
+                      colores={colores}
+                      className={`${styles["mini__num"]} ${acentos}`.trim()}
+                      titulo={colores.length ? celda.evs.map((ev) => ev.titulo).join(" · ") : undefined}
+                    />
+                  </button>
+                );
+              })}
             </div>
           </article>
         </div>
