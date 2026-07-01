@@ -111,15 +111,7 @@ export default function Dashboard() {
 
   const manejarClickDia = (celda) => {
     // Toggle: si se vuelve a tocar el día ya seleccionado, se limpia.
-    if (celda.clave === fechaSeleccionada) {
-      setFechaSeleccionada(null);
-      return;
-    }
-    setFechaSeleccionada(celda.clave);
-    if (!celda.delMes) {
-      const fecha = desdeClaveFecha(celda.clave);
-      setMesVisible(new Date(fecha.getFullYear(), fecha.getMonth(), 1));
-    }
+    setFechaSeleccionada((prev) => (prev === celda.clave ? null : celda.clave));
   };
 
   const proximosEventos = useMemo(() => {
@@ -144,19 +136,22 @@ export default function Dashboard() {
   const celdasCalendario = useMemo(() => {
     const anio = mesVisible.getFullYear();
     const mes = mesVisible.getMonth();
-    const primerDiaSemana = new Date(anio, mes, 1).getDay();
-    const inicio = new Date(anio, mes, 1 - primerDiaSemana);
-
-    return Array.from({ length: 42 }, (_, i) => {
-      const fecha = new Date(inicio.getFullYear(), inicio.getMonth(), inicio.getDate() + i);
+    const primerDiaSemana = new Date(anio, mes, 1).getDay();      
+    const diasEnMes = new Date(anio, mes + 1, 0).getDate();
+    const totalCeldas = Math.ceil((primerDiaSemana + diasEnMes) / 7) * 7;
+    return Array.from({ length: totalCeldas }, (_, i) => {
+      const diaMes = i - primerDiaSemana + 1; 
+      if (diaMes < 1 || diaMes > diasEnMes) {
+        return { vacio: true, key: `v-${i}` };
+      }
+      const fecha = new Date(anio, mes, diaMes);
       const clave = aClaveFecha(fecha);
       const eventosDia = eventosPorFecha.get(clave) || [];
       return {
         clave,
-        dia: fecha.getDate(),
-        delMes: fecha.getMonth() === mes,
+        dia: diaMes,
         esHoy: clave === claveHoy,
-        finde: i % 7 === 0 || i % 7 === 6, 
+        finde: i % 7 === 0 || i % 7 === 6,
         color: eventosDia.length ? colorTipo(eventosDia[0].tipo) : null,
       };
     });
@@ -331,23 +326,25 @@ export default function Dashboard() {
                 Calendario
               </div>
             )}
-            <div className={styles["calendario__controles"]}>
-              <button type="button" className={styles["calendario__nav"]} onClick={() => irMes(-1)} aria-label="Mes anterior">
-                <ChevronLeft size={14} />
-              </button>
-              <button type="button" className={styles["calendario__hoy"]} onClick={irHoy}>
-                Hoy
-              </button>
-              <button type="button" className={styles["calendario__nav"]} onClick={() => irMes(1)} aria-label="Mes siguiente">
-                <ChevronRight size={14} />
-              </button>
-            </div>
           </div>
 
           <div className={styles["calendario__cuerpo"]}>
-            <h3 className={styles["calendario__mes"]}>
-              {NOMBRES_MES[mesVisible.getMonth()]} {mesVisible.getFullYear()}
-            </h3>
+            <div className={styles["calendario__mes-fila"]}>
+              <h3 className={styles["calendario__mes"]}>
+                {NOMBRES_MES[mesVisible.getMonth()]} {mesVisible.getFullYear()}
+              </h3>
+              <div className={styles["calendario__controles"]}>
+                <button type="button" className={styles["calendario__nav"]} onClick={() => irMes(-1)} aria-label="Mes anterior">
+                  <ChevronLeft size={14} />
+                </button>
+                <button type="button" className={styles["calendario__hoy"]} onClick={irHoy}>
+                  Hoy
+                </button>
+                <button type="button" className={styles["calendario__nav"]} onClick={() => irMes(1)} aria-label="Mes siguiente">
+                  <ChevronRight size={14} />
+                </button>
+              </div>
+            </div>
 
             <div className={styles["calendario__rejilla"]}>
               {DIAS_MINI.map((dia, i) => (
@@ -361,22 +358,24 @@ export default function Dashboard() {
                 </span>
               ))}
 
-              {celdasCalendario.map((celda) => (
-                <button
-                  type="button"
-                  key={celda.clave}
-                  onClick={() => manejarClickDia(celda)}
-                  aria-pressed={fechaSeleccionada === celda.clave}
-                  style={celda.color ? { "--punto-color": celda.color } : undefined}
-                  className={`${styles["dia"]} ${
-                    celda.delMes ? "" : styles["dia--apagado"]
-                  } ${celda.finde ? styles["dia--finde"] : ""} ${
-                    celda.esHoy ? styles["dia--hoy"] : ""
-                  } ${fechaSeleccionada === celda.clave ? styles["dia--seleccionado"] : ""}`}
-                >
-                  {celda.dia}
-                </button>
-              ))}
+              {celdasCalendario.map((celda) =>
+                celda.vacio ? (
+                  <span key={celda.key} className={styles["dia--vacio"]} aria-hidden="true" />
+                ) : (
+                  <button
+                    type="button"
+                    key={celda.clave}
+                    onClick={() => manejarClickDia(celda)}
+                    aria-pressed={fechaSeleccionada === celda.clave}
+                    style={celda.color ? { "--punto-color": celda.color } : undefined}
+                    className={`${styles["dia"]} ${celda.finde ? styles["dia--finde"] : ""} ${
+                      celda.esHoy ? styles["dia--hoy"] : ""
+                    } ${fechaSeleccionada === celda.clave ? styles["dia--seleccionado"] : ""}`}
+                  >
+                    {celda.dia}
+                  </button>
+                )
+              )}
             </div>
           </div>
 
