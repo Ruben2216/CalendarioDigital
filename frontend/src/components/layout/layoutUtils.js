@@ -5,7 +5,7 @@ export const ROL_ETIQUETA = {
   admin: 'Administrador',
   docente: 'Docente',
   alumno: 'Alumno',
-  tutor: 'Padre/Tutor',
+  tutor: 'Visitante',
 };
 
 // Ciclo escolar actual (Agosto inicia el nuevo ciclo).

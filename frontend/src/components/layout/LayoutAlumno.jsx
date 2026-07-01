@@ -43,6 +43,7 @@ export default function LayoutAlumno() {
       nav={nav}
       plantelHeader={{ label: 'Plantel', valor: valorPlantel, conChevron: false }}
       perfilContenido={perfilContenido}
+      perfilDesplegable={rol !== 'tutor'}
     />
   );
 }

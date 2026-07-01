@@ -20,6 +20,7 @@ import styles from "./Layout.module.css";
 //   nav              [{ etiqueta, icono, ruta, badge }]  (badge ya resuelto a número)
 //   plantelHeader    { label, valor, conChevron }
 //   perfilContenido  ReactNode — contenido bajo la cabecera del panel de perfil
+//   perfilDesplegable boolean opcional (default true) — false oculta el desplegable de perfil (ej. rol visitante)
 //   sidebarExtra     ReactNode opcional — encima de "Sesión activa"
 //   extraModales     ReactNode opcional — modales adicionales del rol
 export default function LayoutBase({
@@ -27,6 +28,7 @@ export default function LayoutBase({
   nav,
   plantelHeader,
   perfilContenido,
+  perfilDesplegable = true,
   sidebarExtra,
   extraModales,
 }) {
@@ -228,30 +230,42 @@ export default function LayoutBase({
             </div>
 
             <div className={styles["menu-perfil"]} ref={perfilRef}>
-              <button
-                type="button"
-                className={styles["usuario"]}
-                onClick={() => setPerfilAbierto((v) => !v)}
-                aria-expanded={perfilAbierto}
-              >
-                <span className={styles["usuario__avatar"]}>{iniciales || 'US'}</span>
-                <div className={styles["usuario__info"]}>
-                  <strong>{nombre || 'Usuario'}</strong>
-                  <span>{rolLabel}</span>
-                </div>
-                <ChevronDown size={14} />
-              </button>
-
-              {perfilAbierto && (
-                <div className={styles["menu-perfil__panel"]}>
-                  <div className={styles["menu-perfil__cab"]}>
+              {perfilDesplegable ? (
+                <>
+                  <button
+                    type="button"
+                    className={styles["usuario"]}
+                    onClick={() => setPerfilAbierto((v) => !v)}
+                    aria-expanded={perfilAbierto}
+                  >
                     <span className={styles["usuario__avatar"]}>{iniciales || 'US'}</span>
-                    <div>
-                      <div className={styles["menu-perfil__nombre"]}>{nombre || 'Usuario'}</div>
-                      <div className={styles["menu-perfil__rol"]}>{rolLabel}</div>
+                    <div className={styles["usuario__info"]}>
+                      <strong>{nombre || 'Usuario'}</strong>
+                      <span>{rolLabel}</span>
                     </div>
+                    <ChevronDown size={14} />
+                  </button>
+
+                  {perfilAbierto && (
+                    <div className={styles["menu-perfil__panel"]}>
+                      <div className={styles["menu-perfil__cab"]}>
+                        <span className={styles["usuario__avatar"]}>{iniciales || 'US'}</span>
+                        <div>
+                          <div className={styles["menu-perfil__nombre"]}>{nombre || 'Usuario'}</div>
+                          <div className={styles["menu-perfil__rol"]}>{rolLabel}</div>
+                        </div>
+                      </div>
+                      {perfilContenido}
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className={styles["usuario"]}>
+                  <span className={styles["usuario__avatar"]}>{iniciales || 'US'}</span>
+                  <div className={styles["usuario__info"]}>
+                    <strong>{nombre || 'Usuario'}</strong>
+                    <span>{rolLabel}</span>
                   </div>
-                  {perfilContenido}
                 </div>
               )}
             </div>
