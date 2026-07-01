@@ -29,6 +29,7 @@ export default function LayoutBase({
   plantelHeader,
   perfilContenido,
   perfilDesplegable = true,
+  mostrarNotificaciones = true,
   sidebarExtra,
   extraModales,
 }) {
@@ -203,19 +204,23 @@ export default function LayoutBase({
           </div>
 
           <div className={styles["barra-superior__derecha"]}>
-            <NotificacionesPanel
-              notifRef={notifRef}
-              abierto={notifAbierto}
-              onToggle={() => setNotifAbierto((v) => !v)}
-              onCerrar={() => setNotifAbierto(false)}
-              notificaciones={notificaciones}
-              notifSinLeer={notifSinLeer}
-              marcarTodasLeidas={marcarTodasLeidas}
-              marcarLeida={marcarLeida}
-              limpiarNotificaciones={limpiarNotificaciones}
-            />
+            {mostrarNotificaciones && (
+              <>
+                <NotificacionesPanel
+                  notifRef={notifRef}
+                  abierto={notifAbierto}
+                  onToggle={() => setNotifAbierto((v) => !v)}
+                  onCerrar={() => setNotifAbierto(false)}
+                  notificaciones={notificaciones}
+                  notifSinLeer={notifSinLeer}
+                  marcarTodasLeidas={marcarTodasLeidas}
+                  marcarLeida={marcarLeida}
+                  limpiarNotificaciones={limpiarNotificaciones}
+                />
 
-            <span className={styles["barra-superior__divisor"]} aria-hidden="true" />
+                <span className={styles["barra-superior__divisor"]} aria-hidden="true" />
+              </>
+            )}
 
             <div className={styles["plantel"]}>
               <div>

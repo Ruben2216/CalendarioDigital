@@ -30,6 +30,14 @@
   flex: 1;
 }
 
+.conv-lista__aviso {
+  margin: 0;
+  padding: 24px 18px;
+  text-align: center;
+  color: var(--muted, #64748b);
+  font-size: 13px;
+}
+
 @media (max-width: 720px) {
   .conv-lista {
     overflow: visible;

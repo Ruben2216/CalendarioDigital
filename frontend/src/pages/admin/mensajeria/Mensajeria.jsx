@@ -29,6 +29,7 @@ export default function Mensajeria() {
     mensajes,
     cargandoConvs,
     cargandoMsgs,
+    error,
     seleccionarConversacion,
     enviarMensaje,
     recargarMensajes,
@@ -177,6 +178,8 @@ export default function Mensajeria() {
             conversaciones={conversaciones}
             idActiva={idConvActiva}
             cargando={cargandoConvs}
+            error={Boolean(error) && conversaciones.length === 0}
+            onReintentar={recargarConversaciones}
             onSeleccionar={seleccionarConversacion}
             titulo={esSuperadmin ? 'Todos los planteles' : `Docentes · ${plantel?.nombre ?? ''}`}
           />
