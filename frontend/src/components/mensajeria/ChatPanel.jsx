@@ -61,9 +61,15 @@ export default function ChatPanel({
     );
   }
 
-  const nombreOtro = conversacion.otro_usuario?.nombre ?? conversacion.destinatario ?? '—';
+  const pA = conversacion.participante_a ?? null;
+  const pB = conversacion.participante_b ?? null;
+  const observando = soloLectura && pA && pB;
+
+  const nombreOtro = observando
+    ? `${pA.nombre} ↔ ${pB.nombre}`
+    : (conversacion.otro_usuario?.nombre ?? conversacion.destinatario ?? '—');
   const inicialesOtro = conversacion.otro_usuario?.iniciales ?? conversacion.iniciales ?? '?';
-  const rolOtro = conversacion.otro_usuario?.rol ?? '';
+  const rolOtro = observando ? '' : (conversacion.otro_usuario?.rol ?? '');
   const plantelConv = conversacion.plantel ?? '';
 
   return (
@@ -114,12 +120,23 @@ export default function ChatPanel({
               .some((x) =>
                 ['solicitud_aprobada', 'solicitud_rechazada'].includes(x.solicitud?.tipo),
               );
+
+          let mensaje = m;
+          let iniUsuario = inicialesUsuario;
+          let iniOtro = inicialesOtro;
+          if (observando) {
+            const esDeA = m.remitenteId === pA.id;
+            mensaje = { ...m, tipo: esDeA ? 'recibido' : 'enviado' };
+            iniUsuario = pB.iniciales; 
+            iniOtro = pA.iniciales;   
+          }
+
           return (
             <BurbujaMensaje
               key={m.id}
-              mensaje={m}
-              inicialesUsuario={inicialesUsuario}
-              inicialesOtro={inicialesOtro}
+              mensaje={mensaje}
+              inicialesUsuario={iniUsuario}
+              inicialesOtro={iniOtro}
               esAdmin={esAdmin}
               onAprobar={onAprobar}
               onRechazar={onRechazar}
