@@ -1392,7 +1392,7 @@ export default function Calendario({ soloLectura = false, publico = false }) {
                     <>
                       <span className={styles["simbologia__punto"]} style={{ backgroundColor: t.color }} />
                       <span className={styles["simbologia__texto"]}>{t.etiqueta}</span>
-                      {puedeGestionarTipos && (esSuperusuario || !t.es_global) && (
+                      {puedeGestionarTipos && t.puede_editar && (
                         <div className={styles["simbologia__acciones"]}>
                           <button type="button" title="Editar" onClick={() => iniciarEdicionTipo(t)}>
                             <Pencil size={12} />

@@ -29,6 +29,7 @@ export default function Anuncios() {
 
   const [anuncios, setAnuncios] = useState([]);
   const [cargando, setCargando] = useState(true);
+  const [errorCarga, setErrorCarga] = useState(false);
   const [filtro, setFiltro] = useState("todas");
   const [modalAbierto, setModalAbierto] = useState(false);
   const [editando, setEditando] = useState(null);
@@ -37,18 +38,26 @@ export default function Anuncios() {
 
   const recargar = () =>
     listarAnuncios({ plantelFiltro: vistaPlantel })
-      .then(setAnuncios)
-      .catch((e) => avisoError(e.message))
+      .then((lista) => { setAnuncios(lista); setErrorCarga(false); })
+      .catch(() => setErrorCarga(true))
       .finally(() => setCargando(false));
 
   useEffect(() => {
     let vigente = true;
+    setCargando(true);
+    setErrorCarga(false);
     listarAnuncios({ plantelFiltro: vistaPlantel })
       .then((lista) => { if (vigente) setAnuncios(lista); })
-      .catch((e) => { if (vigente) avisoError(e.message); })
+      .catch(() => { if (vigente) setErrorCarga(true); })
       .finally(() => { if (vigente) setCargando(false); });
     return () => { vigente = false; };
   }, [vistaPlantel]);
+
+  const reintentar = () => {
+    setCargando(true);
+    setErrorCarga(false);
+    recargar();
+  };
 
   const filtrados =
     filtro === "todas" ? anuncios : anuncios.filter((a) => a.audiencia === filtro);
@@ -154,6 +163,18 @@ export default function Anuncios() {
 
         {cargando ? (
           <p className={styles["conteo"]}>Cargando…</p>
+        ) : errorCarga ? (
+          <div className={styles["conteo"]} style={{ textAlign: "center", padding: "24px 12px" }}>
+            <p>No se pudieron cargar los anuncios.</p>
+            <button
+              type="button"
+              className="boton boton--fantasma"
+              style={{ marginTop: 10 }}
+              onClick={reintentar}
+            >
+              Reintentar
+            </button>
+          </div>
         ) : (
           <ListaAnuncios
             anuncios={filtrados}

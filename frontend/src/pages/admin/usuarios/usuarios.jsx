@@ -73,6 +73,7 @@ function formatoFecha(clave) {
 export default function Usuarios() {
   const [usuarios, setUsuarios] = useState([]);
   const [cargando, setCargando] = useState(true);
+  const [errorCarga, setErrorCarga] = useState(false);
   const [busqueda, setBusqueda] = useState("");
   const [filtroEstado, setFiltroEstado] = useState("todos");
   const [plantelesDisponibles, setPlantelesDisponibles] = useState([]);
@@ -83,8 +84,11 @@ export default function Usuarios() {
   const [editando, setEditando] = useState(null);
   const [modoBusqueda, setModoBusqueda] = useState("correo");
 
+  const [reintento, setReintento] = useState(0);
   useEffect(() => {
     let vigente = true;
+    setCargando(true);
+    setErrorCarga(false);
     Promise.all([listarSolicitudes(), listarAdministradores(), obtenerPlanteles(), obtenerTurnos()])
       .then(([solicitudes, admins, planteles, turnos]) => {
         if (!vigente) return;
@@ -99,10 +103,10 @@ export default function Usuarios() {
         setPlantelesDisponibles(planteles);
         setTurnosDisponibles(turnos);
       })
-      .catch(() => { /* backend no disponible */ })
+      .catch(() => { if (vigente) setErrorCarga(true); })
       .finally(() => { if (vigente) setCargando(false); });
     return () => { vigente = false; };
-  }, []);
+  }, [reintento]);
 
   const totales = useMemo(() => ({
     total: usuarios.length,
@@ -377,6 +381,18 @@ export default function Usuarios() {
 
         {cargando ? (
           <p className={styles["vacio"]}>Cargando usuarios…</p>
+        ) : errorCarga ? (
+          <div className={styles["vacio"]}>
+            <p>No se pudieron cargar los usuarios.</p>
+            <button
+              type="button"
+              className="boton boton--fantasma"
+              style={{ marginTop: 10 }}
+              onClick={() => setReintento((n) => n + 1)}
+            >
+              Reintentar
+            </button>
+          </div>
         ) : usuariosFiltrados.length === 0 ? (
           <p className={styles["vacio"]}>
             {usuarios.length === 0
