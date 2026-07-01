@@ -44,6 +44,11 @@
   background: #fafbfd;
 }
 
+/* Evita seleccionar el texto de los días al arrastrar para elegir un rango */
+.cal-fc .fc-daygrid-body {
+  user-select: none;
+}
+
 /* Día seleccionado: celda resaltada en azul (se mueve al hacer clic en otro).
    La clase 'cal-fc-sel' la agrega el callback dayCellClassNames del componente. */
 .cal-fc .fc-daygrid-day.cal-fc-sel,

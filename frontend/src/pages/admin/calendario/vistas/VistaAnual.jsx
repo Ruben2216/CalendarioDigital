@@ -30,15 +30,27 @@ function construirMes(anio, mes, eventosPorDia, claveHoy) {
   });
 }
 
+/* Tooltip del día: títulos de sus eventos y la pista para crear con clic derecho */
+function tituloDia(celda, tieneEventos, puedeCrear) {
+  if (!celda.delMes) return undefined;
+  const partes = [];
+  if (tieneEventos) partes.push(celda.evs.map((ev) => ev.titulo).join(" · "));
+  if (puedeCrear) partes.push("Clic derecho: nuevo evento · Arrastra para seleccionar un rango");
+  return partes.length ? partes.join("\n") : undefined;
+}
+
 export default function VistaAnual({
   fechaActual,
   eventosPorDia,
   colorTipo,
   claveHoy,
-  fechaSeleccionada,
+  rangoSeleccionado,
   mesSeleccionado,
   onSeleccionarDia,
+  onArrastreInicio,
+  onArrastreExtender,
   onSeleccionarMes,
+  onNuevoEvento,
 }) {
   // Ciclo escolar: si estamos en agosto o después, el ciclo arranca este año, si no, arrancó el año pasado. */
   const anioCiclo = fechaActual.getMonth() >= 7
@@ -98,15 +110,25 @@ export default function VistaAnual({
 
               {m.celdas.map((celda) => {
                 const colores = celda.delMes ? coloresDeDia(celda.evs, colorTipo) : [];
+                const seleccionado = celda.delMes && rangoSeleccionado &&
+                  celda.clave >= rangoSeleccionado.inicio && celda.clave <= rangoSeleccionado.fin;
                 const acentos = `${celda.esHoy ? styles["mini__num--hoy"] : ""} ${
-                  celda.clave === fechaSeleccionada ? styles["mini__num--sel"] : ""
+                  seleccionado ? styles["mini__num--sel"] : ""
                 }`.trim();
                 return (
                   <button
                     type="button"
                     key={celda.clave}
                     onClick={() => onSeleccionarDia(celda.clave)}
-                    aria-pressed={celda.clave === fechaSeleccionada}
+                    onMouseDown={(e) => { e.preventDefault(); onArrastreInicio?.(celda.clave); }}
+                    onMouseEnter={() => onArrastreExtender?.(celda.clave)}
+                    onContextMenu={
+                      onNuevoEvento && celda.delMes
+                        ? (e) => onNuevoEvento(e, celda.clave)
+                        : undefined
+                    }
+                    aria-pressed={seleccionado}
+                    title={tituloDia(celda, colores.length, Boolean(onNuevoEvento))}
                     className={`${styles["mini__dia"]} ${celda.delMes ? "" : styles["mini__dia--fuera"]} ${
                       celda.delMes && celda.finde ? styles["mini__dia--finde"] : ""
                     }`}
@@ -115,7 +137,6 @@ export default function VistaAnual({
                       dia={celda.dia}
                       colores={colores}
                       className={`${styles["mini__num"]} ${acentos}`.trim()}
-                      titulo={colores.length ? celda.evs.map((ev) => ev.titulo).join(" · ") : undefined}
                     />
                   </button>
                 );

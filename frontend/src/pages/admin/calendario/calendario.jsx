@@ -120,7 +120,8 @@ export default function Calendario({ soloLectura = false, publico = false }) {
   const [vista, setVista] = usePreferencia("calendario:vista", "mes"); // vista activa (recordada)
   const [fechaActual, setFechaActual] = useState(hoy);                // mes/fecha que muestra FC
   const [tituloVista, setTituloVista] = useState("");                 // título que da FC (semana/anual/lista)
-  const [fechaSeleccionada, setFechaSeleccionada] = useState(claveHoy); // día resaltado
+  const [fechaSeleccionada, setFechaSeleccionada] = useState(claveHoy); // día resaltado (inicio del rango)
+  const [rangoFin, setRangoFin] = useState(null);                       // fin del rango (Mayús+clic)
   const [mesSeleccionado, setMesSeleccionado] = useState(null);         // mes elegido en la vista anual
   const [filtroTipo, setFiltroTipo] = useState("todos");
   const [filtroArea, setFiltroArea] = useState("todas");
@@ -195,6 +196,13 @@ export default function Calendario({ soloLectura = false, publico = false }) {
   const asideRef = useRef(null);
   const clicTimer = useRef(null);
   const cierreHoverTimer = useRef(null);
+  const arrastreRef = useRef(false);
+
+  useEffect(() => {
+    const terminarArrastre = () => { arrastreRef.current = false; };
+    window.addEventListener("mouseup", terminarArrastre);
+    return () => window.removeEventListener("mouseup", terminarArrastre);
+  }, []);
 
   useEffect(() => {
     if (!panelAbierto) return;
@@ -458,6 +466,17 @@ export default function Calendario({ soloLectura = false, publico = false }) {
     return mapa;
   }, [eventosFiltrados]);
 
+  // Rango de días seleccionado: inicio = primer día, fin = último (Mayús+clic).
+  const rangoSeleccionado = useMemo(() => {
+    if (!fechaSeleccionada) return null;
+    if (!rangoFin || rangoFin === fechaSeleccionada) {
+      return { inicio: fechaSeleccionada, fin: fechaSeleccionada };
+    }
+    return fechaSeleccionada <= rangoFin
+      ? { inicio: fechaSeleccionada, fin: rangoFin }
+      : { inicio: rangoFin, fin: fechaSeleccionada };
+  }, [fechaSeleccionada, rangoFin]);
+
   // Eventos del día seleccionado (lo que muestra la tabla de abajo)
   const eventosDelDia = fechaSeleccionada ? eventosPorDia.get(fechaSeleccionada) || [] : [];
 
@@ -485,9 +504,22 @@ export default function Calendario({ soloLectura = false, publico = false }) {
     filtroFechaDesde !== "" || filtroFechaHasta !== "" ||
     (!esAlumno && (filtroSemestre !== "" || filtroGrupo !== "" || filtroPlantel !== "" || filtroTurno !== ""));
 
-  const seleccionarDiaAnual = (clave) => {
+  const seleccionarDia = (clave) => {
     setFechaSeleccionada(clave);
+    setRangoFin(null);
     setMesSeleccionado(null);
+  };
+
+  // Arrastre con clic izquierdo: el primer día es el inicio y hasta donde se suelte, el fin.
+  const iniciarArrastre = (clave) => {
+    setFechaSeleccionada(clave);
+    setRangoFin(clave);
+    setMesSeleccionado(null);
+    arrastreRef.current = true;
+  };
+
+  const extenderArrastre = (clave) => {
+    if (arrastreRef.current) setRangoFin(clave);
   };
 
   const limpiarFiltros = () => {
@@ -521,6 +553,7 @@ export default function Calendario({ soloLectura = false, publico = false }) {
 
   const irHoy = () => {
     setFechaSeleccionada(claveHoy);
+    setRangoFin(null);
     setFechaActual(hoy);
     setMesSeleccionado(null);
     if (esVistaFC) api()?.today();
@@ -552,6 +585,7 @@ export default function Calendario({ soloLectura = false, publico = false }) {
     setVista(v.id);
     setVistaMenu(false);
     setMesSeleccionado(null);
+    setRangoFin(null);
   };
 
   // Saltar a un mes desde el selector
@@ -572,6 +606,7 @@ export default function Calendario({ soloLectura = false, publico = false }) {
   const alClicarFecha = (arg) => {
     const fecha = arg.dateStr.slice(0, 10);
     setFechaSeleccionada(fecha);
+    setRangoFin(null);
 
     const ahora = Date.now();
     const previo = ultimoClickFecha.current;
@@ -628,8 +663,13 @@ export default function Calendario({ soloLectura = false, publico = false }) {
   }, [cerrarPopover]);
 
   const claseDiaSeleccionado = useCallback(
-    (arg) => (aClaveFecha(arg.date) === fechaSeleccionada ? "cal-fc-sel" : ""),
-    [fechaSeleccionada]
+    (arg) => {
+      const clave = aClaveFecha(arg.date);
+      return rangoSeleccionado && clave >= rangoSeleccionado.inicio && clave <= rangoSeleccionado.fin
+        ? "cal-fc-sel"
+        : "";
+    },
+    [rangoSeleccionado]
   );
 
   const claseEventoSeleccionado = useCallback(
@@ -637,13 +677,23 @@ export default function Calendario({ soloLectura = false, publico = false }) {
     [eventoSelId]
   );
 
+  const alMontarCeldaDia = useCallback(
+    (arg) => {
+      if (puedeCrear && arg.view.type === "dayGridMonth") {
+        arg.el.title = "Clic derecho: nuevo evento · Arrastra para seleccionar un rango";
+      }
+    },
+    [puedeCrear]
+  );
+
   // CRUD
-  const abrirNuevoEventoEnFecha = (fecha) => {
+  const abrirNuevoEventoEnFecha = (fecha, fechaFin = "") => {
     setEventoEditando(null);
     setErrorEvento(null);
     setFormEvento({
       ...FORM_EVENTO_VACIO,
       fecha,
+      fechaFin: fechaFin && fechaFin !== fecha ? fechaFin : "",
       tipo: tiposParaCrear[0]?.id || "",
       plantel: esAdmin ? (misAsignaciones[0]?.plantel || "") : "",
       turno: esAdmin ? (misAsignaciones[0]?.turno || "") : "",
@@ -653,6 +703,47 @@ export default function Calendario({ soloLectura = false, publico = false }) {
   };
 
   const abrirNuevoEvento = () => abrirNuevoEventoEnFecha(fechaSeleccionada || claveHoy);
+
+  /* Clic derecho sobre una fecha (vista mes o año): abre "Nuevo evento" con ese día
+     como fecha de inicio. Solo actúa si el usuario puede crear eventos. */
+  const abrirMenuNuevoEvento = (e, fecha) => {
+    if (!puedeCrear || !fecha) return;
+    e.preventDefault();
+    const rango = rangoSeleccionado;
+    const enRango =
+      rango && rango.inicio !== rango.fin && fecha >= rango.inicio && fecha <= rango.fin;
+    if (enRango) {
+      abrirNuevoEventoEnFecha(rango.inicio, rango.fin);
+      return;
+    }
+    setFechaSeleccionada(fecha);
+    setRangoFin(null);
+    abrirNuevoEventoEnFecha(fecha);
+  };
+
+  const alMenuContextualMes = (e) => {
+    if (vista !== "mes") return;
+    const celda = e.target.closest(".fc-daygrid-day");
+    if (!celda) return;
+    abrirMenuNuevoEvento(e, celda.getAttribute("data-date"));
+  };
+
+  const claveDeCeldaMes = (destino) =>
+    destino?.closest?.(".fc-daygrid-day")?.getAttribute("data-date") || null;
+
+  const alPresionarMes = (e) => {
+    if (vista !== "mes" || e.button !== 0 || e.target.closest(".fc-event")) return;
+    const clave = claveDeCeldaMes(e.target);
+    if (!clave) return;
+    e.preventDefault();
+    iniciarArrastre(clave);
+  };
+
+  const alArrastrarMes = (e) => {
+    if (!arrastreRef.current || vista !== "mes") return;
+    const clave = claveDeCeldaMes(e.target);
+    if (clave) extenderArrastre(clave);
+  };
 
   const abrirEditarEvento = (ev) => {
     setEventoEditando(ev.id);
@@ -1062,7 +1153,12 @@ export default function Calendario({ soloLectura = false, publico = false }) {
               </div>
             ) : (
             <div className={`tarjeta ${styles["lienzo"]}`} ref={lienzoRef}>
-              <div className="cal-fc">
+              <div
+                className="cal-fc"
+                onContextMenu={alMenuContextualMes}
+                onMouseDown={alPresionarMes}
+                onMouseOver={alArrastrarMes}
+              >
                 <FullCalendar
                   ref={calendarRef}
                   plugins={[dayGridPlugin, timeGridPlugin, multiMonthPlugin, listPlugin, interactionPlugin]}
@@ -1083,6 +1179,7 @@ export default function Calendario({ soloLectura = false, publico = false }) {
                   eventTimeFormat={{ hour: "numeric", minute: "2-digit", meridiem: "short" }}
                   events={eventosFC}
                   dayCellClassNames={claseDiaSeleccionado}
+                  dayCellDidMount={alMontarCeldaDia}
                   eventClassNames={claseEventoSeleccionado}
                   datesSet={alCambiarFechas}
                   dateClick={alClicarFecha}
@@ -1099,10 +1196,13 @@ export default function Calendario({ soloLectura = false, publico = false }) {
               eventosPorDia={eventosPorDia}
               colorTipo={colorTipo}
               claveHoy={claveHoy}
-              fechaSeleccionada={fechaSeleccionada}
+              rangoSeleccionado={rangoSeleccionado}
               mesSeleccionado={mesSeleccionado}
-              onSeleccionarDia={seleccionarDiaAnual}
+              onSeleccionarDia={seleccionarDia}
+              onArrastreInicio={iniciarArrastre}
+              onArrastreExtender={extenderArrastre}
               onSeleccionarMes={setMesSeleccionado}
+              onNuevoEvento={puedeCrear ? abrirMenuNuevoEvento : undefined}
             />
           ) : (
             <VistaLista

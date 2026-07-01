@@ -75,6 +75,7 @@
   grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: 2px;
   padding: 8px;
+  user-select: none;
 }
 
 .mini__dia-semana {
