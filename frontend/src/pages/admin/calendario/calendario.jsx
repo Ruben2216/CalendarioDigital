@@ -567,8 +567,21 @@ export default function Calendario({ soloLectura = false, publico = false }) {
     cerrarPopover();
   };
 
-  // Clic en un día, se marca como seleccionado (resalta la celda + panel)
-  const alClicarFecha = (arg) => setFechaSeleccionada(arg.dateStr.slice(0, 10));
+  // Doble click = crear nuevo evento (unicamente vista mensual)
+  const ultimoClickFecha = useRef({ fecha: null, t: 0 });
+  const alClicarFecha = (arg) => {
+    const fecha = arg.dateStr.slice(0, 10);
+    setFechaSeleccionada(fecha);
+
+    const ahora = Date.now();
+    const previo = ultimoClickFecha.current;
+    if (puedeCrear && previo.fecha === fecha && ahora - previo.t < 400) {
+      ultimoClickFecha.current = { fecha: null, t: 0 };
+      abrirNuevoEventoEnFecha(fecha);
+      return;
+    }
+    ultimoClickFecha.current = { fecha, t: ahora };
+  };
 
   /* Clic en un evento:
        - 1 clic - seleccionarlo y mostrar la info rápida (popover).
@@ -625,12 +638,12 @@ export default function Calendario({ soloLectura = false, publico = false }) {
   );
 
   // CRUD
-  const abrirNuevoEvento = () => {
+  const abrirNuevoEventoEnFecha = (fecha) => {
     setEventoEditando(null);
     setErrorEvento(null);
     setFormEvento({
       ...FORM_EVENTO_VACIO,
-      fecha: fechaSeleccionada || claveHoy,
+      fecha,
       tipo: tiposParaCrear[0]?.id || "",
       plantel: esAdmin ? (misAsignaciones[0]?.plantel || "") : "",
       turno: esAdmin ? (misAsignaciones[0]?.turno || "") : "",
@@ -638,6 +651,8 @@ export default function Calendario({ soloLectura = false, publico = false }) {
     });
     setModalEvento(true);
   };
+
+  const abrirNuevoEvento = () => abrirNuevoEventoEnFecha(fechaSeleccionada || claveHoy);
 
   const abrirEditarEvento = (ev) => {
     setEventoEditando(ev.id);

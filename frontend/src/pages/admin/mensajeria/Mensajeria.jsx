@@ -167,7 +167,7 @@ export default function Mensajeria() {
           onClick={() => setSelectorAbierto(true)}
         >
           <UserPlus size={16} />
-          Contactar docente
+          Contactar
         </button>
       </div>
 
@@ -184,22 +184,30 @@ export default function Mensajeria() {
 
         {(!esMovil || idConvActiva) && (
           idConvActiva ? (
-            <ChatPanel
-              mensajes={mensajes}
-              cargando={cargandoMsgs}
-              inicialesUsuario={iniciales}
-              conversacion={conversaciones.find((c) => c.id === idConvActiva)}
-              onEnviar={handleEnviar}
-              onActualizar={recargarMensajes}
-              esAdmin={!esSuperadmin}
-              onAprobar={aprobarSolicitud}
-              onRechazar={abrirRechazo}
-              onVolver={esMovil ? () => seleccionarConversacion(null) : null}
-            />
+            (() => {
+              const convActiva = conversaciones.find((c) => c.id === idConvActiva);
+              const soloLectura = esSuperadmin && convActiva && convActiva.es_participante === false;
+              return (
+                <ChatPanel
+                  mensajes={mensajes}
+                  cargando={cargandoMsgs}
+                  inicialesUsuario={iniciales}
+                  conversacion={convActiva}
+                  onEnviar={handleEnviar}
+                  onActualizar={recargarMensajes}
+                  esAdmin={!esSuperadmin}
+                  onAprobar={aprobarSolicitud}
+                  onRechazar={abrirRechazo}
+                  onVolver={esMovil ? () => seleccionarConversacion(null) : null}
+                  soloLectura={soloLectura}
+                  onContactar={() => setSelectorAbierto(true)}
+                />
+              );
+            })()
           ) : (
             <div className={styles['mensajeria__vacio']}>
               <MessageSquare size={32} strokeWidth={1.5} />
-              <p>Selecciona una conversación o contacta a un docente.</p>
+              <p>Selecciona una conversación o usa el botón Contactar.</p>
             </div>
           )
         )}
@@ -212,7 +220,7 @@ export default function Mensajeria() {
         idPlantel={plantel?.id ?? null}
         esSuperadmin={esSuperadmin}
         rol="docente"
-        titulo="Contactar docente"
+        titulo="Contactar"
       />
 
       <Modal

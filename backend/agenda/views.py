@@ -329,8 +329,10 @@ class ConversacionListView(APIView):
             ).exclude(remitente=usuario).count()
 
             otro = conv.participante_b if conv.participante_a == usuario else conv.participante_a
+            es_participante = usuario in (conv.participante_a, conv.participante_b)
             resultado.append({
                 'id': conv.id_conversacion,
+                'es_participante': es_participante,
                 'otro_usuario': {
                     'id': otro.id_usuario,
                     'nombre': otro.nombre or otro.correo,
