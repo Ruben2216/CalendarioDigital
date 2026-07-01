@@ -1,8 +1,10 @@
 import json
+import re
 import uuid
 
 from django.core.exceptions import ValidationError
 from django.db import models
+from django.db.models import OuterRef, Q
 
 from .fields import UniqueIdentifierField
 
@@ -28,6 +30,26 @@ class Plantel(models.Model):
 
     def __str__(self):
         return self.nombre
+
+    @staticmethod
+    def normalizar(nombre):
+        """Reduce un nombre de plantel a solo letras/números en minúsculas para
+        comparar cadenas que vienen de distintas fuentes (API institucional vs BD).
+        """
+        return re.sub(r'[^a-z0-9]', '', (nombre or '').lower())
+
+    @classmethod
+    def equivalentes(cls, nombre):
+        """IDs de planteles con nombre normalizado que coincide o contiene al buscado."""
+        objetivo = cls.normalizar(nombre)
+        if not objetivo:
+            return []
+        ids = []
+        for p in cls.objects.all():
+            n = cls.normalizar(p.nombre)
+            if n and (n == objetivo or objetivo in n or n in objetivo):
+                ids.append(p.id_plantel)
+        return ids
 
 
 class Turno(models.Model):
@@ -100,6 +122,38 @@ class Usuario(models.Model):
     def __str__(self):
         return f'{self.correo} ({self.rol.nombre_rol})'
 
+    def ids_planteles(self):
+        return list(self.planteles_asignados.values_list('plantel_id', flat=True))
+
+    def ids_turnos(self):
+        return list(self.planteles_asignados.values_list('turno_id', flat=True))
+
+    def alcance_plantel(self, campo='plantel', plantel_filtro=None):
+        """Q para filtrar `campo` según el rol: el superusuario ve solo lo
+        general (o + `plantel_filtro`); admin/docente ven lo general + sus
+        planteles asignados."""
+        general = Q(**{f'{campo}__isnull': True})
+        if self.rol.nombre_rol == 'superusuario':
+            if plantel_filtro:
+                return general | Q(**{f'{campo}__nombre': plantel_filtro})
+            return general
+        return general | Q(**{f'{campo}_id__in': self.ids_planteles()})
+
+    def a_sesion_dict(self, **extra):
+        return {
+            'id_usuario': self.id_usuario,
+            'rol': self.rol.nombre_rol,
+            'correo': self.correo or '',
+            'planteles': [
+                {
+                    'plantel': {'id': up.plantel.id_plantel, 'nombre': up.plantel.nombre},
+                    'turno': {'id': up.turno.id_turno, 'nombre': up.turno.nombre_turno},
+                }
+                for up in self.planteles_asignados.all()
+            ],
+            **extra,
+        }
+
 
 class GoogleOauthCredential(models.Model):
     usuario = models.OneToOneField(
@@ -144,6 +198,16 @@ class UsuarioPlantel(models.Model):
 
     def __str__(self):
         return f'{self.usuario.correo} - {self.plantel.nombre} - {self.turno.nombre_turno}'
+
+    @classmethod
+    def match(cls, plantel_id, turno_nombre=None):
+        """Queryset con OuterRef('pk') listo para envolver en Exists(...):
+        usuarios con una asignación a `plantel_id` (y, si se indica, en ese
+        turno o en turno 'Mixto')."""
+        qs = cls.objects.filter(usuario=OuterRef('pk'), plantel_id=plantel_id)
+        if turno_nombre:
+            qs = qs.filter(Q(turno__nombre_turno=turno_nombre) | Q(turno__nombre_turno='Mixto'))
+        return qs
 
 
 class Calendario(models.Model):
