@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Send, RefreshCw, Plus, ArrowLeft } from 'lucide-react';
+import { Send, RefreshCw, Plus, ArrowLeft, Eye } from 'lucide-react';
 import BurbujaMensaje from './BurbujaMensaje.jsx';
 import styles from './ChatPanel.module.css';
 
@@ -15,6 +15,8 @@ export default function ChatPanel({
   onActualizar = null,
   onNuevaSolicitud = null,
   onVolver = null,
+  soloLectura = false,
+  onContactar = null,
 }) {
   const [texto, setTexto] = useState('');
   const listaRef = useRef(null);
@@ -127,37 +129,46 @@ export default function ChatPanel({
         })}
       </div>
 
-      <div className={styles['chat-panel__entrada']}>
-        {onNuevaSolicitud && (
+      {soloLectura ? (
+        <div className={styles['chat-panel__aviso']}>
+          <Eye size={16} />
+          <span className={styles['chat-panel__aviso-texto']}>
+            Solo visualización. Para escribirle a alguien usa el botón contactar.
+          </span>
+        </div>
+      ) : (
+        <div className={styles['chat-panel__entrada']}>
+          {onNuevaSolicitud && (
+            <button
+              type="button"
+              className={styles['chat-panel__solicitud']}
+              onClick={onNuevaSolicitud}
+              title="Nueva solicitud"
+              aria-label="Nueva solicitud formal"
+            >
+              <Plus size={18} />
+            </button>
+          )}
+          <textarea
+            ref={textareaRef}
+            className={styles['chat-panel__textarea']}
+            placeholder="Escribe un mensaje..."
+            value={texto}
+            onChange={ajustarAltura}
+            onKeyDown={alTecla}
+            rows={1}
+          />
           <button
             type="button"
-            className={styles['chat-panel__solicitud']}
-            onClick={onNuevaSolicitud}
-            title="Nueva solicitud"
-            aria-label="Nueva solicitud formal"
+            className={styles['chat-panel__enviar']}
+            onClick={enviar}
+            disabled={!texto.trim()}
+            aria-label="Enviar"
           >
-            <Plus size={18} />
+            <Send size={18} />
           </button>
-        )}
-        <textarea
-          ref={textareaRef}
-          className={styles['chat-panel__textarea']}
-          placeholder="Escribe un mensaje..."
-          value={texto}
-          onChange={ajustarAltura}
-          onKeyDown={alTecla}
-          rows={1}
-        />
-        <button
-          type="button"
-          className={styles['chat-panel__enviar']}
-          onClick={enviar}
-          disabled={!texto.trim()}
-          aria-label="Enviar"
-        >
-          <Send size={18} />
-        </button>
-      </div>
+        </div>
+      )}
     </div>
   );
 }

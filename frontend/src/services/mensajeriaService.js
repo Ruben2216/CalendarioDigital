@@ -34,6 +34,7 @@ export async function obtenerConversaciones(idUsuario) {
   const data = await res.json();
   return data.map((c, i) => ({
     id: c.id,
+    es_participante: c.es_participante,
     otro_usuario: { ...c.otro_usuario, iniciales: inicialesDesde(c.otro_usuario.nombre) },
     plantel: c.plantel,
     sin_leer: c.sin_leer,
