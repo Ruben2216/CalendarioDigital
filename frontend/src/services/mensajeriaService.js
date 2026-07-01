@@ -36,6 +36,12 @@ export async function obtenerConversaciones(idUsuario) {
     id: c.id,
     es_participante: c.es_participante,
     otro_usuario: { ...c.otro_usuario, iniciales: inicialesDesde(c.otro_usuario.nombre) },
+    participante_a: c.participante_a
+      ? { ...c.participante_a, iniciales: inicialesDesde(c.participante_a.nombre) }
+      : null,
+    participante_b: c.participante_b
+      ? { ...c.participante_b, iniciales: inicialesDesde(c.participante_b.nombre) }
+      : null,
     plantel: c.plantel,
     sin_leer: c.sin_leer,
     // compatibilidad con ConvLista
@@ -62,6 +68,7 @@ export async function obtenerMensajes(idUsuario, idConv) {
   return data.map((m) => ({
     id: m.id,
     tipo: m.es_propio ? 'enviado' : 'recibido',
+    remitenteId: m.remitente_id,
     hora: horaDesde(m.fecha_envio),
     texto: m.texto,
     solicitud: m.metadatos ?? undefined,

@@ -92,7 +92,7 @@ export default function VistaLista({ eventos, fechaActual, colorTipo, etiquetaTi
                     {ev.horaInicio ? formatoHora(ev.horaInicio) : "Todo el día"}
                   </span>
 
-                  {!soloLectura && (
+                  {!soloLectura && ev.puede_editar && (
                     <div className={styles["lista__acciones"]}>
                       <button
                         type="button"

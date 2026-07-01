@@ -64,6 +64,14 @@ class ConversacionListView(APIView):
 
             otro = conv.participante_b if conv.participante_a == usuario else conv.participante_a
             es_participante = usuario in (conv.participante_a, conv.participante_b)
+
+            def _persona(u):
+                return {
+                    'id': u.id_usuario,
+                    'nombre': u.nombre or u.correo,
+                    'rol': u.rol.nombre_rol,
+                }
+
             resultado.append({
                 'id': conv.id_conversacion,
                 'es_participante': es_participante,
@@ -72,6 +80,9 @@ class ConversacionListView(APIView):
                     'nombre': otro.nombre or otro.correo,
                     'rol': otro.rol.nombre_rol,
                 },
+                
+                'participante_a': _persona(conv.participante_a),
+                'participante_b': _persona(conv.participante_b),
                 'plantel': conv.plantel.nombre,
                 'sin_leer': sin_leer,
                 'ultimo_mensaje': {
