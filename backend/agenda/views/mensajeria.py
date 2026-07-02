@@ -91,6 +91,7 @@ class ConversacionListView(APIView):
                 } if ultimo else None,
             })
 
+        resultado.sort(key=lambda c: (c['ultimo_mensaje'] or {}).get('fecha') or '', reverse=True)
         return Response(resultado)
 
     def post(self, request):

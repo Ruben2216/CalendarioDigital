@@ -86,11 +86,12 @@ export default function Usuarios() {
       .then(([solicitudes, admins, planteles, turnos]) => {
         if (!vigente) return;
         // Los admins activos (creados directo o por solicitud aceptada) vienen de
-        // /api/usuarios?rol=admin. Las solicitudes aceptadas ya son admins, así que
-        // de las solicitudes solo se conservan las pendientes/rechazadas (sin duplicar).
+        // /api/usuarios?rol=admin. Las solicitudes aceptadas ya son admins (o dejaron
+        // de serlo si se les revocó), así que de las solicitudes solo se conservan
+        // las pendientes/rechazadas (sin duplicar).
         const correosAdmin = new Set(admins.map((a) => a.correo));
         const filasSolicitudes = solicitudes
-          .filter((s) => !correosAdmin.has(s.correo))
+          .filter((s) => s.estado !== "aceptada" && !correosAdmin.has(s.correo))
           .map(solicitudAFila);
         setUsuarios([...filasSolicitudes, ...admins.map(adminAFila)]);
         setPlantelesDisponibles(planteles);

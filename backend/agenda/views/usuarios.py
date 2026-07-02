@@ -33,11 +33,16 @@ class UsuarioListView(APIView):
         if q:
             qs = qs.filter(Q(nombre__icontains=q) | Q(correo__icontains=q))[:20]
 
+        # Con filtro de plantel solo se exponen las asignaciones de ese plantel:
         return Response([{
             'id':      u.id_usuario,
             'nombre':  u.nombre or u.correo,
             'correo':  u.correo,
-            'planteles': [{'plantel': up.plantel.nombre, 'turno': up.turno.nombre_turno} for up in u.planteles_asignados.all()],
+            'planteles': [
+                {'plantel': up.plantel.nombre, 'turno': up.turno.nombre_turno}
+                for up in u.planteles_asignados.all()
+                if not id_plantel or str(up.plantel_id) == str(id_plantel)
+            ],
             'rol':     u.rol.nombre_rol,
         } for u in qs])
 
