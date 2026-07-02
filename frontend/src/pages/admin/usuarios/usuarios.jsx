@@ -210,8 +210,8 @@ export default function Usuarios() {
                 ...u,
                 nombre,
                 rol: rolFinal,
-                turno: rolFinal === "admin" ? form.turno : u.turno,
-                planteles: rolFinal === "admin" ? [...form.planteles] : u.planteles,
+                turno: rolFinal === "admin" ? form.turno : null,
+                planteles: rolFinal === "admin" ? [...form.planteles] : [],
               }
             : u,
         ),

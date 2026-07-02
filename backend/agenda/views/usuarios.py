@@ -217,19 +217,20 @@ class CrearAdminView(APIView):
                 usuario.nombre = nombre
             usuario.save(update_fields=['rol', 'nombre'])
 
+        # El colaborador se reinicia sin asignación: en su siguiente login se
+        # re-sincroniza el plantel desde su adscripción institucional, como si
+        # fuera un usuario nuevo (conserva cuenta, conversaciones e historial).
+        UsuarioPlantel.objects.filter(usuario=usuario).delete()
         if rol_acceso == 'admin':
-            UsuarioPlantel.objects.filter(usuario=usuario).delete()
             UsuarioPlantel.objects.create(usuario=usuario, plantel=plantel, turno=turno)
 
-        # El colaborador conserva su asignación previa (si la tiene) solo como referencia
-        asignacion = usuario.planteles_asignados.select_related('plantel', 'turno').first()
         return Response({
             'id_usuario': usuario.id_usuario,
             'nombre': usuario.nombre or '',
             'correo': usuario.correo,
             'rol': rol_acceso,
-            'plantel': plantel.nombre if plantel else (asignacion.plantel.nombre if asignacion else None),
-            'turno': turno.nombre_turno.lower() if turno else (asignacion.turno.nombre_turno.lower() if asignacion else None),
+            'plantel': plantel.nombre if plantel else None,
+            'turno': turno.nombre_turno.lower() if turno else None,
         }, status=status.HTTP_201_CREATED if creado else status.HTTP_200_OK)
 
 
@@ -260,6 +261,10 @@ class ActualizarAdminView(APIView):
             if usuario.rol_id != rol_obj.id_rol:
                 usuario.rol = rol_obj
                 usuario.save(update_fields=['rol'])
+            # El colaborador se reinicia sin asignación: su plantel se
+            # re-sincroniza desde la adscripción institucional en el login
+            if nuevo_rol == 'colaborador':
+                UsuarioPlantel.objects.filter(usuario=usuario).delete()
             # Docente y colaborador no gestionan plantel/turno desde aquí
             if nuevo_rol != 'admin':
                 if nombre:
