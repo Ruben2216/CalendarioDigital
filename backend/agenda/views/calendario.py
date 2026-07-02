@@ -163,6 +163,7 @@ def _evento_dict(ev, usuario):
         'plantel': ev.plantel.nombre if ev.plantel else None,
         'turno': ev.turno.nombre_turno if ev.turno else None,
         'id_calendario': ev.calendario_id,
+        'publico': ev.publico,
         'puede_editar': ev.puede_editar(usuario),
     }
 
@@ -321,7 +322,10 @@ class EventoListView(APIView):
             else:
                 if not calendario.es_publico:
                     return Response([])
-                qs = qs.filter(plantel_para_todos & turno_para_todos)
+
+                qs = qs.filter(
+                    (plantel_para_todos & turno_para_todos) | Q(publico=True)
+                )
 
         return Response([_evento_dict(ev, usuario) for ev in qs])
 
@@ -400,6 +404,7 @@ class EventoListView(APIView):
             'turno': turno,
             'semestre': semestre_obj,
             'grupo': grupo_obj,
+            'publico': True if d.get('publico') else None,
         }, None
 
 

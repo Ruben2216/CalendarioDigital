@@ -14,6 +14,7 @@ export const EVENTO_BASE = {
   especifico: false,
   semestre: "",
   grupo: "",
+  publico: false,
 };
 
 export const FORM_EVENTO_VACIO = { ...EVENTO_BASE, agregarAGoogleCalendar: false };

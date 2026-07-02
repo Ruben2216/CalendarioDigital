@@ -178,6 +178,24 @@ export default function FormularioEvento({
 
       <div className={styles['interruptor']}>
         <div>
+          <span className="formulario__etiqueta">Agregar al calendario público</span>
+          <p className={styles['interruptor__nota']}>
+            Los invitados podrán ver este evento en el calendario público.
+          </p>
+        </div>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={form.publico}
+          className={`${styles['switch']} ${form.publico ? styles['switch--on'] : ''}`}
+          onClick={() => fij('publico', !form.publico)}
+        >
+          <span className={styles['switch__bolita']} />
+        </button>
+      </div>
+
+      <div className={styles['interruptor']}>
+        <div>
           <span className="formulario__etiqueta">Dirigido a un grupo/semestre específico</span>
           <p className={styles['interruptor__nota']}>
             {esGeneral
