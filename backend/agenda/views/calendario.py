@@ -46,9 +46,20 @@ class TipoEventoListView(APIView):
             tipos = TipoEvento.objects.select_related('plantel').filter(
                 Q(plantel__isnull=True) | Q(plantel_id__in=usuario.ids_planteles())
             )
+        rol = usuario.rol.nombre_rol if usuario else ''
+        planteles = set(usuario.ids_planteles()) if usuario and rol == 'admin' else set()
+
+        def _puede_editar(t):
+            if rol == 'superusuario':
+                return True
+            if rol == 'admin':
+                return t.plantel_id is not None and t.plantel_id in planteles
+            return False
+
         return Response([
             {'id': str(t.id_tipo_evento), 'etiqueta': t.nombre, 'color': t.color_hex,
-             'es_global': t.plantel_id is None, 'plantel': t.plantel.nombre if t.plantel else None}
+             'es_global': t.plantel_id is None, 'plantel': t.plantel.nombre if t.plantel else None,
+             'puede_editar': _puede_editar(t)}
             for t in tipos
         ])
 
@@ -79,7 +90,9 @@ class TipoEventoListView(APIView):
         tipo = TipoEvento.objects.create(nombre=nombre, color_hex=color_hex, plantel=plantel)
         return Response(
             {'id': str(tipo.id_tipo_evento), 'etiqueta': tipo.nombre, 'color': tipo.color_hex,
-             'es_global': tipo.plantel_id is None},
+             'es_global': tipo.plantel_id is None,
+             'plantel': tipo.plantel.nombre if tipo.plantel else None,
+             'puede_editar': True},
             status=status.HTTP_201_CREATED,
         )
 

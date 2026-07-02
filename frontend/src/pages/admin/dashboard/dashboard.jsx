@@ -47,26 +47,34 @@ export default function Dashboard() {
     eventos, tipos, calendarios, calendarioActivo, setCalendarioActivo,
     colorTipo, etiquetaTipo,
   } = useCalendarioEventos();
+  const [errorCarga, setErrorCarga] = useState(false);
+  const [reintento, setReintento] = useState(0);
+
   const [anuncios, setAnuncios] = useState([]);
   useEffect(() => {
     let vigente = true;
     listarAnuncios()
       .then((lista) => { if (vigente) setAnuncios(lista); })
-      .catch(() => { if (vigente) setAnuncios([]); });
+      .catch(() => { if (vigente) setErrorCarga(true); });
     return () => { vigente = false; };
-  }, []);
+  }, [reintento]);
 
   // máximo de anuncios mostrados en el panel principal (admin, superusuario)
-  const anunciosResumen = useMemo(() => anuncios.slice(0, 5), [anuncios]); 
+  const anunciosResumen = useMemo(() => anuncios.slice(0, 5), [anuncios]);
 
   const [estadisticas, setEstadisticas] = useState(null);
   useEffect(() => {
     let vigente = true;
     obtenerEstadisticasDashboard()
       .then((datos) => { if (vigente) setEstadisticas(datos); })
-      .catch(() => { if (vigente) setEstadisticas(null); });
+      .catch(() => { if (vigente) setErrorCarga(true); });
     return () => { vigente = false; };
-  }, []);
+  }, [reintento]);
+
+  const reintentarCarga = () => {
+    setErrorCarga(false);
+    setReintento((n) => n + 1);
+  };
   const [mesVisible, setMesVisible] = useState(
     () => new Date(hoy.getFullYear(), hoy.getMonth(), 1)
   );
@@ -175,6 +183,29 @@ export default function Dashboard() {
           </div>
         </div>
       </section>
+
+      {errorCarga && (
+        <div
+          style={{
+            gridColumn: "1 / -1",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 12,
+            padding: "10px 14px",
+            borderRadius: "var(--radius-lg)",
+            background: "var(--red-soft)",
+            color: "var(--red)",
+            fontSize: 13,
+            fontWeight: 600,
+          }}
+        >
+          <span>No se pudieron cargar algunos datos del panel.</span>
+          <button type="button" className="boton boton--fantasma" onClick={reintentarCarga}>
+            Reintentar
+          </button>
+        </div>
+      )}
 
       <div className={styles["columna"]}>
         <section className={styles["indicadores"]}>

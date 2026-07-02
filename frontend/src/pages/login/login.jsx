@@ -173,7 +173,7 @@ export default function Login() {
     e.preventDefault();
 
     if (isPublicAccess) {
-      guardarSesion("tutor-public-token", { rol: "tutor", nombre: "Padre/Tutor" });
+      guardarSesion("tutor-public-token", { rol: "tutor", nombre: "Invitado" });
       navigate("/tutor/calendario");  
       return;
     }

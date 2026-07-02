@@ -1,11 +1,39 @@
 import styles from './ConvLista.module.css';
 
-export default function ConvLista({ conversaciones, idActiva, onSeleccionar, titulo = 'Mensajes' }) {
+export default function ConvLista({
+  conversaciones,
+  idActiva,
+  onSeleccionar,
+  titulo = 'Mensajes',
+  cargando = false,
+  error = false,
+  onReintentar = null,
+}) {
   return (
     <aside className={styles['conv-lista']}>
       <div className={styles['conv-lista__cabecera']}>
         <h2 className={styles['conv-lista__titulo']}>{titulo}</h2>
       </div>
+
+      {error ? (
+        <div className={styles['conv-lista__aviso']}>
+          <p>No se pudieron cargar las conversaciones.</p>
+          {onReintentar && (
+            <button
+              type="button"
+              className="boton boton--fantasma"
+              style={{ marginTop: 10 }}
+              onClick={onReintentar}
+            >
+              Reintentar
+            </button>
+          )}
+        </div>
+      ) : cargando ? (
+        <p className={styles['conv-lista__aviso']}>Cargando conversaciones…</p>
+      ) : conversaciones.length === 0 ? (
+        <p className={styles['conv-lista__aviso']}>No hay conversaciones.</p>
+      ) : (
       <ul className={styles['conv-lista__lista']}>
         {conversaciones.map((conv) => {
           const ultimo = conv.mensajes[conv.mensajes.length - 1];
@@ -33,6 +61,7 @@ export default function ConvLista({ conversaciones, idActiva, onSeleccionar, tit
           );
         })}
       </ul>
+      )}
     </aside>
   );
 }

@@ -9,15 +9,19 @@ import styles from "./AnunciosVista.module.css";
 export default function AnunciosVista() {
   const [anuncios, setAnuncios] = useState([]);
   const [cargando, setCargando] = useState(true);
+  const [errorCarga, setErrorCarga] = useState(false);
+  const [reintento, setReintento] = useState(0);
 
   useEffect(() => {
     let vigente = true;
+    setCargando(true);
+    setErrorCarga(false);
     listarAnuncios()
       .then((lista) => { if (vigente) setAnuncios(lista); })
-      .catch(() => { if (vigente) setAnuncios([]); })
+      .catch(() => { if (vigente) setErrorCarga(true); })
       .finally(() => { if (vigente) setCargando(false); });
     return () => { vigente = false; };
-  }, []);
+  }, [reintento]);
 
   return (
     <section className={styles["pagina"]}>
@@ -32,7 +36,23 @@ export default function AnunciosVista() {
       </header>
 
       <article className="tarjeta">
-        {cargando ? <p className={styles["vacio"]}>Cargando…</p> : <ListaAnunciosLectura anuncios={anuncios} />}
+        {cargando ? (
+          <p className={styles["vacio"]}>Cargando…</p>
+        ) : errorCarga ? (
+          <div className={styles["vacio"]}>
+            <p>No se pudieron cargar los anuncios.</p>
+            <button
+              type="button"
+              className="boton boton--fantasma"
+              style={{ marginTop: 10 }}
+              onClick={() => setReintento((n) => n + 1)}
+            >
+              Reintentar
+            </button>
+          </div>
+        ) : (
+          <ListaAnunciosLectura anuncios={anuncios} />
+        )}
       </article>
     </section>
   );
