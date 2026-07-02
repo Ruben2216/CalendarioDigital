@@ -43,6 +43,16 @@ def desuscribir(token: str, temas: list[str]) -> None:
     for tema in temas:
         messaging.unsubscribe_from_topic([token], tema)
 
+def sincronizar(token: str, deseados: list[str], previos: list[str]) -> list[str]:
+    _get_app()
+    prev = set(previos or [])
+    des = set(deseados or [])
+    for tema in prev - des:
+        messaging.unsubscribe_from_topic([token], tema)
+    for tema in des - prev:
+        messaging.subscribe_to_topic([token], tema)
+    return sorted(des)
+
 def enviar_a_temas(temas: list[str], titulo: str, cuerpo: str, data: dict | None = None) -> str:
     _get_app()
     payload = {'title': titulo, 'body': cuerpo}

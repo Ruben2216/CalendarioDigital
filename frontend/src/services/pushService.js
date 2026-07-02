@@ -36,6 +36,17 @@ export const inicializarNotificaciones = async (usuarioActual) => {
   }
 };
 
+export async function obtenerTokenFCM() {
+  try {
+    if (typeof Notification === 'undefined' || Notification.permission !== 'granted') {
+      return null;
+    }
+    return await getToken(messaging, { vapidKey: VAPID_KEY });
+  } catch {
+    return null;
+  }
+}
+
 async function registrarDispositivo(token, usuarioActual = {}) {
   const respuesta = await fetch(`${BASE_URL}/api/dispositivos/registrar/`, {
     method: 'POST',
@@ -48,6 +59,7 @@ async function registrarDispositivo(token, usuarioActual = {}) {
       token_fcm: token,
       id_usuario: usuarioActual.id_usuario ?? null,
       rol: usuarioActual.rol ?? '',
+      planteles: usuarioActual.planteles ?? [],
       plantel_id: usuarioActual.plantel_id ?? null,
       plantel_nombre: usuarioActual.plantel_nombre ?? null,
     }),

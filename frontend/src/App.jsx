@@ -68,10 +68,14 @@ function App() {
     try { s = JSON.parse(raw); } catch { return; }
     if (!s?.rol || s.rol === 'tutor') return;
 
-    const plano = s.plantel ?? (Array.isArray(s.planteles) ? s.planteles[0]?.plantel : null);
+    const planteles = Array.isArray(s.planteles)
+      ? s.planteles.map((p) => p.plantel).filter(Boolean)
+      : [];
+    const plano = s.plantel ?? planteles[0] ?? null;
     inicializarNotificaciones({
       id_usuario: s.id_usuario ?? null,
       rol: s.rol,
+      planteles,
       plantel_id: plano?.id ?? null,
       plantel_nombre: plano?.nombre ?? null,
     }).catch(() => {});
