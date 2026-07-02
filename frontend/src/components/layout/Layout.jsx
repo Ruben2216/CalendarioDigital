@@ -15,7 +15,13 @@ const NAV = [
   { etiqueta: "Usuarios",   icono: Users,            ruta: "/usuarios" },
 ];
 
-// Layout para admin y superusuario.
+// Rutas del menú que cada rol NO puede ver.
+const RUTAS_OCULTAS = {
+  admin: ['/usuarios'],
+  colaborador: ['/usuarios', '/mensajeria'],
+};
+
+// Layout para admin, superusuario y colaborador.
 export default function Layout() {
   const [sesion, setSesion] = useState(leerSesion);
   const { nombre, iniciales, rol, plantel, turno, tipoEmpleado, adscripcion } = sesion;
@@ -25,7 +31,8 @@ export default function Layout() {
     refrescarSesion().then(() => setSesion(leerSesion()));
   }, []);
 
-  const nav = (rol === 'admin' ? NAV.filter(item => item.ruta !== '/usuarios') : NAV)
+  const ocultas = RUTAS_OCULTAS[rol] || [];
+  const nav = NAV.filter(item => !ocultas.includes(item.ruta))
     .map(item => ({ ...item, badge: item.etiqueta === 'Mensajería' ? totalSinLeer : 0 }));
 
   const labelPlantel = plantel?.nombre ? 'Plantel' : (tipoEmpleado === 'Administrativo' ? 'Departamento' : 'Plantel');
@@ -50,7 +57,13 @@ export default function Layout() {
 
   return (
     <LayoutBase
-      usuario={{ nombre, iniciales, rolLabel: tipoEmpleado || ROL_ETIQUETA[rol] || 'Usuario' }}
+      usuario={{
+        nombre,
+        iniciales,
+        rolLabel: rol === 'colaborador'
+          ? ROL_ETIQUETA.colaborador
+          : (tipoEmpleado || ROL_ETIQUETA[rol] || 'Usuario'),
+      }}
       nav={nav}
       plantelHeader={{ label: labelPlantel, valor: valorPlantel, conChevron: false }}
       perfilContenido={perfilContenido}

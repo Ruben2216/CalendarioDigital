@@ -127,7 +127,7 @@ class NotificacionListView(APIView):
 
         if usuario:
             rol = usuario.rol.nombre_rol
-            if rol == 'superusuario':
+            if usuario.es_gestor_global():
                 nombre_filtro = request.query_params.get('plantel_filtro')
                 qs = qs.filter(usuario.alcance_plantel(plantel_filtro=nombre_filtro))
             elif rol == 'admin':

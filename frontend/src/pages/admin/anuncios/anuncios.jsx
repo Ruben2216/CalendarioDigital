@@ -12,13 +12,13 @@ import {
 import { obtenerSesion } from "../../../services/authService.js";
 import SelectorPlantel from "../../../components/selector-plantel/SelectorPlantel.jsx";
 import { avisoExito, avisoError, confirmarAccion } from "../../../lib/alertas.js";
-import { esAdmin as rolEsAdmin, esSuperusuario as rolEsSuperusuario } from "../../../lib/permisos.js";
+import { esAdmin as rolEsAdmin, esGestorGlobal } from "../../../lib/permisos.js";
 import styles from "./anuncios.module.css";
 
 export default function Anuncios() {
   const sesion = obtenerSesion();
   const esAdmin = rolEsAdmin(sesion);
-  const esSuperusuario = rolEsSuperusuario(sesion);
+  const esGestor = esGestorGlobal(sesion);
   // Planteles asignados al admin (un admin no crea anuncios generales).
   const plantelesAdmin = [...new Set((sesion?.planteles || [])
     .map((p) => p.plantel?.nombre)
@@ -145,8 +145,8 @@ export default function Anuncios() {
             ))}
           </div>
           <div className={styles["barra__derecha"]}>
-            {/* Buscador del superusuario */}
-            {esSuperusuario && (
+            {/* Buscador de gestión global (superusuario y colaborador) */}
+            {esGestor && (
               <div className={styles["vista-plantel"]}>
                 <span>Mostrar</span>
                 <SelectorPlantel

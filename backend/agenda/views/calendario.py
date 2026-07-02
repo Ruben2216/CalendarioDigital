@@ -40,17 +40,18 @@ class TipoEventoListView(APIView):
         usuario = _usuario_sesion(request)
         if usuario is None:
             tipos = TipoEvento.objects.select_related('plantel').filter(plantel__isnull=True)
-        elif usuario.rol.nombre_rol == 'superusuario':
+        elif usuario.es_gestor_global():
             tipos = TipoEvento.objects.select_related('plantel').all()
         else:
             tipos = TipoEvento.objects.select_related('plantel').filter(
                 Q(plantel__isnull=True) | Q(plantel_id__in=usuario.ids_planteles())
             )
         rol = usuario.rol.nombre_rol if usuario else ''
+        es_gestor = usuario.es_gestor_global() if usuario else False
         planteles = set(usuario.ids_planteles()) if usuario and rol == 'admin' else set()
 
         def _puede_editar(t):
-            if rol == 'superusuario':
+            if es_gestor:
                 return True
             if rol == 'admin':
                 return t.plantel_id is not None and t.plantel_id in planteles
@@ -68,7 +69,7 @@ class TipoEventoListView(APIView):
         if not usuario:
             return Response({'error': 'No autenticado.'}, status=status.HTTP_401_UNAUTHORIZED)
         rol = usuario.rol.nombre_rol
-        if rol not in ('superusuario', 'admin'):
+        if rol != 'admin' and not usuario.es_gestor_global():
             return Response({'error': 'No autorizado.'}, status=status.HTTP_403_FORBIDDEN)
 
         nombre = (request.data.get('nombre') or '').strip()
@@ -76,7 +77,7 @@ class TipoEventoListView(APIView):
         if not nombre:
             return Response({'error': 'El nombre es obligatorio.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        if rol == 'superusuario':
+        if usuario.es_gestor_global():
             plantel = None
         else:
             plantel_id = request.data.get('plantel_id')
@@ -110,7 +111,7 @@ class TipoEventoDetailView(APIView):
             return None, None, Response(status=status.HTTP_404_NOT_FOUND)
 
         rol = usuario.rol.nombre_rol
-        if rol == 'superusuario':
+        if usuario.es_gestor_global():
             return usuario, tipo, None
         if rol == 'admin':
             if tipo.plantel_id is None:
@@ -268,7 +269,7 @@ class EventoListView(APIView):
 
         if usuario:
             rol = usuario.rol.nombre_rol
-            if rol == 'superusuario':
+            if usuario.es_gestor_global():
                 # Por defecto solo eventos generales (evita saturar el calendario)
                 # Con plantel_filtro: generales + los de ese plantel en específico
                 nombre_filtro = request.query_params.get('plantel_filtro')
@@ -330,7 +331,7 @@ class EventoListView(APIView):
             return Response({'error': 'No autenticado.'}, status=status.HTTP_401_UNAUTHORIZED)
 
         rol = usuario.rol.nombre_rol
-        if rol not in ('admin', 'superusuario'):
+        if rol != 'admin' and not usuario.es_gestor_global():
             return Response({'error': 'No autorizado para crear eventos.'}, status=status.HTTP_403_FORBIDDEN)
 
         datos, error = self._leer_evento(request, usuario, rol)

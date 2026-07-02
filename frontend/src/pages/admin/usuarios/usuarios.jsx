@@ -5,7 +5,7 @@ import {
 } from "lucide-react";
 import Modal from "../../../components/modal/Modal.jsx";
 import { avisoExito, avisoError, confirmarAccion, confirmarEliminacion } from "../../../lib/alertas.js";
-import { ROL, ESTADOS, TURNOS } from "../../../data/usuarios.js";
+import { ROL, ROLES_GESTION, ESTADOS, TURNOS } from "../../../data/usuarios.js";
 import { listarSolicitudes, listarAdministradores, resolverSolicitud, eliminarSolicitud, crearAdmin, actualizarAdmin } from "../../../services/solicitudesService.js";
 import { obtenerPlanteles, obtenerTurnos } from "../../../services/authService.js";
 import BuscadorPlantelInline from "../../../components/buscador-plantel/BuscadorPlantelInline.jsx";
@@ -27,6 +27,7 @@ function solicitudAFila(s) {
     origenBackend: true,
     nombre: s.nombre,
     correo: s.correo,
+    rol: "admin",
     turno: s.turno || "matutino",
     planteles: s.plantel ? [s.plantel] : [],
     estado: ESTADO_BACKEND[s.estado] || "pendiente",
@@ -36,13 +37,15 @@ function solicitudAFila(s) {
 
 function adminAFila(u) {
   const primera = u.planteles?.[0];
+  const rol = u.rol || "admin";
   return {
     id: `adm-${u.id}`,
     id_usuario: u.id,
     origenBackend: false,
     nombre: u.nombre,
     correo: u.correo,
-    turno: (primera?.turno || "matutino").toLowerCase(),
+    rol,
+    turno: primera?.turno ? primera.turno.toLowerCase() : (rol === "colaborador" ? null : "matutino"),
     planteles: (u.planteles || []).map((p) => p.plantel).filter(Boolean),
     estado: "activo",
     solicitado: "",
@@ -51,6 +54,7 @@ function adminAFila(u) {
 
 const ROLES_EDICION = [
   { id: "admin", etiqueta: "Administrador" },
+  { id: "colaborador", etiqueta: "Colaborador" },
   { id: "docente", etiqueta: "Docente / Administrativo" },
 ];
 
@@ -141,10 +145,10 @@ export default function Usuarios() {
     setForm({
       nombre: usuario.nombre,
       correo: usuario.correo,
-      turno: usuario.turno,
+      turno: usuario.turno || "matutino",
       planteles: [...usuario.planteles],
       usuarioId: usuario.id_usuario ?? null,
-      rol: "admin",
+      rol: usuario.rol || "admin",
     });
     setModalAbierto(true);
   };
@@ -170,7 +174,7 @@ export default function Usuarios() {
 
   const guardar = async (e) => {
     e.preventDefault();
-    const rolFinal = editando ? form.rol : "admin";
+    const rolFinal = form.rol;
 
     const nombre = form.nombre.trim();
     const correo = form.correo.trim();
@@ -193,33 +197,41 @@ export default function Usuarios() {
           return;
         }
       }
-      if (rolFinal !== "admin") {
+      if (rolFinal === "docente") {
         setUsuarios((prev) => prev.filter((u) => u.id !== editando));
         setModalAbierto(false);
-        avisoExito("Acceso de administrador revocado. El usuario volverá a su rol según sus credenciales institucionales.");
+        avisoExito("Acceso revocado. El usuario volverá a su rol según sus credenciales institucionales.");
         return;
       }
       setUsuarios((prev) =>
         prev.map((u) =>
           u.id === editando
-            ? { ...u, nombre, turno: form.turno, planteles: [...form.planteles] }
+            ? {
+                ...u,
+                nombre,
+                rol: rolFinal,
+                turno: rolFinal === "admin" ? form.turno : u.turno,
+                planteles: rolFinal === "admin" ? [...form.planteles] : u.planteles,
+              }
             : u,
         ),
       );
     } else {
-      if (modoBusqueda === "nombre" && (!plantelId || !turnoId)) {
+      if (rolFinal === "admin" && modoBusqueda === "nombre" && (!plantelId || !turnoId)) {
         avisoError("Selecciona un plantel y turno.");
         return;
       }
-      const payload = { correo };
+      const payload = { correo, rol: rolFinal };
       if (nombre) payload.nombre = nombre;
-      if (turnoId) payload.turno_id = turnoId;
-      if (plantelId) payload.plantel_id = plantelId;
+      if (rolFinal === "admin") {
+        if (turnoId) payload.turno_id = turnoId;
+        if (plantelId) payload.plantel_id = plantelId;
+      }
       let res;
       try {
         res = await crearAdmin(payload);
       } catch (err) {
-        avisoError(err.message || "No se pudo crear el administrador");
+        avisoError(err.message || "No se pudo crear el usuario");
         return;
       }
       setUsuarios((prev) => [
@@ -229,8 +241,9 @@ export default function Usuarios() {
           id_usuario: res.id_usuario,
           nombre: res.nombre,
           correo: res.correo,
+          rol: res.rol || rolFinal,
           turno: res.turno,
-          planteles: [res.plantel],
+          planteles: res.plantel ? [res.plantel] : [],
           estado: "activo",
           solicitado: new Date().toISOString().slice(0, 10),
           origenBackend: false,
@@ -239,7 +252,11 @@ export default function Usuarios() {
     }
 
     setModalAbierto(false);
-    avisoExito(editando ? "Usuario actualizado" : "Administrador agregado");
+    avisoExito(
+      editando
+        ? "Usuario actualizado"
+        : `${ROLES_GESTION[rolFinal]?.etiqueta || "Usuario"} agregado`,
+    );
   };
 
   const aceptar = async (usuario) => {
@@ -410,11 +427,12 @@ export default function Usuarios() {
                 {usuariosFiltrados.map((u) => {
                   const estado = ESTADOS_MAP[u.estado];
                   const turno = TURNOS_MAP[u.turno];
+                  const rolFila = ROLES_GESTION[u.rol] || ROL;
                   return (
                     <tr key={u.id}>
                       <td>
                         <div className={styles["usuario"]}>
-                          <span className={`${styles["usuario__avatar"]} ${styles[`usuario__avatar--${ROL.color}`]}`}>
+                          <span className={`${styles["usuario__avatar"]} ${styles[`usuario__avatar--${rolFila.color}`]}`}>
                             {iniciales(u.nombre)}
                           </span>
                           <div className={styles["usuario__copia"]}>
@@ -427,20 +445,28 @@ export default function Usuarios() {
                         </div>
                       </td>
                       <td data-label="Plantel">
-                        <div className={styles["planteles"]}>
-                          {u.planteles.map((p) => (
-                            <span key={p} className={styles["plantel-chip"]}>
-                              <MapPin size={11} />
-                              {p}
-                            </span>
-                          ))}
-                        </div>
+                        {u.planteles.length > 0 ? (
+                          <div className={styles["planteles"]}>
+                            {u.planteles.map((p) => (
+                              <span key={p} className={styles["plantel-chip"]}>
+                                <MapPin size={11} />
+                                {p}
+                              </span>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className={styles["tabla__tenue"]}>—</span>
+                        )}
                       </td>
                       <td data-label="Turno">
-                        <span className={`etiqueta etiqueta--${turno?.color}`}>{turno?.etiqueta}</span>
+                        {turno ? (
+                          <span className={`etiqueta etiqueta--${turno.color}`}>{turno.etiqueta}</span>
+                        ) : (
+                          <span className={styles["tabla__tenue"]}>—</span>
+                        )}
                       </td>
                       <td data-label="Rol">
-                        <span className={`etiqueta etiqueta--${ROL.color}`}>{ROL.etiqueta}</span>
+                        <span className={`etiqueta etiqueta--${rolFila.color}`}>{rolFila.etiqueta}</span>
                       </td>
                       <td data-label="Estado">
                         <span className={`etiqueta etiqueta--${estado?.color}`}>{estado?.etiqueta}</span>
@@ -522,18 +548,29 @@ export default function Usuarios() {
               <button
                 type="button"
                 className={modoBusqueda === "correo" ? styles["modo-busqueda__activo"] : ""}
-                onClick={() => { setModoBusqueda("correo"); setForm(FORM_VACIO); }}
+                onClick={() => { setModoBusqueda("correo"); setForm((prev) => ({ ...FORM_VACIO, rol: prev.rol })); }}
               >
                 Por correo
               </button>
               <button
                 type="button"
                 className={modoBusqueda === "nombre" ? styles["modo-busqueda__activo"] : ""}
-                onClick={() => { setModoBusqueda("nombre"); setForm(FORM_VACIO); }}
+                onClick={() => { setModoBusqueda("nombre"); setForm((prev) => ({ ...FORM_VACIO, rol: prev.rol })); }}
               >
                 Por nombre 
               </button>
             </div>
+          )}
+
+          {!editando && (
+            <label className="formulario__campo">
+              <span className="formulario__etiqueta">Tipo de acceso</span>
+              <select value={form.rol} onChange={fijarCampo("rol")}>
+                {Object.values(ROLES_GESTION).map((r) => (
+                  <option key={r.id} value={r.id}>{r.etiqueta}</option>
+                ))}
+              </select>
+            </label>
           )}
 
           {(!editando && modoBusqueda === "correo") ? (
@@ -548,14 +585,16 @@ export default function Usuarios() {
                   onChange={fijarCampo("correo")}
                 />
               </label>
-              <label className="formulario__campo">
-                <span className="formulario__etiqueta">Turno</span>
-                <select value={form.turno} onChange={fijarCampo("turno")}>
-                  {opcionesTurno.map((t) => (
-                    <option key={t.id} value={t.id}>{t.etiqueta}</option>
-                  ))}
-                </select>
-              </label>
+              {form.rol === "admin" && (
+                <label className="formulario__campo">
+                  <span className="formulario__etiqueta">Turno</span>
+                  <select value={form.turno} onChange={fijarCampo("turno")}>
+                    {opcionesTurno.map((t) => (
+                      <option key={t.id} value={t.id}>{t.etiqueta}</option>
+                    ))}
+                  </select>
+                </label>
+              )}
             </>
           ) : (
             <div className="formulario__campo">
@@ -578,7 +617,7 @@ export default function Usuarios() {
             </div>
           )}
 
-          {(editando || modoBusqueda === "nombre") && (
+          {(editando || modoBusqueda === "nombre") && form.rol === "admin" && (
             <label className="formulario__campo">
               <span className="formulario__etiqueta">Turno</span>
               <select value={form.turno} onChange={fijarCampo("turno")}>
@@ -597,20 +636,26 @@ export default function Usuarios() {
                   <option key={r.id} value={r.id}>{r.etiqueta}</option>
                 ))}
               </select>
-              {form.rol !== "admin" && (
+              {form.rol === "docente" && (
                 <span className={styles["aviso-campo"]}>
-                  Al guardar, el usuario perderá acceso de administrador. Su rol dependerá de sus credenciales institucionales.
+                  Al guardar, el usuario perderá su acceso de gestión. Su rol dependerá de sus credenciales institucionales.
                 </span>
               )}
             </label>
-          ) : (
+          ) : null}
+
+          {(ROLES_GESTION[form.rol] && (!editando || form.rol === "colaborador")) && (
             <p className={styles["rol-nota"]}>
               <ShieldCheck size={13} />
-              <span>Se registrará como <b>{ROL.etiqueta}</b>. {ROL.descripcion}</span>
+              <span>
+                {editando
+                  ? ROLES_GESTION[form.rol].descripcion
+                  : <>Se registrará como <b>{ROLES_GESTION[form.rol].etiqueta}</b>. {ROLES_GESTION[form.rol].descripcion}</>}
+              </span>
             </p>
           )}
 
-          {(!editando || form.rol === "admin") && (
+          {form.rol === "admin" && (
             <div className="formulario__campo">
               <span className="formulario__etiqueta">
                 Plantel donde puede gestionar fechas

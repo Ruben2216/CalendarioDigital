@@ -91,7 +91,7 @@ class LoginInstitucionalView(APIView):
         rol_real = usuario.rol.nombre_rol
         if rol_solicitado != 'personal':
             rol_compatible = rol_real == rol_solicitado or (
-                rol_solicitado == 'admin' and rol_real == 'superusuario'
+                rol_solicitado == 'admin' and rol_real in ('superusuario', 'colaborador')
             )
             if not rol_compatible:
                 return Response(
@@ -407,9 +407,9 @@ class GoogleAuthView(APIView):
         except Usuario.DoesNotExist:
             return Response({'error': 'Usuario no activo.'}, status=status.HTTP_403_FORBIDDEN)
 
-        # Para role=admin verificar que el rol local sea admin o superusuario
+        # Para role=admin verificar que el rol local sea admin, superusuario o colaborador
         rol_real = usuario.rol.nombre_rol
-        if role == 'admin' and rol_real not in ('admin', 'superusuario'):
+        if role == 'admin' and rol_real not in ('admin', 'superusuario', 'colaborador'):
             return Response(
                 {'error': 'No tienes perfil de administrador.'},
                 status=status.HTTP_403_FORBIDDEN,

@@ -101,6 +101,11 @@ class Grupo(models.Model):
 
 
 class Usuario(models.Model):
+    # Roles con gestión global del calendario: ven y editan eventos/anuncios de
+    # toda la institución. El colaborador comparte alcance con el superusuario
+    # salvo mensajería y administración de usuarios (exclusivas del superusuario).
+    ROLES_GESTION_GLOBAL = ('superusuario', 'colaborador')
+
     id_usuario = models.BigAutoField(primary_key=True)
     rol = models.ForeignKey(
         Rol, on_delete=models.PROTECT, related_name='usuarios'
@@ -122,6 +127,9 @@ class Usuario(models.Model):
     def __str__(self):
         return f'{self.correo} ({self.rol.nombre_rol})'
 
+    def es_gestor_global(self):
+        return self.rol.nombre_rol in self.ROLES_GESTION_GLOBAL
+
     def ids_planteles(self):
         return list(self.planteles_asignados.values_list('plantel_id', flat=True))
 
@@ -129,11 +137,11 @@ class Usuario(models.Model):
         return list(self.planteles_asignados.values_list('turno_id', flat=True))
 
     def alcance_plantel(self, campo='plantel', plantel_filtro=None):
-        """Q para filtrar `campo` según el rol: el superusuario ve solo lo
+        """Q para filtrar `campo` según el rol: los gestores globales ven solo lo
         general (o + `plantel_filtro`); admin/docente ven lo general + sus
         planteles asignados."""
         general = Q(**{f'{campo}__isnull': True})
-        if self.rol.nombre_rol == 'superusuario':
+        if self.es_gestor_global():
             if plantel_filtro:
                 return general | Q(**{f'{campo}__nombre': plantel_filtro})
             return general
@@ -291,13 +299,12 @@ class Evento(models.Model):
         return self.plantel_id is None and self.turno_id is None
 
     def puede_editar(self, usuario) -> bool:
-        """Superusuario edita todo; el resto solo lo que creó."""
+        """Los gestores globales editan todo; el resto solo lo que creó."""
         if usuario is None:
             return False
-        rol = usuario.rol.nombre_rol
-        if rol == 'superusuario':
+        if usuario.es_gestor_global():
             return True
-        if rol == 'admin':
+        if usuario.rol.nombre_rol == 'admin':
             return self.creado_por_id == usuario.id_usuario
         return False
 
@@ -359,10 +366,9 @@ class Anuncio(models.Model):
     def puede_editar(self, usuario) -> bool:
         if usuario is None:
             return False
-        rol = usuario.rol.nombre_rol
-        if rol == 'superusuario':
+        if usuario.es_gestor_global():
             return True
-        if rol == 'admin':
+        if usuario.rol.nombre_rol == 'admin':
             return self.creado_por_id == usuario.id_usuario
         return False
 

@@ -30,7 +30,7 @@ import VistaAnual from "./vistas/VistaAnual.jsx";
 import VistaLista from "./vistas/VistaLista.jsx";
 import VistaMesMovil from "./vistas/VistaMesMovil.jsx";
 import { useGoogleCalendarSync } from "../../../hooks/useGoogleCalendarSync.js";
-import { plantelesPermitidos as calcularPlantelesPermitidos, turnosPermitidos as calcularTurnosPermitidos } from "../../../lib/permisos.js";
+import { esGestorGlobal, plantelesPermitidos as calcularPlantelesPermitidos, turnosPermitidos as calcularTurnosPermitidos } from "../../../lib/permisos.js";
 import {
   mapaTipos, colorDeTipo, etiquetaDeTipo, filtrarEventos,
   eventosParaFullCalendar, agruparEventosPorDia,
@@ -69,7 +69,7 @@ export default function Calendario({ soloLectura = false, publico = false }) {
   // ya que son los datos que la API devuelve. El resto filtra libremente (ej. admin y docente)
   const sesion = useSesion();
   const esAlumno = sesion.rol === "alumno";
-  const esSuperusuario = sesion.rol === "superusuario";
+  const esGestor = esGestorGlobal(sesion);
   const esAdmin = sesion.rol === "admin";
 
   // los roles de solo lectura nunca editan - el admin/superusuario sí.
@@ -285,17 +285,17 @@ export default function Calendario({ soloLectura = false, publico = false }) {
      generales (los de plantel son responsabilidad del admin de cada plantel). */
   const tiposParaCrear = useMemo(() => {
     if (esAdmin) return tipos.filter((t) => !t.es_global);
-    if (esSuperusuario) return tipos.filter((t) => t.es_global);
+    if (esGestor) return tipos.filter((t) => t.es_global);
     return tipos;
-  }, [tipos, esAdmin, esSuperusuario]);
+  }, [tipos, esAdmin, esGestor]);
 
   const tiposSimbologia = useMemo(() => {
-    if (!esSuperusuario) return tipos;
+    if (!esGestor) return tipos;
     if (!vistaPlantel) return tipos.filter((t) => t.es_global);
     return tipos.filter((t) => t.es_global || t.plantel === vistaPlantel);
-  }, [tipos, esSuperusuario, vistaPlantel]);
+  }, [tipos, esGestor, vistaPlantel]);
   const tienesTipos = tiposParaCrear.length > 0;
-  const puedeCrear = !lectura && tienesTipos && (esSuperusuario || (esAdmin && calActivo?.clave === "escolarizado"));
+  const puedeCrear = !lectura && tienesTipos && (esGestor || (esAdmin && calActivo?.clave === "escolarizado"));
 
   // Eventos visibles tras aplicar los filtros de tipo y área.
   const eventosFiltrados = useMemo(() => filtrarEventos(eventos, {
@@ -614,7 +614,7 @@ export default function Calendario({ soloLectura = false, publico = false }) {
   };
 
   // CRUD de tipos de evento
-  const puedeGestionarTipos = !lectura && (esSuperusuario || esAdmin);
+  const puedeGestionarTipos = !lectura && (esGestor || esAdmin);
 
   return (
     <div className={styles["calendario"]}>
@@ -650,7 +650,7 @@ export default function Calendario({ soloLectura = false, publico = false }) {
 
         {/* Buscador del superusuario: por defecto tiene el "Calendario general": al elegir un
             plantel se suman sus eventos a los generales */}
-        {esSuperusuario && (
+        {esGestor && (
           <div className={styles["calendario__vista-plantel"]}>
             <span>Mostrar</span>
             <SelectorPlantel
@@ -1425,7 +1425,7 @@ export default function Calendario({ soloLectura = false, publico = false }) {
             </select>
           </label>
 
-          {!esSuperusuario && (
+          {!esGestor && (
             <label className="formulario__campo">
               <span className="formulario__etiqueta">Plantel</span>
               {plantelesPermitidos.length > 0 ? (
@@ -1533,7 +1533,7 @@ export default function Calendario({ soloLectura = false, publico = false }) {
           }}
           onSubmit={guardarEvento}
         />
-        {(esAdmin || esSuperusuario) && calVinculado?.vinculado && !eventoEditando && (
+        {(esAdmin || esGestor) && calVinculado?.vinculado && !eventoEditando && (
           <label className={styles["google-cal-opcion"]}>
             <input
               type="checkbox"

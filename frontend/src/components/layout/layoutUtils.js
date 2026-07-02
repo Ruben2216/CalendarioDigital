@@ -3,6 +3,7 @@
 export const ROL_ETIQUETA = {
   superusuario: 'Superusuario',
   admin: 'Administrador',
+  colaborador: 'Colaborador',
   docente: 'Docente',
   alumno: 'Alumno',
   tutor: 'Visitante',

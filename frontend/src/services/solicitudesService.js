@@ -32,11 +32,11 @@ export async function listarSolicitudes(estado) {
 
 export async function listarAdministradores() {
     const url = new URL('/api/usuarios/', window.location.origin);
-    url.searchParams.set('rol', 'admin');
+    url.searchParams.set('rol', 'admin,colaborador');
     return peticionJson(url, {}, 'No se pudieron cargar los administradores.'); // [{ id, nombre, correo, planteles: [{plantel, turno}], rol }]
 }
 
-// Superusuario crea un admin directamente con plantel y turno.
+// Superusuario crea un admin (con plantel y turno) o un colaborador directamente.
 export async function crearAdmin(datos) {
     return peticionJson(
         `${BASE_URL}/api/usuarios/crear-admin/`,

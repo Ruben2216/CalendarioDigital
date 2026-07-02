@@ -51,6 +51,7 @@ function RedireccionNotif() {
   const mapa = {
     admin:        { anuncios: '/anuncios', calendario: '/calendario', inicio: '/dashboard' },
     superusuario: { anuncios: '/anuncios', calendario: '/calendario', inicio: '/dashboard' },
+    colaborador:  { anuncios: '/anuncios', calendario: '/calendario', inicio: '/dashboard' },
     docente:      { anuncios: '/docente/anuncios', calendario: '/docente/calendario', inicio: '/docente/inicio' },
     alumno:       { anuncios: '/alumno/anuncios', calendario: '/alumno/calendario', inicio: '/alumno/inicio' },
     tutor:        { anuncios: '/tutor/calendario', calendario: '/tutor/calendario', inicio: '/tutor/calendario' },
@@ -96,13 +97,19 @@ function App() {
           element={<Suspense fallback={<Cargando />}><Calendario publico /></Suspense>}
         />
 
-        {/* Rutas admin / superusuario */}
-        <Route element={<ProtectedRoute roles={['admin', 'superusuario']} />}>
+        {/* Rutas admin / superusuario / colaborador */}
+        <Route element={<ProtectedRoute roles={['admin', 'superusuario', 'colaborador']} />}>
           <Route element={<MensajeriaProvider><Layout /></MensajeriaProvider>}>
             <Route path="/dashboard"  element={<Suspense fallback={<Cargando />}><Dashboard /></Suspense>} />
             <Route path="/calendario" element={<Suspense fallback={<Cargando />}><Calendario /></Suspense>} />
-            <Route path="/mensajeria" element={<Suspense fallback={<Cargando />}><Mensajeria /></Suspense>} />
             <Route path="/anuncios"   element={<Suspense fallback={<Cargando />}><Anuncios /></Suspense>} />
+          </Route>
+        </Route>
+
+        {/* Ruta Mensajería: admin y superusuario (el colaborador no participa) */}
+        <Route element={<ProtectedRoute roles={['admin', 'superusuario']} />}>
+          <Route element={<MensajeriaProvider><Layout /></MensajeriaProvider>}>
+            <Route path="/mensajeria" element={<Suspense fallback={<Cargando />}><Mensajeria /></Suspense>} />
           </Route>
         </Route>
 

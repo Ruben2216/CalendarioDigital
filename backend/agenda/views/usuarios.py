@@ -23,7 +23,8 @@ class UsuarioListView(APIView):
 
         qs = Usuario.objects.select_related('rol').prefetch_related('planteles_asignados__plantel', 'planteles_asignados__turno').filter(activo=True)
         if rol:
-            qs = qs.filter(rol__nombre_rol=rol)
+            roles = [r.strip() for r in rol.split(',') if r.strip()]
+            qs = qs.filter(rol__nombre_rol__in=roles)
         if id_plantel:
             turno_param = request.query_params.get('turno')
             qs = qs.filter(Exists(UsuarioPlantel.match(id_plantel, turno_param)))
@@ -135,8 +136,11 @@ class GuardarConfiguracionPlantelesView(APIView):
 
 
 class CrearAdminView(APIView):
-    """Superusuario da de alta un admin directamente con plantel y turno."""
+    """Superusuario da de alta un admin (con plantel y turno) o un colaborador
+    (gestión global, sin plantel ni turno)."""
     permission_classes = [permissions.AllowAny]
+
+    ROLES_ALTA = ('admin', 'colaborador')
 
     def post(self, request):
         superadmin = _usuario_sesion(request)
@@ -147,11 +151,15 @@ class CrearAdminView(APIView):
         nombre = (request.data.get('nombre') or '').strip()
         plantel_id = request.data.get('plantel_id')
         turno_id = request.data.get('turno_id')
+        rol_acceso = (request.data.get('rol') or 'admin').strip()
 
+        if rol_acceso not in self.ROLES_ALTA:
+            return Response({'error': 'Rol no válido.'}, status=status.HTTP_400_BAD_REQUEST)
         if not correo:
             return Response({'error': 'correo es requerido.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        if plantel_id:
+        plantel = turno = None
+        if rol_acceso == 'admin' and plantel_id:
             try:
                 plantel = Plantel.objects.get(pk=plantel_id)
                 turno = Turno.objects.get(pk=int(turno_id)) if turno_id else None
@@ -159,7 +167,7 @@ class CrearAdminView(APIView):
                     turno, _ = Turno.objects.get_or_create(nombre_turno='Matutino')
             except (Plantel.DoesNotExist, Turno.DoesNotExist, TypeError, ValueError):
                 return Response({'error': 'Plantel o turno no encontrado.'}, status=status.HTTP_400_BAD_REQUEST)
-        else:
+        elif rol_acceso == 'admin':
             datos = obtener_datos_por_correo(correo)
             if not datos or es_alumno(datos):
                 return Response(
@@ -182,31 +190,46 @@ class CrearAdminView(APIView):
                     return Response({'error': 'Turno no encontrado.'}, status=status.HTTP_400_BAD_REQUEST)
             else:
                 turno, _ = Turno.objects.get_or_create(nombre_turno='Matutino')
+        elif not Usuario.objects.filter(correo=correo, activo=True).exists():
+            # Colaborador sin cuenta local: el correo debe existir en la API
+            # institucional y no ser de alumno. No requiere plantel ni turno.
+            datos = obtener_datos_por_correo(correo)
+            if not datos or es_alumno(datos):
+                return Response(
+                    {'error': 'Correo no encontrado o corresponde a un alumno.'},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+            if not nombre:
+                nombre = (datos.get('nombre') or '').strip()
 
         try:
-            rol_admin = Rol.objects.get(nombre_rol='admin')
+            rol_obj = Rol.objects.get(nombre_rol=rol_acceso)
         except Rol.DoesNotExist:
-            return Response({'error': 'Rol admin no existe en el catálogo.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({'error': f'Rol {rol_acceso} no existe en el catálogo.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         usuario, creado = Usuario.objects.get_or_create(
             correo=correo,
-            defaults={'rol': rol_admin, 'nombre': nombre, 'activo': True},
+            defaults={'rol': rol_obj, 'nombre': nombre, 'activo': True},
         )
         if not creado:
-            usuario.rol = rol_admin
+            usuario.rol = rol_obj
             if nombre:
                 usuario.nombre = nombre
             usuario.save(update_fields=['rol', 'nombre'])
 
-        UsuarioPlantel.objects.filter(usuario=usuario).delete()
-        UsuarioPlantel.objects.create(usuario=usuario, plantel=plantel, turno=turno)
+        if rol_acceso == 'admin':
+            UsuarioPlantel.objects.filter(usuario=usuario).delete()
+            UsuarioPlantel.objects.create(usuario=usuario, plantel=plantel, turno=turno)
 
+        # El colaborador conserva su asignación previa (si la tiene) solo como referencia
+        asignacion = usuario.planteles_asignados.select_related('plantel', 'turno').first()
         return Response({
             'id_usuario': usuario.id_usuario,
             'nombre': usuario.nombre or '',
             'correo': usuario.correo,
-            'plantel': plantel.nombre,
-            'turno': turno.nombre_turno.lower(),
+            'rol': rol_acceso,
+            'plantel': plantel.nombre if plantel else (asignacion.plantel.nombre if asignacion else None),
+            'turno': turno.nombre_turno.lower() if turno else (asignacion.turno.nombre_turno.lower() if asignacion else None),
         }, status=status.HTTP_201_CREATED if creado else status.HTTP_200_OK)
 
 
@@ -229,16 +252,21 @@ class ActualizarAdminView(APIView):
         nombre = (request.data.get('nombre') or '').strip()
         nuevo_rol = request.data.get('rol')
 
-        if nuevo_rol == 'docente':
+        if nuevo_rol in ('docente', 'colaborador', 'admin'):
             try:
-                rol_obj = Rol.objects.get(nombre_rol='docente')
+                rol_obj = Rol.objects.get(nombre_rol=nuevo_rol)
             except Rol.DoesNotExist:
                 return Response({'error': 'Rol no válido.'}, status=status.HTTP_400_BAD_REQUEST)
-            usuario.rol = rol_obj
-            usuario.save(update_fields=['rol'])
-            if nombre:
-                Usuario.objects.filter(pk=usuario.pk).update(nombre=nombre)
-            return Response({'ok': True, 'rol': nuevo_rol}, status=status.HTTP_200_OK)
+            if usuario.rol_id != rol_obj.id_rol:
+                usuario.rol = rol_obj
+                usuario.save(update_fields=['rol'])
+            # Docente y colaborador no gestionan plantel/turno desde aquí
+            if nuevo_rol != 'admin':
+                if nombre:
+                    Usuario.objects.filter(pk=usuario.pk).update(nombre=nombre)
+                return Response({'ok': True, 'rol': nuevo_rol}, status=status.HTTP_200_OK)
+        elif nuevo_rol:
+            return Response({'error': 'Rol no válido.'}, status=status.HTTP_400_BAD_REQUEST)
 
         if plantel_id and turno_id:
             try:

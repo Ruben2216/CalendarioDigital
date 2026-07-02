@@ -39,7 +39,7 @@ class AnuncioListView(APIView):
 
         if usuario:
             rol = usuario.rol.nombre_rol
-            if rol == 'superusuario':
+            if usuario.es_gestor_global():
                 # Lo mismo que calendario por defecto solo anuncios generales; con plantel_filtro añade los
                 # de ese plantel
                 nombre_filtro = request.query_params.get('plantel_filtro')
@@ -78,7 +78,7 @@ class AnuncioListView(APIView):
             return Response({'error': 'No autenticado.'}, status=status.HTTP_401_UNAUTHORIZED)
 
         rol = usuario.rol.nombre_rol
-        if rol not in ('admin', 'superusuario'):
+        if rol != 'admin' and not usuario.es_gestor_global():
             return Response({'error': 'No autorizado para crear anuncios.'}, status=status.HTTP_403_FORBIDDEN)
 
         datos, error = self._leer_anuncio(request, usuario, rol)
