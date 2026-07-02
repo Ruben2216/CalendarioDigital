@@ -8,6 +8,7 @@ import Swal from 'sweetalert2';
 import { loginInstitucional, guardarSesion, guardarConfiguracionPlanteles } from '../../services/authService';
 import { inicializarNotificaciones } from '../../services/pushService';
 import ModalConfiguracion from '../../components/ModalConfiguracion';
+import { abrirVentanaCentrada } from '../../lib/ventana.js';
 
 const ROLES = [
   { id: "institucional", label: "Personal/Alumno", icon: Users },
@@ -152,15 +153,11 @@ export default function Login() {
       prompt: 'select_account',
     });
 
-    const w = 500;
-    const h = 600;
-    const left = Math.round(window.screenX + (window.outerWidth - w) / 2);
-    const top = Math.round(window.screenY + (window.outerHeight - h) / 2);
-
-    const popup = window.open(
+    const popup = abrirVentanaCentrada(
       `https://accounts.google.com/o/oauth2/v2/auth?${params}`,
       'google-login',
-      `width=${w},height=${h},left=${left},top=${top},scrollbars=yes,resizable=yes`
+      500,
+      600
     );
 
     if (!popup) {

@@ -1,6 +1,7 @@
 import SelectorFecha from '../campos/SelectorFecha.jsx';
 import SelectorHora from '../campos/SelectorHora.jsx';
 import SelectorPlantel from '../selector-plantel/SelectorPlantel.jsx';
+import MensajeError from '../mensaje-error/MensajeError.jsx';
 import { AREAS, SEMESTRES, GRUPOS, TURNOS } from '../../data/calendario.js';
 import styles from './FormularioEvento.module.css';
 
@@ -21,11 +22,7 @@ export default function FormularioEvento({
   const turnosVisibles = restringido && turnos.length ? turnos : TURNOS;
 
   const errorDe = (campo) =>
-    error?.campo === campo ? (
-      <p style={{ color: 'var(--red, #e5484d)', fontSize: 13, fontWeight: 600, margin: '-2px 0 0' }}>
-        {error.mensaje}
-      </p>
-    ) : null;
+    error?.campo === campo ? <MensajeError>{error.mensaje}</MensajeError> : null;
 
   const esGeneral = !restringido && !form.plantel;
 

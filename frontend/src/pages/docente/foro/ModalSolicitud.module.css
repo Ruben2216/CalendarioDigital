@@ -1,3 +1,7 @@
+.campo-recursos {
+  margin-top: 12px;
+}
+
 .recursos {
   display: flex;
   flex-wrap: wrap;

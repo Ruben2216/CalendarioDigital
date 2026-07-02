@@ -1,3 +1,6 @@
+import { iniciales } from '../lib/texto.js';
+import { formatoHoraISO } from '../lib/fechas.js';
+
 const BACKEND =
   window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
     ? 'http://localhost:8000'
@@ -14,20 +17,6 @@ function apiFetch(url, options = {}) {
 
 const COLORES = ['azul', 'verde', 'naranja'];
 
-function horaDesde(iso) {
-  if (!iso) return '';
-  return new Date(iso).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
-}
-
-function inicialesDesde(nombre) {
-  return (nombre || '')
-    .split(' ')
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((p) => p[0].toUpperCase())
-    .join('');
-}
-
 export async function obtenerConversaciones(idUsuario) {
   const res = await apiFetch(`${BACKEND}/api/mensajeria/conversaciones/?id_usuario=${idUsuario}`);
   if (!res.ok) throw new Error('Error al cargar conversaciones');
@@ -35,24 +24,24 @@ export async function obtenerConversaciones(idUsuario) {
   return data.map((c, i) => ({
     id: c.id,
     es_participante: c.es_participante,
-    otro_usuario: { ...c.otro_usuario, iniciales: inicialesDesde(c.otro_usuario.nombre) },
+    otro_usuario: { ...c.otro_usuario, iniciales: iniciales(c.otro_usuario.nombre) },
     participante_a: c.participante_a
-      ? { ...c.participante_a, iniciales: inicialesDesde(c.participante_a.nombre) }
+      ? { ...c.participante_a, iniciales: iniciales(c.participante_a.nombre) }
       : null,
     participante_b: c.participante_b
-      ? { ...c.participante_b, iniciales: inicialesDesde(c.participante_b.nombre) }
+      ? { ...c.participante_b, iniciales: iniciales(c.participante_b.nombre) }
       : null,
     plantel: c.plantel,
     sin_leer: c.sin_leer,
     // compatibilidad con ConvLista
-    iniciales: inicialesDesde(c.otro_usuario.nombre),
+    iniciales: iniciales(c.otro_usuario.nombre),
     destinatario: c.otro_usuario.nombre,
     colorAvatar: COLORES[i % COLORES.length],
     mensajes: c.ultimo_mensaje
       ? [{
           id: `preview-${c.id}`,
           tipo: 'recibido',
-          hora: horaDesde(c.ultimo_mensaje.fecha),
+          hora: formatoHoraISO(c.ultimo_mensaje.fecha),
           texto: c.ultimo_mensaje.texto,
         }]
       : [],
@@ -69,7 +58,7 @@ export async function obtenerMensajes(idUsuario, idConv) {
     id: m.id,
     tipo: m.es_propio ? 'enviado' : 'recibido',
     remitenteId: m.remitente_id,
-    hora: horaDesde(m.fecha_envio),
+    hora: formatoHoraISO(m.fecha_envio),
     texto: m.texto,
     solicitud: m.metadatos ?? undefined,
   }));

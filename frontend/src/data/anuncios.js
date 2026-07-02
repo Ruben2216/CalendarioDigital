@@ -1,7 +1,6 @@
 export const AUDIENCIAS = [
   { id: "todos", etiqueta: "Todos", color: "gris" },
-  { id: "admin", etiqueta: "Administrativo", color: "naranja" },
-  { id: "docente", etiqueta: "Docentes", color: "teal" },
+  { id: "docente", etiqueta: "Docente/Administrativo", color: "teal" },
   { id: "alumno", etiqueta: "Alumnos", color: "morado" },
 ];
 

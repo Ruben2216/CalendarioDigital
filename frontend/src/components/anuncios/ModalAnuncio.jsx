@@ -3,6 +3,7 @@ import { Megaphone } from "lucide-react";
 import Modal from "../modal/Modal.jsx";
 import { AUDIENCIAS, COLORES_ANUNCIO } from "../../data/anuncios.js";
 import SelectorPlantel from "../selector-plantel/SelectorPlantel.jsx";
+import MensajeError from "../mensaje-error/MensajeError.jsx";
 import styles from "./ModalAnuncio.module.css";
 
 const TURNOS_DISPONIBLES = ["Matutino", "Vespertino", "Mixto"];
@@ -13,7 +14,8 @@ export default function ModalAnuncio({ anuncio, esAdmin = false, plantelesAdmin 
       ? {
           titulo: anuncio.titulo,
           descripcion: anuncio.descripcion,
-          audiencia: anuncio.audiencia,
+          // Anuncios previos a la audiencia unificada Docente/Administrativo
+          audiencia: anuncio.audiencia === "admin" ? "docente" : anuncio.audiencia,
           plantel: anuncio.plantel || "",
           turno: anuncio.turno || "",
           color: anuncio.color,
@@ -95,11 +97,7 @@ export default function ModalAnuncio({ anuncio, esAdmin = false, plantelesAdmin 
           />
         </label>
 
-        {error && (
-          <p style={{ color: "var(--red, #e5484d)", fontSize: 13, fontWeight: 600, margin: "-2px 0 0" }}>
-            {error}
-          </p>
-        )}
+        {error && <MensajeError>{error}</MensajeError>}
 
         <div className="formulario__fila">
           <label className="formulario__campo">

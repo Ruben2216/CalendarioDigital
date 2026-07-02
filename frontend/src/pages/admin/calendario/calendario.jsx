@@ -15,26 +15,26 @@ import {
 } from "lucide-react";
 import Modal from "../../../components/modal/Modal.jsx";
 import FormularioEvento from "../../../components/formulario-evento/FormularioEvento.jsx";
-import { avisoExito, avisoCreado, avisoEditado, avisoEliminado, confirmarEliminacion, confirmarAccion } from "../../../lib/alertas.js";
 import {
-  NOMBRES_MES, ABREV_MES, aClaveFecha, desdeClaveFecha, sumarDias, minutosDe, formatoHora,
+  NOMBRES_MES, ABREV_MES, aClaveFecha, sumarDias, minutosDe, formatoHora,
   formatoFechaLarga, calcularSemestre, ahoraMexico, rangoSemana,
 } from "../../../lib/fechas.js";
 import { AREAS, SEMESTRES, GRUPOS, TURNOS, alcanceEvento } from "../../../data/calendario.js";
-import { validarEvento } from "../../../lib/validaciones.js";
-import {
-  listarCalendarios, listarTipos, listarEventos,
-  crearEvento, actualizarEvento, eliminarEvento,
-  crearTipo, actualizarTipo, eliminarTipo,
-} from "../../../services/eventosService.js";
+import { useTipoEventoCrud } from "./hooks/useTipoEventoCrud.js";
+import { useDatosCalendario } from "./hooks/useDatosCalendario.js";
+import { useEventoCrud } from "./hooks/useEventoCrud.js";
 import SelectorPlantel from "../../../components/selector-plantel/SelectorPlantel.jsx";
-import { avisoError } from "../../../lib/alertas.js";
 import { useSesion } from "../../../hooks/useSesion.js";
 import { usePreferencia } from "../../../hooks/usePreferencia.js";
 import VistaAnual from "./vistas/VistaAnual.jsx";
 import VistaLista from "./vistas/VistaLista.jsx";
 import VistaMesMovil from "./vistas/VistaMesMovil.jsx";
-import { urlAutorizacion, verificarVinculo, vincular, desvincular } from "../../../services/googleCalendarService.js";
+import { useGoogleCalendarSync } from "../../../hooks/useGoogleCalendarSync.js";
+import { plantelesPermitidos as calcularPlantelesPermitidos, turnosPermitidos as calcularTurnosPermitidos } from "../../../lib/permisos.js";
+import {
+  mapaTipos, colorDeTipo, etiquetaDeTipo, filtrarEventos,
+  eventosParaFullCalendar, agruparEventosPorDia,
+} from "../../../lib/calendarioTransformaciones.js";
 import VistaSemanaMovil from "./vistas/VistaSemanaMovil.jsx";
 import styles from "./calendario.module.css";
 import "./fullcalendar.css";
@@ -42,25 +42,12 @@ import "./fullcalendar.css";
 // El generador de PDF (@react-pdf/renderer) es pesado: se carga bajo demanda.
 const ModalExportarPdf = lazy(() => import("./pdf/ModalExportarPdf.jsx"));
 
-const COLOR_GRIS = "#97a3b6";
-
-function randomColor() {
-  return "#" + Math.floor(Math.random() * 0xffffff).toString(16).padStart(6, "0").toUpperCase();
-}
-
 const VISTAS = [
   { id: "mes", etiqueta: "Mes", icono: CalendarDays, fc: "dayGridMonth" },
   { id: "semana", etiqueta: "Semana", icono: CalendarRange, fc: "timeGridWeek" },
   { id: "anual", etiqueta: "Anual", icono: LayoutGrid, fc: "multiMonthYear" },
   { id: "lista", etiqueta: "Lista", icono: List, fc: "listMonth" },
 ];
-
-/* Valores iniciales de los formularios (evento nuevo y tipo nuevo). */
-const FORM_EVENTO_VACIO = {
-  titulo: "", tipo: "", area: "", fecha: "", fechaFin: "",
-  horaInicio: "", horaFin: "", lugar: "", plantel: "", turno: "", formato: "punto", todoElDia: false,
-  especifico: false, semestre: "", grupo: "", agregarAGoogleCalendar: false,
-};
 
 function duracionTexto(ev) {
   if (!ev.horaInicio || !ev.horaFin) return null;
@@ -82,7 +69,6 @@ export default function Calendario({ soloLectura = false, publico = false }) {
   // ya que son los datos que la API devuelve. El resto filtra libremente (ej. admin y docente)
   const sesion = useSesion();
   const esAlumno = sesion.rol === "alumno";
-  const esDocente = sesion.rol === "docente";
   const esSuperusuario = sesion.rol === "superusuario";
   const esAdmin = sesion.rol === "admin";
 
@@ -102,21 +88,9 @@ export default function Calendario({ soloLectura = false, publico = false }) {
   // el alumno tiene 1 fijo; el docente y el admin, los que tengan asignados
   // (el backend ya restringe sus eventos a esos planteles); el superusuario
   // ve todo (su filtro de plantel es el buscador general).
-  const plantelesPermitidos = useMemo(() => {
-    if (esAlumno) return sesion.plantel?.nombre ? [sesion.plantel.nombre] : [];
-    if (esDocente || esAdmin) return [...new Set((sesion.planteles || []).map((a) => a.plantel?.nombre).filter(Boolean))];
-    return [];
-  }, []);
-  const turnosPermitidos = useMemo(() => {
-    if (esAlumno) return sesion.turno?.nombre ? [sesion.turno.nombre] : [];
-    if (esDocente || esAdmin) return [...new Set((sesion.planteles || []).map((a) => a.turno?.nombre).filter(Boolean))];
-    return [];
-  }, []);
+  const plantelesPermitidos = useMemo(() => calcularPlantelesPermitidos(sesion), []);
+  const turnosPermitidos = useMemo(() => calcularTurnosPermitidos(sesion), []);
 
-  const [tipos, setTipos] = useState([]);                             // tipos de evento (desde la BD)
-  const [eventos, setEventos] = useState([]);                         // eventos (desde la BD)
-  const [calendarios, setCalendarios] = useState([]);                 // catálogo de calendarios
-  const [calendarioActivo, setCalendarioActivo] = useState(null);     // id del calendario en pantalla
   const [vista, setVista] = usePreferencia("calendario:vista", "mes"); // vista activa (recordada)
   const [fechaActual, setFechaActual] = useState(hoy);                // mes/fecha que muestra FC
   const [tituloVista, setTituloVista] = useState("");                 // título que da FC (semana/anual/lista)
@@ -137,6 +111,13 @@ export default function Calendario({ soloLectura = false, publico = false }) {
   // Buscador del superusuario = solo calendario general: nombre = generales + ese plantel.
   // (no aparecen todos los eventos) para no saturar el calendario
   const [vistaPlantel, setVistaPlantel] = useState("");
+
+  // Datos del calendario (catálogo, tipos y eventos desde la BD)
+  const {
+    tipos, setTipos, eventos, calendarios,
+    calendarioActivo, setCalendarioActivo, cargarEventos,
+  } = useDatosCalendario({ publico, vistaPlantel });
+
   const [filtroFechaDesde, setFiltroFechaDesde] = useState("");
   const [filtroFechaHasta, setFiltroFechaHasta] = useState("");
   const [pickerAbierto, setPickerAbierto] = useState(false);            // selector de mes
@@ -160,13 +141,6 @@ export default function Calendario({ soloLectura = false, publico = false }) {
   const [eventoSelId, setEventoSelId] = useState(null);
   const [detalleEvento, setDetalleEvento] = useState(null);  // modal de detalles (móvil)
 
-  // Estado de los 3 modales
-  const [modalEvento, setModalEvento] = useState(false);
-  const [formEvento, setFormEvento] = useState(FORM_EVENTO_VACIO);
-  const [eventoEditando, setEventoEditando] = useState(null);
-  const [guardandoEvento, setGuardandoEvento] = useState(false);
-  const [errorEvento, setErrorEvento] = useState(null);
-
   // Exportar el calendario a PDF (no disponible para alumno ni acceso público)
   const [modalExportar, setModalExportar] = useState(false);
   const puedeExportar = !publico && !esAlumno;
@@ -175,17 +149,27 @@ export default function Calendario({ soloLectura = false, publico = false }) {
     : fechaActual.getFullYear() - 1;
 
   // Gestión de tipos de evento (simbología)
-  const [tipoEditandoId, setTipoEditandoId] = useState(null);
-  const [editNombre, setEditNombre] = useState("");
-  const [editColor, setEditColor] = useState("#64748B");
-  const [formTipoVisible, setFormTipoVisible] = useState(false);
-  const [nuevoNombre, setNuevoNombre] = useState("");
-  const [nuevoColor, setNuevoColor] = useState(randomColor);
-  const [nuevoPlantelId, setNuevoPlantelId] = useState("");
-  const [guardandoTipo, setGuardandoTipo] = useState(false);
+  const {
+    tipoEditandoId, setTipoEditandoId,
+    editNombre, setEditNombre,
+    editColor, setEditColor,
+    formTipoVisible, setFormTipoVisible,
+    nuevoNombre, setNuevoNombre,
+    nuevoColor, setNuevoColor,
+    nuevoPlantelId, setNuevoPlantelId,
+    guardandoTipo,
+    iniciarEdicionTipo, guardarEdicionTipo, pedirEliminarTipo, guardarNuevoTipo,
+  } = useTipoEventoCrud({
+    setTipos,
+    esAdmin,
+    plantelPorDefectoId: sesion.planteles?.[0]?.plantel?.id,
+  });
 
-  // null = verificando, false = no vinculado, { vinculado: true, email } = vinculado
-  const [calVinculado, setCalVinculado] = useState(null);
+  const {
+    calVinculado,
+    abrirVinculacion: abrirVinculacionGoogle,
+    desconectar: desconectarCalendar,
+  } = useGoogleCalendarSync({ activo: !publico, idUsuario: sesion?.id_usuario });
 
   // Referencias: a FullCalendar (para controlarlo) y a los desplegables.
   const calendarRef = useRef(null);
@@ -237,94 +221,8 @@ export default function Calendario({ soloLectura = false, publico = false }) {
     };
   }, []);
 
-  useEffect(() => {
-    if (publico || !sesion?.id_usuario) return;
-    verificarVinculo()
-      .then((data) => setCalVinculado(data.vinculado ? data : false))
-      .catch(() => setCalVinculado(false));
-  }, [publico, sesion?.id_usuario]);
-
-  useEffect(() => {
-    if (publico || !sesion?.id_usuario) return;
-    const onMessage = async (event) => {
-      if (event.origin !== window.location.origin) return;
-      if (event.data?.type !== 'google-calendar-code') return;
-      const { code, error, redirect_uri } = event.data;
-      if (error) { avisoError('Autorización rechazada por Google.'); return; }
-      if (!code) return;
-      try {
-        const resultado = await vincular(code, redirect_uri);
-        setCalVinculado({ vinculado: true, email: resultado.email ?? null });
-        avisoExito('Google Calendar vinculado correctamente.');
-      } catch (e) {
-        avisoError(e.message || 'No se pudo vincular Google Calendar.');
-      }
-    };
-    window.addEventListener('message', onMessage);
-    return () => window.removeEventListener('message', onMessage);
-  }, [publico, sesion?.id_usuario]);
-
-  const abrirVinculacionGoogle = () => {
-    const w = 520, h = 620;
-    const left = Math.round(window.screenX + (window.outerWidth - w) / 2);
-    const top = Math.round(window.screenY + (window.outerHeight - h) / 2);
-    const popup = window.open(
-      urlAutorizacion(),
-      'google-calendar-vincular',
-      `width=${w},height=${h},left=${left},top=${top},scrollbars=yes,resizable=yes`
-    );
-    if (!popup) avisoError('Permite ventanas emergentes para vincular Google Calendar.');
-  };
-
-  const desconectarCalendar = async () => {
-    const emailMostrar = calVinculado?.email ? ` (${calVinculado.email})` : '';
-    const result = await confirmarAccion({
-      titulo: 'Desconectar Google Calendar',
-      html: `Los eventos ya sincronizados permanecerán en tu Google Calendar${emailMostrar}.`,
-      confirmar: 'Desconectar',
-      peligro: true,
-    });
-    if (!result.isConfirmed) return;
-    try {
-      await desvincular();
-      setCalVinculado(false);
-      avisoExito('Google Calendar desconectado.');
-    } catch {
-      avisoError('No se pudo desconectar Google Calendar.');
-    }
-  };
-
   // Acceso corto a la API de FullCalendar (prev, next, today, changeView...).
   const api = () => calendarRef.current?.getApi();
-
-  const cargarEventos = useCallback(async (idCal) => {
-    if (!idCal) return;
-    try {
-      setEventos(await listarEventos(idCal, { publico, plantelFiltro: vistaPlantel }));
-    } catch (e) {
-      avisoError(e.message || "No se pudieron cargar los eventos.");
-    }
-  }, [publico, vistaPlantel]);
-
-  useEffect(() => {
-    let activo = true;
-    (async () => {
-      try {
-        const [cals, tps] = await Promise.all([listarCalendarios(), listarTipos()]);
-        if (!activo) return;
-        setCalendarios(cals);
-        setTipos(tps);
-        setCalendarioActivo((prev) => prev ?? (cals[0]?.id ?? null));
-      } catch (e) {
-        if (activo) avisoError(e.message || "No se pudo cargar el calendario.");
-      }
-    })();
-    return () => { activo = false; };
-  }, []);
-
-  useEffect(() => {
-    if (calendarioActivo) cargarEventos(calendarioActivo);
-  }, [calendarioActivo, cargarEventos]);
 
   useEffect(() => {
     const el = lienzoRef.current; 
@@ -370,14 +268,10 @@ export default function Calendario({ soloLectura = false, publico = false }) {
   }, [popover, cerrarPopover]);
 
   // Mapa id -> tipo, para buscar color/etiqueta de un evento rápidamente.
-  const tiposPorId = useMemo(() => {
-    const mapa = new Map();
-    for (const t of tipos) mapa.set(t.id, t);
-    return mapa;
-  }, [tipos]);
+  const tiposPorId = useMemo(() => mapaTipos(tipos), [tipos]);
 
-  const colorTipo = useCallback((id) => tiposPorId.get(id)?.color ?? COLOR_GRIS, [tiposPorId]);
-  const etiquetaTipo = useCallback((id) => tiposPorId.get(id)?.etiqueta ?? "Sin tipo", [tiposPorId]);
+  const colorTipo = useCallback((id) => colorDeTipo(tiposPorId, id), [tiposPorId]);
+  const etiquetaTipo = useCallback((id) => etiquetaDeTipo(tiposPorId, id), [tiposPorId]);
 
   // Semestre (A/B) según el mes que se está viendo (insignia del encabezado).
   const semestre = calcularSemestre(fechaActual);
@@ -401,70 +295,22 @@ export default function Calendario({ soloLectura = false, publico = false }) {
   const puedeCrear = !lectura && tienesTipos && (esSuperusuario || (esAdmin && calActivo?.clave === "escolarizado"));
 
   // Eventos visibles tras aplicar los filtros de tipo y área.
-  const eventosFiltrados = useMemo(() => {
-    return eventos.filter((ev) => {
-      if (filtroTipo !== "todos" && ev.tipo !== filtroTipo) return false;
-      if (filtroArea !== "todas" && ev.area !== filtroArea) return false;
-      if (filtroSemestre && ev.semestre != null && String(ev.semestre) !== filtroSemestre) return false;
-      if (filtroGrupo && ev.grupo != null && ev.grupo !== filtroGrupo) return false;
-      if (filtroPlantel && ev.plantel != null && ev.plantel !== filtroPlantel) return false;
-      if (filtroTurno && ev.turno != null && ev.turno !== filtroTurno) return false;
-      if (filtroFechaDesde && (ev.fechaFin || ev.fecha) < filtroFechaDesde) return false;
-      if (filtroFechaHasta && ev.fecha > filtroFechaHasta) return false;
-      return true;
-    });
-  }, [
+  const eventosFiltrados = useMemo(() => filtrarEventos(eventos, {
+    filtroTipo, filtroArea, filtroSemestre, filtroGrupo,
+    filtroPlantel, filtroTurno, filtroFechaDesde, filtroFechaHasta,
+  }), [
     eventos, filtroTipo, filtroArea, filtroSemestre, filtroGrupo,
     filtroPlantel, filtroTurno, filtroFechaDesde, filtroFechaHasta,
   ]);
 
-  const eventosFC = useMemo(() => {
-    return eventosFiltrados.map((ev) => {
-      const color = colorTipo(ev.tipo);
-      const base = {
-        id: String(ev.id),
-        title: ev.titulo,
-        backgroundColor: color,
-        borderColor: color,
-        extendedProps: { original: ev },
-      };
-      if (ev.horaInicio) {
-        return {
-          ...base,
-          start: `${ev.fecha}T${ev.horaInicio}`,
-          end: ev.horaFin ? `${ev.fecha}T${ev.horaFin}` : undefined,
-        };
-      }
-      const finBase = ev.fechaFin || ev.fecha;
-      return {
-        ...base,
-        allDay: true,
-        start: ev.fecha,
-        end: aClaveFecha(sumarDias(desdeClaveFecha(finBase), 1)),
-      };
-    });
-  }, [eventosFiltrados, colorTipo]);
+  const eventosFC = useMemo(
+    () => eventosParaFullCalendar(eventosFiltrados, colorTipo),
+    [eventosFiltrados, colorTipo]
+  );
 
   /* Mapa "YYYY-MM-DD" -> eventos de ese día (para el panel inferior). Incluye
      cada día que abarca un evento de varios días */
-  const eventosPorDia = useMemo(() => {
-    const mapa = new Map();
-    for (const ev of eventosFiltrados) {
-      const inicio = desdeClaveFecha(ev.fecha);
-      const fin = ev.fechaFin ? desdeClaveFecha(ev.fechaFin) : inicio;
-      const cursor = new Date(inicio);
-      while (cursor <= fin) {
-        const clave = aClaveFecha(cursor);
-        if (!mapa.has(clave)) mapa.set(clave, []);
-        mapa.get(clave).push(ev);
-        cursor.setDate(cursor.getDate() + 1);
-      }
-    }
-    for (const lista of mapa.values()) {
-      lista.sort((a, b) => (a.horaInicio || "").localeCompare(b.horaInicio || ""));
-    }
-    return mapa;
-  }, [eventosFiltrados]);
+  const eventosPorDia = useMemo(() => agruparEventosPorDia(eventosFiltrados), [eventosFiltrados]);
 
   // Rango de días seleccionado: inicio = primer día, fin = último (Mayús+clic).
   const rangoSeleccionado = useMemo(() => {
@@ -687,20 +533,30 @@ export default function Calendario({ soloLectura = false, publico = false }) {
   );
 
   // CRUD
-  const abrirNuevoEventoEnFecha = (fecha, fechaFin = "") => {
-    setEventoEditando(null);
-    setErrorEvento(null);
-    setFormEvento({
-      ...FORM_EVENTO_VACIO,
-      fecha,
-      fechaFin: fechaFin && fechaFin !== fecha ? fechaFin : "",
+  const {
+    modalEvento, setModalEvento,
+    formEvento, setFormEvento,
+    eventoEditando, guardandoEvento,
+    errorEvento, setErrorEvento,
+    abrirNuevoEventoEnFecha, abrirEditarEvento,
+    guardarEvento, pedirEliminar, eliminarDesdeEdicion,
+  } = useEventoCrud({
+    calendarioActivo,
+    claveHoy,
+    eventos,
+    cargarEventos,
+    valoresIniciales: () => ({
       tipo: tiposParaCrear[0]?.id || "",
       plantel: esAdmin ? (misAsignaciones[0]?.plantel || "") : "",
       turno: esAdmin ? (misAsignaciones[0]?.turno || "") : "",
       agregarAGoogleCalendar: Boolean(calVinculado?.vinculado),
-    });
-    setModalEvento(true);
-  };
+    }),
+    alGuardar: (fecha) => {
+      setFechaSeleccionada(fecha);
+      api()?.gotoDate(fecha);
+    },
+    antesDeEliminar: cerrarPopover,
+  });
 
   const abrirNuevoEvento = () => abrirNuevoEventoEnFecha(fechaSeleccionada || claveHoy);
 
@@ -745,138 +601,8 @@ export default function Calendario({ soloLectura = false, publico = false }) {
     if (clave) extenderArrastre(clave);
   };
 
-  const abrirEditarEvento = (ev) => {
-    setEventoEditando(ev.id);
-    setErrorEvento(null);
-    setFormEvento({
-      titulo: ev.titulo, tipo: ev.tipo, area: ev.area || "", fecha: ev.fecha,
-      fechaFin: ev.fechaFin || "", horaInicio: ev.horaInicio || "",
-      horaFin: ev.horaFin || "", lugar: ev.lugar || "", plantel: ev.plantel ?? "",
-      turno: ev.turno ?? "", formato: ev.formato || "punto",
-      todoElDia: !ev.horaInicio,
-      especifico: ev.semestre != null || ev.grupo != null,
-      semestre: ev.semestre ?? "", grupo: ev.grupo ?? "",
-    });
-    setModalEvento(true);
-  };
-
-  const guardarEvento = async (e) => {
-    e.preventDefault();
-    if (!calendarioActivo || guardandoEvento) return;
-    const errorValidacion = validarEvento(formEvento, { hoy: claveHoy });
-    if (errorValidacion) {
-      setErrorEvento(errorValidacion);
-      return;
-    }
-    setErrorEvento(null);
-    const { todoElDia, especifico, formato, agregarAGoogleCalendar, ...resto } = formEvento;
-    const dirigidoEspecifico = especifico && Boolean(formEvento.plantel);
-    const datos = {
-      ...resto,
-      id_calendario: calendarioActivo,
-      titulo: formEvento.titulo.trim(),
-      lugar: formEvento.lugar.trim(),
-      area: formEvento.area || "",
-      fechaFin: formEvento.fechaFin || null,
-      horaInicio: todoElDia ? "" : formEvento.horaInicio,
-      horaFin: todoElDia ? "" : formEvento.horaFin,
-      plantel: formEvento.plantel || null,
-      turno: formEvento.turno || null,
-      semestre: dirigidoEspecifico && formEvento.semestre ? Number(formEvento.semestre) : null,
-      grupo: dirigidoEspecifico && formEvento.grupo ? formEvento.grupo : null,
-    };
-    setGuardandoEvento(true);
-    try {
-      if (eventoEditando) {
-        await actualizarEvento(eventoEditando, datos);
-      } else {
-        await crearEvento(datos, { agregarAGoogleCalendar });
-      }
-      await cargarEventos(calendarioActivo);
-      setFechaSeleccionada(datos.fecha);
-      api()?.gotoDate(datos.fecha);
-      setModalEvento(false);
-      if (eventoEditando) avisoEditado("Evento actualizado");
-      else avisoCreado("Evento creado");
-    } catch (err) {
-      avisoError(err.message || "No se pudo guardar el evento.");
-    } finally {
-      setGuardandoEvento(false);
-    }
-  };
-
-  const pedirEliminar = async (ev) => {
-    cerrarPopover();
-    const { isConfirmed } = await confirmarEliminacion(ev.titulo);
-    if (!isConfirmed) return;
-    try {
-      await eliminarEvento(ev.id);
-      await cargarEventos(calendarioActivo);
-      avisoEliminado("Evento eliminado");
-    } catch (err) {
-      avisoError(err.message || "No se pudo eliminar el evento.");
-    }
-  };
-
-  const eliminarDesdeEdicion = () => {
-    const ev = eventos.find((e) => e.id === eventoEditando);
-    setModalEvento(false);
-    if (ev) pedirEliminar(ev);
-  };
-
   // CRUD de tipos de evento
   const puedeGestionarTipos = !lectura && (esSuperusuario || esAdmin);
-
-  const iniciarEdicionTipo = (t) => {
-    setTipoEditandoId(t.id);
-    setEditNombre(t.etiqueta);
-    setEditColor(t.color);
-    setFormTipoVisible(false);
-  };
-
-  const guardarEdicionTipo = async (id) => {
-    try {
-      const actualizado = await actualizarTipo(id, { nombre: editNombre.trim(), color_hex: editColor });
-      setTipos((prev) => prev.map((t) => t.id === id
-        ? { ...t, etiqueta: actualizado.etiqueta, color: actualizado.color }
-        : t
-      ));
-      setTipoEditandoId(null);
-    } catch (err) {
-      avisoError(err.message || "No se pudo actualizar el tipo.");
-    }
-  };
-
-  const pedirEliminarTipo = async (t) => {
-    const { isConfirmed } = await confirmarEliminacion(t.etiqueta);
-    if (!isConfirmed) return;
-    try {
-      await eliminarTipo(t.id);
-      setTipos((prev) => prev.filter((x) => x.id !== t.id));
-    } catch (err) {
-      avisoError(err.message || "No se pudo eliminar el tipo.");
-    }
-  };
-
-  const guardarNuevoTipo = async () => {
-    if (!nuevoNombre.trim() || guardandoTipo) return;
-    setGuardandoTipo(true);
-    try {
-      const plantel_id = esAdmin
-        ? (nuevoPlantelId || (sesion.planteles?.[0]?.plantel?.id ?? null))
-        : undefined;
-      const nuevo = await crearTipo({ nombre: nuevoNombre.trim(), color_hex: nuevoColor, plantel_id });
-      setTipos((prev) => [...prev, nuevo]);
-      setNuevoNombre("");
-      setNuevoColor(randomColor());
-      setNuevoPlantelId("");
-      setFormTipoVisible(false);
-    } catch (err) {
-      avisoError(err.message || "No se pudo crear el tipo.");
-    } finally {
-      setGuardandoTipo(false);
-    }
-  };
 
   return (
     <div className={styles["calendario"]}>

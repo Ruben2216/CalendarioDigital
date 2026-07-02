@@ -27,7 +27,7 @@ messaging.onBackgroundMessage((payload) => {
   const notificationOptions = {
     body: cuerpo,
     icon: '/icono.png',
-    badge: '/icono.png',
+    badge: '/badge.png',
     requireInteraction: true,
     tag,
     renotify: true,

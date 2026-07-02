@@ -10,6 +10,8 @@ import { listarSolicitudes, listarAdministradores, resolverSolicitud, eliminarSo
 import { obtenerPlanteles, obtenerTurnos } from "../../../services/authService.js";
 import BuscadorPlantelInline from "../../../components/buscador-plantel/BuscadorPlantelInline.jsx";
 import BuscadorUsuarioInline from "../../../components/buscador-usuario/BuscadorUsuarioInline.jsx";
+import { iniciales } from "../../../lib/texto.js";
+import { useCampoFormulario } from "../../../hooks/useCampoFormulario.js";
 import styles from "./usuarios.module.css";
 
 const ESTADOS_MAP = Object.fromEntries(ESTADOS.map((e) => [e.id, e]));
@@ -53,15 +55,6 @@ const ROLES_EDICION = [
 ];
 
 const FORM_VACIO = { nombre: "", correo: "", turno: "matutino", planteles: [], usuarioId: null, rol: "admin" };
-
-function iniciales(nombre) {
-  return nombre
-    .split(" ")
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((p) => p[0].toUpperCase())
-    .join("");
-}
 
 function formatoFecha(clave) {
   if (!clave) return "—";
@@ -151,8 +144,7 @@ export default function Usuarios() {
     setModalAbierto(true);
   };
 
-  const fijarCampo = (campo) => (e) =>
-    setForm((prev) => ({ ...prev, [campo]: e.target.value }));
+  const fijarCampo = useCampoFormulario(setForm);
 
   // Un único plantel permitido por admin: seleccionar uno deselecciona el anterior.
   const alternarPlantel = (plantel) =>

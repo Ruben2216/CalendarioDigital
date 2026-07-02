@@ -1,5 +1,7 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { Clock } from "lucide-react";
+import { useClicFuera } from "../../hooks/useClicFuera.js";
+import { posicionDesplegable } from "../../lib/posicion.js";
 import styles from "./campos.module.css";
 
 const HORAS12 = Array.from({ length: 12 }, (_, i) => i + 1); // 1..12
@@ -27,14 +29,7 @@ export default function SelectorHora({ value, onChange, placeholder = "Hora" }) 
   const ref = useRef(null);
   const controlRef = useRef(null);
 
-  useEffect(() => {
-    if (!abierto) return undefined;
-    const fuera = (e) => {
-      if (ref.current && !ref.current.contains(e.target)) setAbierto(false);
-    };
-    document.addEventListener("mousedown", fuera, true);
-    return () => document.removeEventListener("mousedown", fuera, true);
-  }, [abierto]);
+  useClicFuera(ref, abierto, () => setAbierto(false));
 
   const actual = a12(value);
   const h12 = actual?.h12 ?? 9;
@@ -42,10 +37,7 @@ export default function SelectorHora({ value, onChange, placeholder = "Hora" }) 
   const ampm = actual?.ampm ?? "AM";
 
   const abrir = () => {
-    const r = controlRef.current.getBoundingClientRect();
-    const alto = 230;
-    const top = r.bottom + alto > window.innerHeight ? Math.max(8, r.top - alto - 6) : r.bottom + 6;
-    setPos({ left: Math.min(r.left, window.innerWidth - 210), top });
+    setPos(posicionDesplegable(controlRef.current.getBoundingClientRect(), 230, 210));
     setAbierto((v) => !v);
   };
 

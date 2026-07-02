@@ -3,6 +3,7 @@ import { ShieldCheck, Send, Clock, MapPin, X } from "lucide-react";
 import Modal from "../modal/Modal.jsx";
 import { avisoExito, avisoError, avisoInfo } from "../../lib/alertas.js";
 import { useSesion } from "../../hooks/useSesion.js";
+import { useCampoFormulario } from "../../hooks/useCampoFormulario.js";
 import { miSolicitudPendiente, enviarSolicitud } from "../../services/solicitudesService.js";
 import BuscadorPlantelInline from "../buscador-plantel/BuscadorPlantelInline.jsx";
 import styles from "./SolicitudAdmin.module.css";
@@ -62,8 +63,7 @@ export default function SolicitudAdmin({ abierto, onCerrar }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [abierto]);
 
-  const fijar = (campo) => (e) =>
-    setForm((prev) => ({ ...prev, [campo]: e.target.value }));
+  const fijar = useCampoFormulario(setForm);
 
   const enviar = async (e) => {
     e.preventDefault();

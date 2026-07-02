@@ -4,29 +4,10 @@ import FormularioEvento from '../../../components/formulario-evento/FormularioEv
 import { listarTipos } from '../../../services/eventosService.js';
 import { validarEvento } from '../../../lib/validaciones.js';
 import { ahoraMexico, aClaveFecha } from '../../../lib/fechas.js';
+import { FORM_SOLICITUD_VACIO } from '../../../data/formularios.js';
 import styles from './ModalSolicitud.module.css';
 
 const RECURSOS = ['Cañón', 'Micrófono', 'Audiovisual', 'Cancha', 'Laboratorio', 'Sala de cómputo', 'Mesas',];
-
-const FORM_VACIO = {
-  titulo: '',
-  tipo: '',
-  area: '',
-  fecha: '',
-  fechaFin: '',
-  horaInicio: '',
-  horaFin: '',
-  lugar: '',
-  plantel: '',
-  turno: '',
-  formato: 'punto',
-  todoElDia: false,
-  especifico: false,
-  semestre: '',
-  grupo: '',
-  recursos: [],
-  observaciones: '',
-};
 
 function turnosDe(asignaciones, nombrePlantel) {
   return [...new Set(
@@ -45,7 +26,7 @@ export default function ModalSolicitud({ abierto, onCerrar, onEnviar, asignacion
 
   const [form, setForm] = useState(() => {
     const plantel = planteles[0] || '';
-    return { ...FORM_VACIO, plantel, turno: turnosDe(asignaciones, plantel)[0] || '' };
+    return { ...FORM_SOLICITUD_VACIO, plantel, turno: turnosDe(asignaciones, plantel)[0] || '' };
   });
   const [tipos, setTipos] = useState([]);
   const [error, setError] = useState(null);
@@ -110,7 +91,7 @@ export default function ModalSolicitud({ abierto, onCerrar, onEnviar, asignacion
 
     const primerPlantel = planteles[0] || '';
     setForm({
-      ...FORM_VACIO,
+      ...FORM_SOLICITUD_VACIO,
       tipo: tipos[0]?.id || '',
       plantel: primerPlantel,
       turno: turnosDe(asignaciones, primerPlantel)[0] || '',
@@ -146,7 +127,7 @@ export default function ModalSolicitud({ abierto, onCerrar, onEnviar, asignacion
         onSubmit={handleSubmit}
       />
 
-      <div className="formulario__campo" style={{ marginTop: 12 }}>
+      <div className={`formulario__campo ${styles['campo-recursos']}`}>
         <span className="formulario__etiqueta">Recursos necesarios</span>
         <div className={styles['recursos']}>
           {RECURSOS.map((r) => (

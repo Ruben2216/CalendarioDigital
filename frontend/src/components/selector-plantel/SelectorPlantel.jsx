@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Search, MapPin, X, Check, ChevronDown } from "lucide-react";
 import { listarPlanteles } from "../../services/plantelesService.js";
+import { useCargaAsync } from "../../hooks/useCargaAsync.js";
+import { useClicFuera } from "../../hooks/useClicFuera.js";
 import styles from "./SelectorPlantel.module.css";
 
 // Selector de plantel por búsqueda
@@ -13,20 +15,12 @@ export default function SelectorPlantel({
 }) {
   const [abierto, setAbierto] = useState(false);
   const [query, setQuery] = useState("");
-  const [planteles, setPlanteles] = useState([]);
-  const [cargando, setCargando] = useState(true);
   const [coords, setCoords] = useState(null);
   const controlRef = useRef(null);
   const panelRef = useRef(null);
 
-  useEffect(() => {
-    let vigente = true;
-    listarPlanteles()
-      .then((lista) => { if (vigente) setPlanteles(lista); })
-      .catch(() => { if (vigente) setPlanteles([]); })
-      .finally(() => { if (vigente) setCargando(false); });
-    return () => { vigente = false; };
-  }, []);
+  const { datos, cargando } = useCargaAsync(listarPlanteles, []);
+  const planteles = datos ?? [];
 
   const recalcular = () => {
     const el = controlRef.current;
@@ -37,15 +31,7 @@ export default function SelectorPlantel({
     setCoords({ top: r.bottom + 6, left, ancho });
   };
 
-  useEffect(() => {
-    const alClic = (e) => {
-      if (controlRef.current?.contains(e.target)) return;
-      if (panelRef.current?.contains(e.target)) return;
-      setAbierto(false);
-    };
-    document.addEventListener("mousedown", alClic, true);
-    return () => document.removeEventListener("mousedown", alClic, true);
-  }, []);
+  useClicFuera([controlRef, panelRef], true, () => setAbierto(false));
 
   useEffect(() => {
     if (!abierto) return undefined;

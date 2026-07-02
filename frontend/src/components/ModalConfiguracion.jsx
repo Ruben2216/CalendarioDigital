@@ -97,12 +97,12 @@ export default function ModalConfiguracion({ isOpen, onClose, onSave }) {
           </span>
         </div>
         
-        <form id="formConfiguracion" onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
+        <form id="formConfiguracion" className="modal-config__form" onSubmit={handleSubmit}>
           <div className="modal-config__cuerpo">
             <p className="formulario-config__etiqueta">Busca y selecciona tus planteles y turnos:</p>
             
             {limiteAlcanzado && (
-              <p style={{ fontSize: 12, color: '#c2410c', background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: 8, padding: '6px 10px', margin: '0 0 8px' }}>
+              <p className="modal-config__aviso-limite">
                 Límite de {LIMITE_PLANTELES} planteles alcanzado. Desmarca uno para poder elegir otro.
               </p>
             )}

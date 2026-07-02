@@ -1,17 +1,5 @@
 import { obtenerSesion } from './authService';
-
-const BASE_URL = import.meta.env.VITE_BACKEND_URL ?? '';
-
-function headers() {
-    return {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-    };
-}
-
-function idUsuario() {
-    return obtenerSesion()?.id_usuario ?? null;
-}
+import { BASE_URL, idUsuario, peticionJson, peticionSinCuerpo } from './api';
 
 export async function listarAnuncios({ publico = false, plantelFiltro = '' } = {}) {
     const url = new URL('/api/anuncios/', window.location.origin);
@@ -24,40 +12,35 @@ export async function listarAnuncios({ publico = false, plantelFiltro = '' } = {
     }
     // Filtro de plantel del superusuario
     if (plantelFiltro) url.searchParams.set('plantel_filtro', plantelFiltro);
-    const resp = await fetch(url, { headers: headers() });
-    if (!resp.ok) throw new Error('No se pudieron cargar los anuncios.');
-    return resp.json();
+    return peticionJson(url, {}, 'No se pudieron cargar los anuncios.');
 }
 
 export async function crearAnuncio(datos) {
-    const resp = await fetch(`${BASE_URL}/api/anuncios/`, {
-        method: 'POST',
-        headers: headers(),
-        body: JSON.stringify({ ...datos, id_usuario: idUsuario() }),
-    });
-    const cuerpo = await resp.json().catch(() => ({}));
-    if (!resp.ok) throw new Error(cuerpo.error || 'No se pudo crear el anuncio.');
-    return cuerpo;
+    return peticionJson(
+        `${BASE_URL}/api/anuncios/`,
+        {
+            method: 'POST',
+            body: JSON.stringify({ ...datos, id_usuario: idUsuario() }),
+        },
+        'No se pudo crear el anuncio.'
+    );
 }
 
 export async function actualizarAnuncio(idAnuncio, datos) {
-    const resp = await fetch(`${BASE_URL}/api/anuncios/${idAnuncio}/`, {
-        method: 'PUT',
-        headers: headers(),
-        body: JSON.stringify({ ...datos, id_usuario: idUsuario() }),
-    });
-    const cuerpo = await resp.json().catch(() => ({}));
-    if (!resp.ok) throw new Error(cuerpo.error || 'No se pudo actualizar el anuncio.');
-    return cuerpo;
+    return peticionJson(
+        `${BASE_URL}/api/anuncios/${idAnuncio}/`,
+        {
+            method: 'PUT',
+            body: JSON.stringify({ ...datos, id_usuario: idUsuario() }),
+        },
+        'No se pudo actualizar el anuncio.'
+    );
 }
 
 export async function eliminarAnuncio(idAnuncio) {
-    const resp = await fetch(`${BASE_URL}/api/anuncios/${idAnuncio}/?id_usuario=${idUsuario()}`, {
-        method: 'DELETE',
-        headers: headers(),
-    });
-    if (!resp.ok && resp.status !== 204) {
-        const cuerpo = await resp.json().catch(() => ({}));
-        throw new Error(cuerpo.error || 'No se pudo eliminar el anuncio.');
-    }
+    return peticionSinCuerpo(
+        `${BASE_URL}/api/anuncios/${idAnuncio}/?id_usuario=${idUsuario()}`,
+        { method: 'DELETE' },
+        'No se pudo eliminar el anuncio.'
+    );
 }

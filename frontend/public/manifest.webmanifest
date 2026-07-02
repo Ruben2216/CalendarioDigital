@@ -1,0 +1,24 @@
+{
+  "name": "Agenda Digital COBACH",
+  "short_name": "COBACH",
+  "description": "Agenda Digital COBACH - acceso institucional",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#021138",
+  "icons": [
+    {
+      "src": "/icono.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icono.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

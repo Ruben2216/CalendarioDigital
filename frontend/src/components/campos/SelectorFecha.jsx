@@ -1,6 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { Calendar, ChevronLeft, ChevronRight } from "lucide-react";
 import { NOMBRES_MES, DIAS_SEMANA, aClaveFecha, desdeClaveFecha } from "../../lib/fechas.js";
+import { useClicFuera } from "../../hooks/useClicFuera.js";
+import { posicionDesplegable } from "../../lib/posicion.js";
 import styles from "./campos.module.css";
 
 function formatoCorto(clave) {
@@ -16,21 +18,11 @@ export default function SelectorFecha({ value, onChange, min, placeholder = "Sel
   const ref = useRef(null);
   const controlRef = useRef(null);
 
-  useEffect(() => {
-    if (!abierto) return undefined;
-    const fuera = (e) => {
-      if (ref.current && !ref.current.contains(e.target)) setAbierto(false);
-    };
-    document.addEventListener("mousedown", fuera, true);
-    return () => document.removeEventListener("mousedown", fuera, true);
-  }, [abierto]);
+  useClicFuera(ref, abierto, () => setAbierto(false));
 
   const abrir = () => {
     setMesVista(value ? desdeClaveFecha(value) : new Date());
-    const r = controlRef.current.getBoundingClientRect();
-    const alto = 300;
-    const top = r.bottom + alto > window.innerHeight ? Math.max(8, r.top - alto - 6) : r.bottom + 6;
-    setPos({ left: Math.min(r.left, window.innerWidth - 248), top });
+    setPos(posicionDesplegable(controlRef.current.getBoundingClientRect(), 300, 248));
     setAbierto(true);
   };
 

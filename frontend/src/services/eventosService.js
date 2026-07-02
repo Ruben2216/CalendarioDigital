@@ -1,31 +1,15 @@
 import { obtenerSesion } from './authService';
-
-const BASE_URL = import.meta.env.VITE_BACKEND_URL ?? '';
-
-function headers() {
-    return {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-    };
-}
-
-function idUsuario() {
-    return obtenerSesion()?.id_usuario ?? null;
-}
+import { BASE_URL, idUsuario, peticionJson, peticionSinCuerpo } from './api';
 
 export async function listarCalendarios() {
-    const resp = await fetch(`${BASE_URL}/api/calendarios/`, { headers: headers() });
-    if (!resp.ok) throw new Error('No se pudieron cargar los calendarios.');
-    return resp.json();
+    return peticionJson(`${BASE_URL}/api/calendarios/`, {}, 'No se pudieron cargar los calendarios.');
 }
 
 export async function listarTipos() {
     const id = idUsuario();
     const url = new URL('/api/tipos-evento/', window.location.origin);
     if (id != null) url.searchParams.set('id_usuario', id);
-    const resp = await fetch(url, { headers: headers() });
-    if (!resp.ok) throw new Error('No se pudieron cargar los tipos de evento.');
-    return resp.json();
+    return peticionJson(url, {}, 'No se pudieron cargar los tipos de evento.');
 }
 
 /* Eventos visibles del calendario como el alumno no existe en BD (datos desde la API) su visibilidad filtra por
@@ -52,73 +36,65 @@ export async function listarEventos(idCalendario, { publico = false, plantelFilt
     }
     // Filtro de plantel del superusuario
     if (plantelFiltro) url.searchParams.set('plantel_filtro', plantelFiltro);
-    const resp = await fetch(url, { headers: headers() });
-    if (!resp.ok) throw new Error('No se pudieron cargar los eventos.');
-    return resp.json();
+    return peticionJson(url, {}, 'No se pudieron cargar los eventos.');
 }
 
 export async function crearEvento(datos, { agregarAGoogleCalendar = true } = {}) {
-    const resp = await fetch(`${BASE_URL}/api/eventos/`, {
-        method: 'POST',
-        headers: headers(),
-        body: JSON.stringify({ ...datos, id_usuario: idUsuario(), agregar_a_google_calendar: agregarAGoogleCalendar }),
-    });
-    const cuerpo = await resp.json().catch(() => ({}));
-    if (!resp.ok) throw new Error(cuerpo.error || 'No se pudo crear el evento.');
-    return cuerpo;
+    return peticionJson(
+        `${BASE_URL}/api/eventos/`,
+        {
+            method: 'POST',
+            body: JSON.stringify({ ...datos, id_usuario: idUsuario(), agregar_a_google_calendar: agregarAGoogleCalendar }),
+        },
+        'No se pudo crear el evento.'
+    );
 }
 
 export async function actualizarEvento(idEvento, datos) {
-    const resp = await fetch(`${BASE_URL}/api/eventos/${idEvento}/`, {
-        method: 'PUT',
-        headers: headers(),
-        body: JSON.stringify({ ...datos, id_usuario: idUsuario() }),
-    });
-    const cuerpo = await resp.json().catch(() => ({}));
-    if (!resp.ok) throw new Error(cuerpo.error || 'No se pudo actualizar el evento.');
-    return cuerpo;
+    return peticionJson(
+        `${BASE_URL}/api/eventos/${idEvento}/`,
+        {
+            method: 'PUT',
+            body: JSON.stringify({ ...datos, id_usuario: idUsuario() }),
+        },
+        'No se pudo actualizar el evento.'
+    );
 }
 
 export async function eliminarEvento(idEvento) {
-    const resp = await fetch(`${BASE_URL}/api/eventos/${idEvento}/?id_usuario=${idUsuario()}`, {
-        method: 'DELETE',
-        headers: headers(),
-    });
-    if (!resp.ok && resp.status !== 204) {
-        const cuerpo = await resp.json().catch(() => ({}));
-        throw new Error(cuerpo.error || 'No se pudo eliminar el evento.');
-    }
+    return peticionSinCuerpo(
+        `${BASE_URL}/api/eventos/${idEvento}/?id_usuario=${idUsuario()}`,
+        { method: 'DELETE' },
+        'No se pudo eliminar el evento.'
+    );
 }
 
 export async function crearTipo({ nombre, color_hex, plantel_id }) {
-    const resp = await fetch(`${BASE_URL}/api/tipos-evento/`, {
-        method: 'POST',
-        headers: headers(),
-        body: JSON.stringify({ nombre, color_hex, plantel_id, id_usuario: idUsuario() }),
-    });
-    const cuerpo = await resp.json().catch(() => ({}));
-    if (!resp.ok) throw new Error(cuerpo.error || 'No se pudo crear el tipo.');
-    return cuerpo;
+    return peticionJson(
+        `${BASE_URL}/api/tipos-evento/`,
+        {
+            method: 'POST',
+            body: JSON.stringify({ nombre, color_hex, plantel_id, id_usuario: idUsuario() }),
+        },
+        'No se pudo crear el tipo.'
+    );
 }
 
 export async function actualizarTipo(idTipo, { nombre, color_hex }) {
-    const resp = await fetch(`${BASE_URL}/api/tipos-evento/${idTipo}/`, {
-        method: 'PUT',
-        headers: headers(),
-        body: JSON.stringify({ nombre, color_hex, id_usuario: idUsuario() }),
-    });
-    const cuerpo = await resp.json().catch(() => ({}));
-    if (!resp.ok) throw new Error(cuerpo.error || 'No se pudo actualizar el tipo.');
-    return cuerpo;
+    return peticionJson(
+        `${BASE_URL}/api/tipos-evento/${idTipo}/`,
+        {
+            method: 'PUT',
+            body: JSON.stringify({ nombre, color_hex, id_usuario: idUsuario() }),
+        },
+        'No se pudo actualizar el tipo.'
+    );
 }
 
 export async function eliminarTipo(idTipo) {
-    const resp = await fetch(`${BASE_URL}/api/tipos-evento/${idTipo}/?id_usuario=${idUsuario()}`, {
-        method: 'DELETE',
-        headers: headers(),
-    });
-    if (!resp.ok && resp.status !== 204) {
-        const cuerpo = await resp.json().catch(() => ({}));
-        throw new Error(cuerpo.error || 'No se pudo eliminar el tipo.');
-    }
+    return peticionSinCuerpo(
+        `${BASE_URL}/api/tipos-evento/${idTipo}/?id_usuario=${idUsuario()}`,
+        { method: 'DELETE' },
+        'No se pudo eliminar el tipo.'
+    );
 }

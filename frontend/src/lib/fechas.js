@@ -50,6 +50,25 @@ export function formatoHora(hora) {
   return `${h12}:${String(m).padStart(2, "0")} ${periodo}`;
 }
 
+export function formatoHoraISO(iso) {
+  if (!iso) return "";
+  return new Date(iso).toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" });
+}
+
+export function tiempoRelativo(iso) {
+  const fecha = new Date(iso);
+  const seg = Math.floor((Date.now() - fecha.getTime()) / 1000);
+  if (seg < 60) return "Hace un momento";
+  const min = Math.floor(seg / 60);
+  if (min < 60) return `Hace ${min} min`;
+  const hrs = Math.floor(min / 60);
+  if (hrs < 24) return `Hace ${hrs} h`;
+  const dias = Math.floor(hrs / 24);
+  if (dias === 1) return "Ayer";
+  if (dias < 7) return `Hace ${dias} días`;
+  return fecha.toLocaleDateString("es-MX", { day: "numeric", month: "short" });
+}
+
 export function formatoFechaLarga(clave) {
   const texto = new Intl.DateTimeFormat("es-MX", {
     weekday: "long", day: "numeric", month: "long", year: "numeric",

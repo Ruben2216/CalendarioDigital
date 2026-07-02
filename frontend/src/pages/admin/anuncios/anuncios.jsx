@@ -12,12 +12,13 @@ import {
 import { obtenerSesion } from "../../../services/authService.js";
 import SelectorPlantel from "../../../components/selector-plantel/SelectorPlantel.jsx";
 import { avisoExito, avisoError, confirmarAccion } from "../../../lib/alertas.js";
+import { esAdmin as rolEsAdmin, esSuperusuario as rolEsSuperusuario } from "../../../lib/permisos.js";
 import styles from "./anuncios.module.css";
 
 export default function Anuncios() {
   const sesion = obtenerSesion();
-  const esAdmin = sesion?.rol === "admin";
-  const esSuperusuario = sesion?.rol === "superusuario";
+  const esAdmin = rolEsAdmin(sesion);
+  const esSuperusuario = rolEsSuperusuario(sesion);
   // Planteles asignados al admin (un admin no crea anuncios generales).
   const plantelesAdmin = [...new Set((sesion?.planteles || [])
     .map((p) => p.plantel?.nombre)

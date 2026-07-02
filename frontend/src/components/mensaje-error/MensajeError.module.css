@@ -1,0 +1,6 @@
+.mensaje-error {
+  color: var(--red, #e5484d);
+  font-size: 13px;
+  font-weight: 600;
+  margin: -2px 0 0;
+}

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Megaphone, Calendar, Bell } from "lucide-react";
 import { listarNotificaciones } from "../services/notificacionesService.js";
+import { tiempoRelativo } from "../lib/fechas.js";
 import {
     EVENTO_NOTIF, idsLeidas, idsOcultas,
     marcarTodasLeidas as persistirLeidas, limpiarTodas as persistirOcultas,
@@ -12,20 +13,6 @@ const ESTILO_CATEGORIA = {
     anuncio: { icono: Megaphone, color: "azul" },
     evento: { icono: Calendar, color: "verde" },
 };
-
-function tiempoRelativo(iso) {
-    const fecha = new Date(iso);
-    const seg = Math.floor((Date.now() - fecha.getTime()) / 1000);
-    if (seg < 60) return "Hace un momento";
-    const min = Math.floor(seg / 60);
-    if (min < 60) return `Hace ${min} min`;
-    const hrs = Math.floor(min / 60);
-    if (hrs < 24) return `Hace ${hrs} h`;
-    const dias = Math.floor(hrs / 24);
-    if (dias === 1) return "Ayer";
-    if (dias < 7) return `Hace ${dias} días`;
-    return fecha.toLocaleDateString("es-MX", { day: "numeric", month: "short" });
-}
 
 function mapear(lista) {
     const leidas = idsLeidas();
