@@ -41,6 +41,7 @@ export function useEventoCrud({
       todoElDia: !ev.horaInicio,
       especifico: ev.semestre != null || ev.grupo != null,
       semestre: ev.semestre ?? "", grupo: ev.grupo ?? "",
+      publico: ev.publico ?? false,
     });
     setModalEvento(true);
   };
