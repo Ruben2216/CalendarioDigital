@@ -554,11 +554,8 @@ class DispositivoFCM(models.Model):
         Usuario, on_delete=models.CASCADE, null=True, blank=True,
         related_name='dispositivos'
     )
-    plantel = models.ForeignKey(
-        Plantel, on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='dispositivos'
-    )
     token_fcm = models.CharField(max_length=255, unique=True)
+    temas = models.JSONField(default=list, blank=True)
     activo = models.BooleanField(default=True)
     fecha_registro = models.DateTimeField(auto_now_add=True)
     fecha_actualizacion = models.DateTimeField(auto_now=True)

@@ -8,8 +8,9 @@ from rest_framework.response import Response
 from rest_framework import status, permissions
 
 from ._comunes import _email_desde_id_token, _qr_data_uri, _resolver_semestre_grupo, _TURNOS_ALUMNO, _usuario_google, _usuario_sesion
-from ..models import GoogleOauthCredential, Plantel, Rol, Turno, Usuario, UsuarioPlantel
+from ..models import DispositivoFCM, GoogleOauthCredential, Plantel, Rol, Turno, Usuario, UsuarioPlantel
 from ..serializers import LoginInstitucionalSerializer
+from ..services import notificaciones_push as push
 from ..services.google_calendar import backfill_usuario
 from ..services.mock_institucional import es_alumno, login_alumno, mock_login_empleado, obtener_datos_por_correo
 
@@ -452,6 +453,20 @@ class LogoutView(APIView):
         usuario = _usuario_sesion(request)
         if usuario:
             Usuario.objects.filter(pk=usuario.pk).update(ultima_sesion=timezone.now())
+
+        # Desuscribe el token de sus temas para que el siguiente usuario del mismo dispositivo 
+        token = (request.data.get('token_fcm') or '').strip()
+        if token:
+            dispositivo = DispositivoFCM.objects.filter(token_fcm=token).first()
+            if dispositivo:
+                temas = list(dispositivo.temas or [])
+                if temas:
+                    try:
+                        push.desuscribir(token, temas)
+                    except Exception:
+                        logger.exception('Fallo al desuscribir el token en el logout')
+                DispositivoFCM.objects.filter(pk=dispositivo.pk).update(activo=False, temas=[])
+
         return Response(status=status.HTTP_200_OK)
 
 

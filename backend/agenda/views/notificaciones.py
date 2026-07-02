@@ -39,40 +39,65 @@ class RegistrarDispositivoView(APIView):
         if id_usuario is not None and str(id_usuario).isdigit():
             usuario = Usuario.objects.filter(pk=int(id_usuario), activo=True).first()
 
-        plantel = None
-        plantel_id = d.get('plantel_id')
-        plantel_nombre = d.get('plantel_nombre') or d.get('plantel')
-        if plantel_id is not None:
-            plantel = Plantel.objects.filter(pk=plantel_id).first()
-        elif plantel_nombre:
-            ids = Plantel.equivalentes(plantel_nombre)
-            plantel = Plantel.objects.filter(pk__in=ids).first()
+        # Un empleado puede tener varios planteles
+        planteles = self._resolver_planteles(d)
+
+        anterior = DispositivoFCM.objects.filter(token_fcm=token).first()
+        temas_previos = list(anterior.temas) if anterior and anterior.temas else []
+
+        temas_deseados = [push.TEMA_TODOS]
+        if rol:
+            temas_deseados.append(push.tema_rol(rol))
+        for p in planteles:
+            temas_deseados.append(push.tema_plantel(p.id_plantel))
+
+        aviso = None
+        try:
+            temas_vigentes = push.sincronizar(token, temas_deseados, temas_previos)
+        except Exception:
+            logger.exception('Fallo al sincronizar el token con los temas %s', temas_deseados)
+            temas_vigentes = temas_previos
+            aviso = 'Registrado, pero la sincronización de temas falló.'
 
         DispositivoFCM.objects.update_or_create(
             token_fcm=token,
             defaults={
                 'usuario': usuario,
-                'plantel': plantel,
                 'activo': True,
+                'temas': temas_vigentes,
             },
         )
 
-        temas = [push.TEMA_TODOS]
-        if rol:
-            temas.append(push.tema_rol(rol))
-        if plantel:
-            temas.append(push.tema_plantel(plantel.id_plantel))
+        respuesta = {'ok': True, 'temas': temas_vigentes}
+        if aviso:
+            respuesta['aviso'] = aviso
+        return Response(respuesta, status=status.HTTP_201_CREATED)
 
-        try:
-            push.suscribir(token, temas)
-        except Exception:
-            logger.exception('Fallo al suscribir el token a los temas %s', temas)
-            return Response(
-                {'ok': True, 'temas': temas, 'aviso': 'Registrado, pero la suscripción a temas falló.'},
-                status=status.HTTP_201_CREATED,
-            )
+    @staticmethod
+    def _resolver_planteles(d):
+        objetos = {}
 
-        return Response({'ok': True, 'temas': temas}, status=status.HTTP_201_CREATED)
+        def agregar(pk=None, nombre=None):
+            obj = None
+            if pk is not None:
+                obj = Plantel.objects.filter(pk=pk).first()
+            elif nombre:
+                obj = Plantel.objects.filter(pk__in=Plantel.equivalentes(nombre)).first()
+            if obj:
+                objetos.setdefault(obj.id_plantel, obj)
+
+        lista = d.get('planteles')
+        if isinstance(lista, list):
+            for p in lista:
+                if isinstance(p, dict):
+                    agregar(pk=p.get('id'), nombre=p.get('nombre'))
+                else:
+                    agregar(pk=p)
+
+        if not objetos:
+            agregar(pk=d.get('plantel_id'), nombre=d.get('plantel_nombre') or d.get('plantel'))
+
+        return list(objetos.values())
 
 
 def _notif_dict(n):

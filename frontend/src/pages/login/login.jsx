@@ -194,11 +194,14 @@ export default function Login() {
     guardarSesion(token, { ...sesion, nombre });
 
     // Notificaciones push (FCM): pide permiso, obtiene el token y lo registra
-    const planoNotif = sesion.plantel
-      ?? (Array.isArray(sesion.planteles) ? sesion.planteles[0]?.plantel : null);
+    const plantelesNotif = Array.isArray(sesion.planteles)
+      ? sesion.planteles.map((p) => p.plantel).filter(Boolean)
+      : [];
+    const planoNotif = sesion.plantel ?? plantelesNotif[0] ?? null;
     inicializarNotificaciones({
       id_usuario: sesion.id_usuario ?? null,
       rol: sesion.rol ?? rolPeticion,
+      planteles: plantelesNotif,
       plantel_id: planoNotif?.id ?? null,
       plantel_nombre: planoNotif?.nombre ?? null,
     }).catch(() => {});
