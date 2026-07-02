@@ -180,8 +180,8 @@ function ChipMulticolor({ colores, dia, size, fontSize, paddingTop }) {
         )}
         {n === 3 && (
           <>
-            <Polygon points={`0,0 ${W / 2},0 0,${H}`} fill={colores[0]} />
-            <Polygon points={`${W / 2},0 ${W},0 ${W},${H}`} fill={colores[1]} />
+            <Rect x={0} y={0} width={W / 2} height={H} fill={colores[0]} />
+            <Rect x={W / 2} y={0} width={W / 2} height={H} fill={colores[1]} />
             <Rect x={0} y={H * 0.6} width={W} height={H * 0.4} fill={colores[2]} />
           </>
         )}

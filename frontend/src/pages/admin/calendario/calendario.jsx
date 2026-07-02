@@ -281,10 +281,13 @@ export default function Calendario({ soloLectura = false, publico = false }) {
     () => calendarios.find((c) => c.id === calendarioActivo) || null,
     [calendarios, calendarioActivo]
   );
-  const tiposParaCrear = useMemo(
-    () => esAdmin ? tipos.filter((t) => !t.es_global) : tipos,
-    [tipos, esAdmin]
-  );
+  /* El admin crea solo con sus tipos de plantel; el superusuario solo con los
+     generales (los de plantel son responsabilidad del admin de cada plantel). */
+  const tiposParaCrear = useMemo(() => {
+    if (esAdmin) return tipos.filter((t) => !t.es_global);
+    if (esSuperusuario) return tipos.filter((t) => t.es_global);
+    return tipos;
+  }, [tipos, esAdmin, esSuperusuario]);
 
   const tiposSimbologia = useMemo(() => {
     if (!esSuperusuario) return tipos;
@@ -557,6 +560,15 @@ export default function Calendario({ soloLectura = false, publico = false }) {
     },
     antesDeEliminar: cerrarPopover,
   });
+
+  /* Al editar, el tipo actual del evento se conserva aunque no esté entre los
+     tipos permitidos para crear (p. ej. superusuario editando un evento de plantel). */
+  const tiposFormulario = useMemo(() => {
+    if (!eventoEditando) return tiposParaCrear;
+    if (tiposParaCrear.some((t) => String(t.id) === String(formEvento.tipo))) return tiposParaCrear;
+    const actual = tipos.find((t) => String(t.id) === String(formEvento.tipo));
+    return actual ? [...tiposParaCrear, actual] : tiposParaCrear;
+  }, [tiposParaCrear, tipos, eventoEditando, formEvento.tipo]);
 
   const abrirNuevoEvento = () => abrirNuevoEventoEnFecha(fechaSeleccionada || claveHoy);
 
@@ -1509,7 +1521,7 @@ export default function Calendario({ soloLectura = false, publico = false }) {
         <FormularioEvento
           id="form-evento-calendario"
           form={formEvento}
-          tipos={tiposParaCrear}
+          tipos={tiposFormulario}
           restringido={esAdmin}
           planteles={misPlanteles}
           turnos={misTurnos}
