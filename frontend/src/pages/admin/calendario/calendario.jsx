@@ -125,6 +125,11 @@ export default function Calendario({ soloLectura = false, publico = false }) {
   const [vistaMenu, setVistaMenu] = useState(false);                    // menú desplegable de vista
   
   const [panelAbierto, setPanelAbierto] = usePreferencia("calendario:panel", false);
+  const [gruposColapsados, setGruposColapsados] = usePreferencia("calendario:simbologiaColapsados", []);
+  const alternarGrupoSimbologia = (clave) =>
+    setGruposColapsados((prev) =>
+      prev.includes(clave) ? prev.filter((k) => k !== clave) : [...prev, clave]
+    );
   const [filtrosModalAbierto, setFiltrosModalAbierto] = useState(false);
   const [esMobil, setEsMobil] = useState(
     () => typeof window !== "undefined" && window.matchMedia("(max-width: 760px)").matches
@@ -616,6 +621,73 @@ export default function Calendario({ soloLectura = false, publico = false }) {
   // CRUD de tipos de evento
   const puedeGestionarTipos = !lectura && (esGestor || esAdmin);
 
+  const simbologiaAgrupada = useMemo(() => {
+    const generales = [];
+    const porPlantel = new Map();
+    for (const t of tiposSimbologia) {
+      if (t.es_global) {
+        generales.push(t);
+      } else {
+        const nombre = t.plantel || "Sin plantel";
+        if (!porPlantel.has(nombre)) porPlantel.set(nombre, []);
+        porPlantel.get(nombre).push(t);
+      }
+    }
+    const grupos = [];
+    if (generales.length) grupos.push({ clave: "__generales", titulo: "Generales", tipos: generales });
+    for (const [nombre, lista] of porPlantel) {
+      grupos.push({ clave: nombre, titulo: nombre, tipos: lista });
+    }
+    return grupos;
+  }, [tiposSimbologia]);
+
+  const filaTipo = (t) => (
+    <li key={t.id} className={styles["simbologia__item"]}>
+      {tipoEditandoId === t.id ? (
+        <div className={styles["simbologia__edit"]}>
+          <input
+            type="color"
+            className={styles["simbologia__color-input"]}
+            value={editColor}
+            onChange={(e) => setEditColor(e.target.value)}
+            title="Elegir color"
+          />
+          <input
+            type="text"
+            className={styles["simbologia__nombre-input"]}
+            value={editNombre}
+            onChange={(e) => setEditNombre(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') guardarEdicionTipo(t.id); if (e.key === 'Escape') setTipoEditandoId(null); }}
+            autoFocus
+          />
+          <div className={styles["simbologia__edit-acciones"]}>
+            <button type="button" title="Guardar" onClick={() => guardarEdicionTipo(t.id)}>
+              <Check size={13} />
+            </button>
+            <button type="button" title="Cancelar" onClick={() => setTipoEditandoId(null)}>
+              <X size={13} />
+            </button>
+          </div>
+        </div>
+      ) : (
+        <>
+          <span className={styles["simbologia__punto"]} style={{ backgroundColor: t.color }} />
+          <span className={styles["simbologia__texto"]}>{t.etiqueta}</span>
+          {puedeGestionarTipos && t.puede_editar && (
+            <div className={styles["simbologia__acciones"]}>
+              <button type="button" title="Editar" onClick={() => iniciarEdicionTipo(t)}>
+                <Pencil size={12} />
+              </button>
+              <button type="button" title="Eliminar" className={styles["simbologia__borrar"]} onClick={() => pedirEliminarTipo(t)}>
+                <Trash2 size={12} />
+              </button>
+            </div>
+          )}
+        </>
+      )}
+    </li>
+  );
+
   return (
     <div className={styles["calendario"]}>
       {/* ENCABEZADO: selector de calendario */}
@@ -1097,54 +1169,36 @@ export default function Calendario({ soloLectura = false, publico = false }) {
                 </button>
               )}
             </div>
-            <ul className={styles["simbologia"]}>
-              {tiposSimbologia.map((t) => (
-                <li key={t.id} className={styles["simbologia__item"]}>
-                  {tipoEditandoId === t.id ? (
-                    <div className={styles["simbologia__edit"]}>
-                      <input
-                        type="color"
-                        className={styles["simbologia__color-input"]}
-                        value={editColor}
-                        onChange={(e) => setEditColor(e.target.value)}
-                        title="Elegir color"
+            <div className={styles["simbologia"]}>
+              {simbologiaAgrupada.length === 0 && (
+                <p className={styles["simbologia__vacio"]}>No hay tipos de evento.</p>
+              )}
+              {simbologiaAgrupada.map((g) => {
+                const colapsado = gruposColapsados.includes(g.clave);
+                return (
+                  <div key={g.clave} className={styles["simbologia__grupo"]}>
+                    <button
+                      type="button"
+                      className={styles["simbologia__grupo-titulo"]}
+                      onClick={() => alternarGrupoSimbologia(g.clave)}
+                      aria-expanded={!colapsado}
+                    >
+                      <ChevronDown
+                        size={14}
+                        className={`${styles["simbologia__grupo-chevron"]} ${colapsado ? styles["simbologia__grupo-chevron--cerrado"] : ""}`}
                       />
-                      <input
-                        type="text"
-                        className={styles["simbologia__nombre-input"]}
-                        value={editNombre}
-                        onChange={(e) => setEditNombre(e.target.value)}
-                        onKeyDown={(e) => { if (e.key === 'Enter') guardarEdicionTipo(t.id); if (e.key === 'Escape') setTipoEditandoId(null); }}
-                        autoFocus
-                      />
-                      <div className={styles["simbologia__edit-acciones"]}>
-                        <button type="button" title="Guardar" onClick={() => guardarEdicionTipo(t.id)}>
-                          <Check size={13} />
-                        </button>
-                        <button type="button" title="Cancelar" onClick={() => setTipoEditandoId(null)}>
-                          <X size={13} />
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <>
-                      <span className={styles["simbologia__punto"]} style={{ backgroundColor: t.color }} />
-                      <span className={styles["simbologia__texto"]}>{t.etiqueta}</span>
-                      {puedeGestionarTipos && t.puede_editar && (
-                        <div className={styles["simbologia__acciones"]}>
-                          <button type="button" title="Editar" onClick={() => iniciarEdicionTipo(t)}>
-                            <Pencil size={12} />
-                          </button>
-                          <button type="button" title="Eliminar" className={styles["simbologia__borrar"]} onClick={() => pedirEliminarTipo(t)}>
-                            <Trash2 size={12} />
-                          </button>
-                        </div>
-                      )}
-                    </>
-                  )}
-                </li>
-              ))}
-            </ul>
+                      <span className={styles["simbologia__grupo-nombre"]}>{g.titulo}</span>
+                      <span className={styles["simbologia__grupo-conteo"]}>{g.tipos.length}</span>
+                    </button>
+                    {!colapsado && (
+                      <ul className={styles["simbologia__lista"]}>
+                        {g.tipos.map(filaTipo)}
+                      </ul>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
 
             {/* Formulario para añadir nuevo tipo */}
             {formTipoVisible && (
@@ -1389,8 +1443,12 @@ export default function Calendario({ soloLectura = false, publico = false }) {
             <span className="formulario__etiqueta">Tipo de evento</span>
             <select value={filtroTipo} onChange={(e) => setFiltroTipo(e.target.value)}>
               <option value="todos">Todos</option>
-              {tiposSimbologia.map((t) => (
-                <option key={t.id} value={t.id}>{t.etiqueta}</option>
+              {simbologiaAgrupada.map((g) => (
+                <optgroup key={g.clave} label={g.titulo}>
+                  {g.tipos.map((t) => (
+                    <option key={t.id} value={t.id}>{t.etiqueta}</option>
+                  ))}
+                </optgroup>
               ))}
             </select>
           </label>
