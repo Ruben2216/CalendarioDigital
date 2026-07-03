@@ -428,11 +428,12 @@ export default function Usuarios() {
                   const estado = ESTADOS_MAP[u.estado];
                   const turno = TURNOS_MAP[u.turno];
                   const rolFila = ROLES_GESTION[u.rol] || ROL;
+                  const colorRol = u.rol === "colaborador" ? ROL.color : rolFila.color;
                   return (
                     <tr key={u.id}>
                       <td>
                         <div className={styles["usuario"]}>
-                          <span className={`${styles["usuario__avatar"]} ${styles[`usuario__avatar--${rolFila.color}`]}`}>
+                          <span className={`${styles["usuario__avatar"]} ${styles[`usuario__avatar--${colorRol}`]}`}>
                             {iniciales(u.nombre)}
                           </span>
                           <div className={styles["usuario__copia"]}>
@@ -466,7 +467,7 @@ export default function Usuarios() {
                         )}
                       </td>
                       <td data-label="Rol">
-                        <span className={`etiqueta etiqueta--${rolFila.color}`}>{rolFila.etiqueta}</span>
+                        <span className={`etiqueta etiqueta--${colorRol}`}>{rolFila.etiqueta}</span>
                       </td>
                       <td data-label="Estado">
                         <span className={`etiqueta etiqueta--${estado?.color}`}>{estado?.etiqueta}</span>
@@ -562,40 +563,17 @@ export default function Usuarios() {
             </div>
           )}
 
-          {!editando && (
-            <label className="formulario__campo">
-              <span className="formulario__etiqueta">Tipo de acceso</span>
-              <select value={form.rol} onChange={fijarCampo("rol")}>
-                {Object.values(ROLES_GESTION).map((r) => (
-                  <option key={r.id} value={r.id}>{r.etiqueta}</option>
-                ))}
-              </select>
-            </label>
-          )}
-
           {(!editando && modoBusqueda === "correo") ? (
-            <>
-              <label className="formulario__campo">
-                <span className="formulario__etiqueta">Correo institucional</span>
-                <input
-                  type="email"
-                  required
-                  placeholder="usuario@cobach.edu.mx"
-                  value={form.correo}
-                  onChange={fijarCampo("correo")}
-                />
-              </label>
-              {form.rol === "admin" && (
-                <label className="formulario__campo">
-                  <span className="formulario__etiqueta">Turno</span>
-                  <select value={form.turno} onChange={fijarCampo("turno")}>
-                    {opcionesTurno.map((t) => (
-                      <option key={t.id} value={t.id}>{t.etiqueta}</option>
-                    ))}
-                  </select>
-                </label>
-              )}
-            </>
+            <label className="formulario__campo">
+              <span className="formulario__etiqueta">Correo institucional</span>
+              <input
+                type="email"
+                required
+                placeholder="usuario@cobach.edu.mx"
+                value={form.correo}
+                onChange={fijarCampo("correo")}
+              />
+            </label>
           ) : (
             <div className="formulario__campo">
               <span className="formulario__etiqueta">Nombre completo</span>
@@ -617,7 +595,51 @@ export default function Usuarios() {
             </div>
           )}
 
-          {(editando || modoBusqueda === "nombre") && form.rol === "admin" && (
+          {!editando && (
+            <label className="formulario__campo">
+              <span className="formulario__etiqueta">Tipo de acceso</span>
+              <select value={form.rol} onChange={fijarCampo("rol")}>
+                {Object.values(ROLES_GESTION).map((r) => (
+                  <option key={r.id} value={r.id}>{r.etiqueta}</option>
+                ))}
+              </select>
+            </label>
+          )}
+
+          {form.rol === "admin" && (
+            <div className="formulario__campo">
+              <span className="formulario__etiqueta">
+                Plantel donde puede gestionar fechas
+              </span>
+              {form.planteles.length > 0 ? (
+                <div className={styles["plantel-seleccionado"]}>
+                  <MapPin size={13} />
+                  <span>{form.planteles[0]}</span>
+                  <button
+                    type="button"
+                    className={styles["plantel-seleccionado__quitar"]}
+                    onClick={() => setForm((prev) => ({ ...prev, planteles: [] }))}
+                    aria-label="Quitar plantel"
+                  >
+                    <X size={13} />
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <BuscadorPlantelInline
+                    onSeleccionar={(p) => alternarPlantel(p.nombre)}
+                    placeholder="Buscar plantel…"
+                    autoFocus={false}
+                  />
+                  {plantelesDisponibles.length > 0 && (
+                    <span className={styles["aviso-campo"]}>Selecciona un plantel.</span>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+
+          {form.rol === "admin" && (
             <label className="formulario__campo">
               <span className="formulario__etiqueta">Turno</span>
               <select value={form.turno} onChange={fijarCampo("turno")}>
@@ -653,39 +675,6 @@ export default function Usuarios() {
                   : <>Se registrará como <b>{ROLES_GESTION[form.rol].etiqueta}</b>. {ROLES_GESTION[form.rol].descripcion}</>}
               </span>
             </p>
-          )}
-
-          {form.rol === "admin" && (
-            <div className="formulario__campo">
-              <span className="formulario__etiqueta">
-                Plantel donde puede gestionar fechas
-              </span>
-              {form.planteles.length > 0 ? (
-                <div className={styles["plantel-seleccionado"]}>
-                  <MapPin size={13} />
-                  <span>{form.planteles[0]}</span>
-                  <button
-                    type="button"
-                    className={styles["plantel-seleccionado__quitar"]}
-                    onClick={() => setForm((prev) => ({ ...prev, planteles: [] }))}
-                    aria-label="Quitar plantel"
-                  >
-                    <X size={13} />
-                  </button>
-                </div>
-              ) : (
-                <>
-                  <BuscadorPlantelInline
-                    onSeleccionar={(p) => alternarPlantel(p.nombre)}
-                    placeholder="Buscar plantel…"
-                    autoFocus={false}
-                  />
-                  {plantelesDisponibles.length > 0 && (
-                    <span className={styles["aviso-campo"]}>Selecciona un plantel.</span>
-                  )}
-                </>
-              )}
-            </div>
           )}
         </form>
       </Modal>
