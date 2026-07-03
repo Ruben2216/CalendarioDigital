@@ -162,13 +162,6 @@ export default function SolicitudAdmin({ abierto, onCerrar }) {
         </div>
       ) : (
         <>
-          <div className={styles["nota"]}>
-            <ShieldCheck size={16} />
-            <p>
-              Tu solicitud será revisada por un superusuario. Si la aprueba, tu cuenta pasará de <b>Docente/Administrativo</b> a <b>Administrador</b> y podrás gestionar el calendario correspondiente.
-            </p>
-          </div>
-
           <form id="form-solicitud-admin" className="formulario" onSubmit={enviar}>
             <label className="formulario__campo">
               <span className="formulario__etiqueta">Nombre completo</span>
@@ -231,11 +224,19 @@ export default function SolicitudAdmin({ abierto, onCerrar }) {
               <span className="formulario__etiqueta">Motivo (opcional)</span>
               <textarea
                 rows={3}
+                style={{ resize: "vertical" }}
                 placeholder="¿Por qué necesitas gestionar el calendario?"
                 value={form.motivo}
                 onChange={fijar("motivo")}
               />
             </label>
+
+            <div className={styles["nota"]}>
+              <ShieldCheck size={16} />
+              <p>
+                Tu solicitud será revisada por un superusuario. Si la aprueba, tu cuenta pasará de <b>Docente/Administrativo</b> a <b>Administrador</b> y podrás gestionar el calendario correspondiente.
+              </p>
+            </div>
           </form>
         </>
       )}
