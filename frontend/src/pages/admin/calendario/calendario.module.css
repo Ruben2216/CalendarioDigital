@@ -366,6 +366,13 @@
    En escritorio el calendario ocupa todo el ancho y, al abrir el panel, este
    crece desde 0 hasta 320px (con transición), empujando el calendario. */
 .calendario__cuerpo {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.calendario__fila {
   display: flex;
   align-items: flex-start;
   min-width: 0;
@@ -411,20 +418,11 @@
 }
 
 /* Encabezado del panel lateral (con botón de cerrar) */
-.panel-cab {
+/* Acciones del encabezado de la simbología (+ Nuevo y cerrar, juntos a la derecha) */
+.simbologia__cab-acciones {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 2px 2px 0;
-}
-
-.panel-cab__titulo {
-  font-family: var(--font-display);
-  font-size: 13px;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--muted-2);
+  gap: 4px;
 }
 
 .panel-cab__cerrar {
@@ -1180,7 +1178,7 @@
 
 /* Responsive */
 @media (max-width: 1100px) {
-  .calendario__cuerpo {
+  .calendario__fila {
     flex-direction: column;
     align-items: stretch;
   }

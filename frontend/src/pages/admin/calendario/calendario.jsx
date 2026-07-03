@@ -736,9 +736,8 @@ export default function Calendario({ soloLectura = false, publico = false }) {
 
       {/* CUERPO: columna principal (toolbar + calendario + panel) y aside derecho */}
       <div className={styles["calendario__cuerpo"]}>
-        <div className={styles["calendario__principal"]}>
-          {/* TOOLBAR (controla a FullCalendar por su API) */}
-          <div className={styles["barra"]}>
+        {/* TOOLBAR (controla a FullCalendar por su API) */}
+        <div className={styles["barra"]}>
             <div className={styles["barra__navegacion"]}>
               <button type="button" className="boton boton--fantasma boton--pequeno" onClick={irHoy}>
                 Hoy
@@ -926,6 +925,8 @@ export default function Calendario({ soloLectura = false, publico = false }) {
             </div>
           </div>
 
+        <div className={styles["calendario__fila"]}>
+          <div className={styles["calendario__principal"]}>
           {/* ---- EL CALENDARIO ----
                Mes y Semana las dibuja FullCalendar; Anual y Lista son
                componentes propios */}
@@ -1139,19 +1140,6 @@ export default function Calendario({ soloLectura = false, publico = false }) {
             <span className={styles["panel-asa__bar"]} />
           </button>
 
-          {/* Encabezado del panel con X para cerrarlo */}
-          <div className={styles["panel-cab"]}>
-            <span className={styles["panel-cab__titulo"]}>Simbología</span>
-            <button
-              type="button"
-              className={styles["panel-cab__cerrar"]}
-              onClick={() => setPanelAbierto(false)}
-              aria-label="Cerrar panel"
-            >
-              <X size={18} />
-            </button>
-          </div>
-
           {/* Simbología: catálogo de tipos de evento */}
           <article className="tarjeta">
             <div className="tarjeta__cabecera">
@@ -1159,15 +1147,26 @@ export default function Calendario({ soloLectura = false, publico = false }) {
                 <Tag size={16} />
                 Simbología
               </div>
-              {puedeGestionarTipos && !formTipoVisible && (
+              <div className={styles["simbologia__cab-acciones"]}>
+                {puedeGestionarTipos && !formTipoVisible && (
+                  <button
+                    type="button"
+                    className="tarjeta__enlace"
+                    onClick={() => { setFormTipoVisible(true); setTipoEditandoId(null); }}
+                  >
+                    + Nuevo
+                  </button>
+                )}
                 <button
                   type="button"
-                  className="tarjeta__enlace"
-                  onClick={() => { setFormTipoVisible(true); setTipoEditandoId(null); }}
+                  className={styles["panel-cab__cerrar"]}
+                  onClick={() => setPanelAbierto(false)}
+                  aria-label="Cerrar simbología"
+                  title="Cerrar"
                 >
-                  + Nuevo
+                  <X size={18} />
                 </button>
-              )}
+              </div>
             </div>
             <div className={styles["simbologia"]}>
               {simbologiaAgrupada.length === 0 && (
@@ -1246,6 +1245,7 @@ export default function Calendario({ soloLectura = false, publico = false }) {
           </article>
 
         </aside>
+        </div>
       </div>
 
       {/* Diálogo para descargar el calendario en PDF */}
@@ -1581,6 +1581,7 @@ export default function Calendario({ soloLectura = false, publico = false }) {
           form={formEvento}
           tipos={tiposFormulario}
           restringido={esAdmin}
+          puedePublico={esGestor}
           planteles={misPlanteles}
           turnos={misTurnos}
           error={errorEvento}

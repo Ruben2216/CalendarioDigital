@@ -323,9 +323,7 @@ class EventoListView(APIView):
                 if not calendario.es_publico:
                     return Response([])
 
-                qs = qs.filter(
-                    (plantel_para_todos & turno_para_todos) | Q(publico=True)
-                )
+                qs = qs.filter(publico=True)
 
         return Response([_evento_dict(ev, usuario) for ev in qs])
 
@@ -390,7 +388,7 @@ class EventoListView(APIView):
                 return None, 'El tipo de evento no pertenece a tu catálogo de plantel.'
             turno = par_valido.turno
 
-        return {
+        datos = {
             'calendario': calendario,
             'tipo_evento': tipo,
             'titulo': titulo,
@@ -404,8 +402,11 @@ class EventoListView(APIView):
             'turno': turno,
             'semestre': semestre_obj,
             'grupo': grupo_obj,
-            'publico': True if d.get('publico') else None,
-        }, None
+        }
+
+        if usuario.es_gestor_global():
+            datos['publico'] = True if d.get('publico') else None
+        return datos, None
 
 
 class EventoDetailView(APIView):

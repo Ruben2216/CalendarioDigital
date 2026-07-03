@@ -10,6 +10,7 @@ export default function FormularioEvento({
   form,
   tipos = [],
   restringido = false,
+  puedePublico = false,
   planteles = [],
   turnos = [],
   error = null,
@@ -176,23 +177,25 @@ export default function FormularioEvento({
         />
       </label>
 
-      <div className={styles['interruptor']}>
-        <div>
-          <span className="formulario__etiqueta">Agregar al calendario público</span>
-          <p className={styles['interruptor__nota']}>
-            Los invitados podrán ver este evento en el calendario público.
-          </p>
+      {puedePublico && (
+        <div className={styles['interruptor']}>
+          <div>
+            <span className="formulario__etiqueta">Mostrar en el calendario público</span>
+            <p className={styles['interruptor__nota']}>
+              Si se activa, los invitados podrán ver este evento en el calendario público.
+            </p>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={form.publico}
+            className={`${styles['switch']} ${form.publico ? styles['switch--on'] : ''}`}
+            onClick={() => fij('publico', !form.publico)}
+          >
+            <span className={styles['switch__bolita']} />
+          </button>
         </div>
-        <button
-          type="button"
-          role="switch"
-          aria-checked={form.publico}
-          className={`${styles['switch']} ${form.publico ? styles['switch--on'] : ''}`}
-          onClick={() => fij('publico', !form.publico)}
-        >
-          <span className={styles['switch__bolita']} />
-        </button>
-      </div>
+      )}
 
       <div className={styles['interruptor']}>
         <div>
