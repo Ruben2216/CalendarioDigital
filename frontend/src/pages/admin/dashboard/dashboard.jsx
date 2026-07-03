@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSesion } from '../../../hooks/useSesion.js';
+import { esGestorGlobal } from '../../../lib/permisos.js';
 import { useNavigate } from "react-router-dom";
 import {
   Calendar, CalendarDays, Clock, Users, ChevronLeft, ChevronRight, ChevronDown, MapPin,
@@ -82,11 +83,15 @@ export default function Dashboard() {
   const [simbologiaAbierta, setSimbologiaAbierta] = usePreferencia("dash:simbologia", false);
   const [rangoProximos, setRangoProximos] = usePreferencia("dash:rangoProximos", "semana");
 
+  const sesion = useSesion();
+  const esGestor = esGestorGlobal(sesion);
+
   // Simbología agrupada
   const simbologiaAgrupada = useMemo(() => {
+    const fuente = esGestor ? tipos.filter((t) => t.es_global) : tipos;
     const generales = [];
     const porPlantel = new Map();
-    for (const t of tipos) {
+    for (const t of fuente) {
       if (t.es_global) {
         generales.push(t);
       } else {
@@ -101,7 +106,7 @@ export default function Dashboard() {
       grupos.push({ clave: nombre, titulo: nombre, tipos: lista });
     }
     return grupos;
-  }, [tipos]);
+  }, [tipos, esGestor]);
 
   const [gruposColapsados, setGruposColapsados] = usePreferencia("dash:simbologiaColapsados", []);
   const alternarGrupo = (clave) =>
@@ -109,7 +114,7 @@ export default function Dashboard() {
       prev.includes(clave) ? prev.filter((k) => k !== clave) : [...prev, clave]
     );
 
-  const { nombre } = useSesion();
+  const { nombre } = sesion;
   const saludo = saludoPorHora(hoy.getHours());
 
   const fechaLarga = useMemo(() => {
