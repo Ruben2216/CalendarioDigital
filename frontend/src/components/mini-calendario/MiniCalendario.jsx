@@ -28,6 +28,33 @@ export default function MiniCalendario({
   const [fechaSeleccionada, setFechaSeleccionada] = useState(null);
   const [simbologiaAbierta, setSimbologiaAbierta] = usePreferencia("mini:simbologia", false);
 
+  // Simbología agrupada
+  const simbologiaAgrupada = useMemo(() => {
+    const generales = [];
+    const porPlantel = new Map();
+    for (const t of tipos) {
+      if (t.es_global) {
+        generales.push(t);
+      } else {
+        const nombre = t.plantel || "Sin plantel";
+        if (!porPlantel.has(nombre)) porPlantel.set(nombre, []);
+        porPlantel.get(nombre).push(t);
+      }
+    }
+    const grupos = [];
+    if (generales.length) grupos.push({ clave: "__generales", titulo: "Generales", tipos: generales });
+    for (const [nombre, lista] of porPlantel) {
+      grupos.push({ clave: nombre, titulo: nombre, tipos: lista });
+    }
+    return grupos;
+  }, [tipos]);
+
+  const [gruposColapsados, setGruposColapsados] = usePreferencia("mini:simbologiaColapsados", []);
+  const alternarGrupo = (clave) =>
+    setGruposColapsados((prev) =>
+      prev.includes(clave) ? prev.filter((k) => k !== clave) : [...prev, clave]
+    );
+
   const eventosPorFecha = useMemo(() => {
     const mapa = new Map();
     for (const ev of eventos) {
@@ -222,14 +249,38 @@ export default function MiniCalendario({
           />
         </button>
         {simbologiaAbierta && (
-          <ul className={styles["simbologia__lista"]}>
-            {tipos.map((t) => (
-              <li key={t.id} className={styles["simbologia__item"]}>
-                <span className={styles["simbologia__punto"]} style={{ backgroundColor: t.color }} />
-                {t.etiqueta}
-              </li>
-            ))}
-          </ul>
+          <div className={styles["simbologia__grupos"]}>
+            {simbologiaAgrupada.map((g) => {
+              const colapsado = gruposColapsados.includes(g.clave);
+              return (
+                <div key={g.clave} className={styles["simbologia__grupo"]}>
+                  <button
+                    type="button"
+                    className={styles["simbologia__grupo-titulo"]}
+                    onClick={() => alternarGrupo(g.clave)}
+                    aria-expanded={!colapsado}
+                  >
+                    <ChevronDown
+                      size={13}
+                      className={`${styles["simbologia__grupo-chevron"]} ${colapsado ? styles["simbologia__grupo-chevron--cerrado"] : ""}`}
+                    />
+                    <span className={styles["simbologia__grupo-nombre"]}>{g.titulo}</span>
+                    <span className={styles["simbologia__grupo-conteo"]}>{g.tipos.length}</span>
+                  </button>
+                  {!colapsado && (
+                    <ul className={styles["simbologia__lista"]}>
+                      {g.tipos.map((t) => (
+                        <li key={t.id} className={styles["simbologia__item"]}>
+                          <span className={styles["simbologia__punto"]} style={{ backgroundColor: t.color }} />
+                          {t.etiqueta}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         )}
       </div>
     </article>

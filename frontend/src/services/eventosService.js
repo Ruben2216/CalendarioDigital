@@ -6,9 +6,11 @@ export async function listarCalendarios() {
 }
 
 export async function listarTipos() {
-    const id = idUsuario();
     const url = new URL('/api/tipos-evento/', window.location.origin);
-    if (id != null) url.searchParams.set('id_usuario', id);
+    const sesion = obtenerSesion();
+    if (sesion?.id_usuario != null) url.searchParams.set('id_usuario', sesion.id_usuario);
+    if (sesion?.plantel?.id) url.searchParams.set('plantel_id', sesion.plantel.id);
+    else if (sesion?.plantel?.nombre) url.searchParams.set('plantel', sesion.plantel.nombre);
     return peticionJson(url, {}, 'No se pudieron cargar los tipos de evento.');
 }
 
