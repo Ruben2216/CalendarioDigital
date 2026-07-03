@@ -57,8 +57,7 @@ export default function BuscadorPlantelInline({
   const resultados = q.length > 0
     ? planteles
         .filter(p =>
-          !excluirSet.has(p.id) &&
-          (p.nombre.toLowerCase().includes(q) || String(p.id).includes(q))
+          !excluirSet.has(p.id) && p.nombre.toLowerCase().includes(q)
         )
         .sort(sortPorNumero)
         .slice(0, maxResultados)
