@@ -86,7 +86,7 @@ export default function Usuarios() {
     let vigente = true;
     setCargando(true);
     setErrorCarga(false);
-    Promise.all([listarSolicitudes(), listarAdministradores(), obtenerPlanteles(), obtenerTurnos()])
+    Promise.all([listarSolicitudes(null, "admin"), listarAdministradores(), obtenerPlanteles(), obtenerTurnos()])
       .then(([solicitudes, admins, planteles, turnos]) => {
         if (!vigente) return;
         // Los admins activos (creados directo o por solicitud aceptada) vienen de

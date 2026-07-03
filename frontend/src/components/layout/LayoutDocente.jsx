@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Home, Calendar, MessageSquare, ShieldCheck, Megaphone } from "lucide-react";
-import { useSesion } from "../../hooks/useSesion.js";
+import { leerSesion } from "../../hooks/useSesion.js";
+import { refrescarSesion } from "../../services/authService.js";
 import { useAnunciosNoLeidos } from "../../hooks/useAnunciosNoLeidos.js";
 import { useMensajeriaCtx } from "../../context/MensajeriaContext.jsx";
 import SolicitudAdmin from "../solicitud-admin/SolicitudAdmin.jsx";
-import EditorPlanteles from "./EditorPlanteles.jsx";
+import PlantelesAsignados from "./PlantelesAsignados.jsx";
 import LayoutBase from "./LayoutBase.jsx";
 import { ROL_ETIQUETA, cicloEscolar } from "./layoutUtils.js";
 import styles from "./Layout.module.css";
@@ -18,10 +19,16 @@ const NAV_DOCENTE_BASE = [
 
 // Layout para docente.
 export default function LayoutDocente() {
-  const { nombre, iniciales, rol, planteles = [], tipoEmpleado, adscripcion } = useSesion();
+  const [sesion, setSesion] = useState(leerSesion);
+  const { nombre, iniciales, rol, planteles = [], tipoEmpleado, adscripcion } = sesion;
   const anunciosNoLeidos = useAnunciosNoLeidos();
   const { totalSinLeer } = useMensajeriaCtx();
   const [solicitudAbierto, setSolicitudAbierto] = useState(false);
+
+  // Sincroniza planteles/turnos otorgados por los administradores del plantel.
+  useEffect(() => {
+    refrescarSesion().then(() => setSesion(leerSesion()));
+  }, []);
 
   // Agrupar por plantel (un docente puede tener Matutino+Vespertino en el mismo plantel)
   const plantelesAgrupados = Object.values(
@@ -56,13 +63,13 @@ export default function LayoutDocente() {
       onClick={() => setSolicitudAbierto(true)}
     >
       <ShieldCheck size={16} />
-      Solicitar acceso admin
+      Solicitar acceso
     </button>
   );
 
   const perfilContenido = (
     <>
-      <EditorPlanteles plantelesAgrupados={plantelesAgrupados} />
+      <PlantelesAsignados plantelesAgrupados={plantelesAgrupados} />
       <ul className={styles["menu-perfil__datos"]}>
         <li><span>Ciclo escolar</span><strong>{cicloEscolar()}</strong></li>
       </ul>

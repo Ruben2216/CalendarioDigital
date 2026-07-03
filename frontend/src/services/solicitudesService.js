@@ -1,10 +1,11 @@
 import { BASE_URL, idUsuario, peticionJson, peticionSinCuerpo } from './api';
 
-// Solicitud pendiente del usuario actual (o null si no tiene).
-export async function miSolicitudPendiente() {
+// Solicitud pendiente del usuario actual para un tipo (o null si no tiene).
+export async function miSolicitudPendiente(tipo) {
     const id = idUsuario();
+    const extra = tipo ? `&tipo=${encodeURIComponent(tipo)}` : '';
     const datos = await peticionJson(
-        `${BASE_URL}/api/solicitudes-admin/mia/?id_usuario=${id}`,
+        `${BASE_URL}/api/solicitudes-admin/mia/?id_usuario=${id}${extra}`,
         {},
         'No se pudo consultar tu solicitud.'
     );
@@ -23,10 +24,13 @@ export async function enviarSolicitud(payload) {
     ); // { ya_existe, solicitud }
 }
 
-// Lista de solicitudes (para admin/superusuario).
-export async function listarSolicitudes(estado) {
+// Lista de solicitudes (para admin/superusuario), filtrable por estado y
+// tipo ('admin', 'visualizacion', 'turno' o lista separada por comas).
+export async function listarSolicitudes(estado, tipo) {
     const url = new URL('/api/solicitudes-admin/', window.location.origin);
+    url.searchParams.set('id_usuario', idUsuario());
     if (estado) url.searchParams.set('estado', estado);
+    if (tipo) url.searchParams.set('tipo', tipo);
     return peticionJson(url, {}, 'No se pudieron cargar las solicitudes.');
 }
 
@@ -71,6 +75,19 @@ export async function resolverSolicitud(idSolicitud, accion) {
         'No se pudo procesar la solicitud.'
     );
     return datos.solicitud;
+}
+
+// Edita el plantel/turno de una solicitud pendiente (admin/superusuario).
+export async function editarSolicitud(idSolicitud, datos) {
+    const res = await peticionJson(
+        `${BASE_URL}/api/solicitudes-admin/${idSolicitud}/`,
+        {
+            method: 'PATCH',
+            body: JSON.stringify({ ...datos, id_usuario: idUsuario() }),
+        },
+        'No se pudo editar la solicitud.'
+    );
+    return res.solicitud;
 }
 
 // Elimina la solicitud de la BD. No afecta al usuario ni a su rol.

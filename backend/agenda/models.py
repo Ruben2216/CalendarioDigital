@@ -516,9 +516,13 @@ class Notificacion(models.Model):
 
 
 class SolicitudAdmin(models.Model):
-    """Solicitud de un docente para que su cuenta pase a rol administrador.
-    Cuando un superusuario/admin la acepta, el rol del usuario cambia a 'admin'
-    (ver ResolverSolicitudAdminView)."""
+    """Solicitud de acceso de un docente/administrativo. Según su tipo:
+    - admin: su cuenta pasa a rol administrador (la resuelve el superusuario).
+    - visualizacion: se le asigna un plantel adicional solo para visualizarlo
+      (la resuelven los administradores del plantel, límite de 2 planteles).
+    - turno: se le cambia el turno en uno de sus planteles asignados
+      (la resuelven los administradores del plantel).
+    Ver ResolverSolicitudAdminView."""
 
     ESTADO_PENDIENTE = 'pendiente'
     ESTADO_ACEPTADA = 'aceptada'
@@ -529,7 +533,19 @@ class SolicitudAdmin(models.Model):
         (ESTADO_RECHAZADA, 'Rechazada'),
     ]
 
+    TIPO_ADMIN = 'admin'
+    TIPO_VISUALIZACION = 'visualizacion'
+    TIPO_TURNO = 'turno'
+    TIPOS = [
+        (TIPO_ADMIN, 'Administrador'),
+        (TIPO_VISUALIZACION, 'Visualizar plantel'),
+        (TIPO_TURNO, 'Cambio de turno'),
+    ]
+
+    LIMITE_PLANTELES = 2
+
     id_solicitud_admin = models.BigAutoField(primary_key=True)
+    tipo = models.CharField(max_length=20, choices=TIPOS, default=TIPO_ADMIN)
     usuario = models.ForeignKey(
         Usuario, on_delete=models.CASCADE, related_name='solicitudes_admin'
     )

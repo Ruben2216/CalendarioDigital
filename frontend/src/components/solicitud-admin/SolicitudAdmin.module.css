@@ -22,6 +22,19 @@
   color: #344054;
 }
 
+.nota--alerta {
+  background: var(--orange-soft, #fff4e5);
+  border-color: #f5d7ae;
+}
+
+.nota--alerta svg {
+  color: var(--orange, #d97706);
+}
+
+.motivo {
+  resize: vertical;
+}
+
 .cargando {
   margin: 0;
   padding: 28px 8px;

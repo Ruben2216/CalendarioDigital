@@ -12,6 +12,7 @@ const Dashboard        = lazy(() => import("./pages/admin/dashboard/dashboard.js
 const Calendario       = lazy(() => import("./pages/admin/calendario/calendario.jsx"));
 const Mensajeria       = lazy(() => import("./pages/admin/mensajeria/Mensajeria.jsx"));
 const Usuarios         = lazy(() => import("./pages/admin/usuarios/usuarios.jsx"));
+const Solicitudes      = lazy(() => import("./pages/admin/solicitudes/solicitudes.jsx"));
 const Anuncios         = lazy(() => import("./pages/admin/anuncios/anuncios.jsx"));
 const ForoDocente      = lazy(() => import("./pages/docente/foro/ForoDocente.jsx"));
 const DocenteInicio    = lazy(() => import("./pages/docente/inicio.jsx"));
@@ -110,6 +111,8 @@ function App() {
         <Route element={<ProtectedRoute roles={['admin', 'superusuario']} />}>
           <Route element={<MensajeriaProvider><Layout /></MensajeriaProvider>}>
             <Route path="/mensajeria" element={<Suspense fallback={<Cargando />}><Mensajeria /></Suspense>} />
+            {/* Solicitudes de visualización de plantel y cambio de turno */}
+            <Route path="/solicitudes" element={<Suspense fallback={<Cargando />}><Solicitudes /></Suspense>} />
           </Route>
         </Route>
 

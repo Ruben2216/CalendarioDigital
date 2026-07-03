@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { LayoutDashboard, Calendar, Users, MessageSquare, Megaphone } from "lucide-react";
+import { LayoutDashboard, Calendar, Users, MessageSquare, Megaphone, Inbox } from "lucide-react";
 import { leerSesion } from "../../hooks/useSesion.js";
 import { refrescarSesion } from "../../services/authService.js";
 import { useMensajeriaCtx } from "../../context/MensajeriaContext.jsx";
@@ -8,17 +8,18 @@ import { ROL_ETIQUETA, cicloEscolar } from "./layoutUtils.js";
 import styles from "./Layout.module.css";
 
 const NAV = [
-  { etiqueta: "Dashboard",  icono: LayoutDashboard, ruta: "/dashboard" },
-  { etiqueta: "Calendario", icono: Calendar,         ruta: "/calendario" },
-  { etiqueta: "Anuncios",   icono: Megaphone,        ruta: "/anuncios" },
-  { etiqueta: "Mensajería", icono: MessageSquare,    ruta: "/mensajeria" },
-  { etiqueta: "Usuarios",   icono: Users,            ruta: "/usuarios" },
+  { etiqueta: "Dashboard",   icono: LayoutDashboard, ruta: "/dashboard" },
+  { etiqueta: "Calendario",  icono: Calendar,         ruta: "/calendario" },
+  { etiqueta: "Anuncios",    icono: Megaphone,        ruta: "/anuncios" },
+  { etiqueta: "Mensajería",  icono: MessageSquare,    ruta: "/mensajeria" },
+  { etiqueta: "Solicitudes", icono: Inbox,            ruta: "/solicitudes" },
+  { etiqueta: "Usuarios",    icono: Users,            ruta: "/usuarios" },
 ];
 
 // Rutas del menú que cada rol NO puede ver.
 const RUTAS_OCULTAS = {
   admin: ['/usuarios'],
-  colaborador: ['/usuarios', '/mensajeria'],
+  colaborador: ['/usuarios', '/mensajeria', '/solicitudes'],
 };
 
 // Layout para admin, superusuario y colaborador.

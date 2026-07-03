@@ -5,9 +5,8 @@ import logoCobach from "../../assets/img/logo-cobach.png";
 import calendarImg from "../../assets/img/imagen-login.jpg";
 import "./login.css";
 import Swal from 'sweetalert2';
-import { loginInstitucional, guardarSesion, guardarConfiguracionPlanteles } from '../../services/authService';
+import { loginInstitucional, guardarSesion } from '../../services/authService';
 import { inicializarNotificaciones } from '../../services/pushService';
-import ModalConfiguracion from '../../components/ModalConfiguracion';
 import { abrirVentanaCentrada } from '../../lib/ventana.js';
 
 const ROLES = [
@@ -30,8 +29,6 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [role, setRole] = useState("institucional");
-  const [showModalConfig, setShowModalConfig] = useState(false);
-  const [pendingRoute, setPendingRoute] = useState(null);
   const navigate = useNavigate();
 
   const isInstitutionalAccess = role === "institucional";
@@ -115,13 +112,6 @@ export default function Login() {
           rolDestino === 'docente' ? '/docente/inicio'
             : rolDestino === 'alumno' ? '/alumno/calendario'
               : '/dashboard';
-
-        const esDocente = (sesion?.tipoEmpleado || '').trim().toLowerCase() === 'docente';
-        if (esDocente && (!sesion?.planteles || sesion.planteles.length === 0)) {
-          setPendingRoute(rutaDestino);
-          setShowModalConfig(true);
-          return;
-        }
 
         await Swal.fire({
           icon: 'success',
@@ -212,15 +202,6 @@ export default function Login() {
         : rolDestino === 'alumno' ? '/alumno/inicio'
           : '/dashboard';
 
-    // Solo los Docentes (según tipoEmpleado del endpoint institucional) configuran sus planteles/turnos.
-    // Personal administrativo no necesita ese dato — tienen adscripcion/departamento propio.
-    const esDocente = (sesion.tipoEmpleado || '').trim().toLowerCase() === 'docente';
-    if (esDocente && (!sesion.planteles || sesion.planteles.length === 0)) {
-      setPendingRoute(rutaDestino);
-      setShowModalConfig(true);
-      return;
-    }
-
     await Swal.fire({
       icon: 'success',
       title: '¡Bienvenido!',
@@ -231,41 +212,6 @@ export default function Login() {
     });
 
     navigate(rutaDestino);
-  };
-
-  const handleSaveConfiguracion = async (selecciones) => {
-    const res = await guardarConfiguracionPlanteles(selecciones);
-    if (!res.exito) {
-      Swal.fire({
-        icon: "error",
-        title: "Error",
-        text: res.error,
-      });
-      return;
-    }
-
-    // Actualizar planteles en la sesión del localStorage con los datos reales del backend
-    const sesionActual = JSON.parse(localStorage.getItem('sesion') || '{}');
-    localStorage.setItem('sesion', JSON.stringify({
-      ...sesionActual,
-      planteles: res.datos.planteles ?? [],
-    }));
-
-    setShowModalConfig(false);
-    await Swal.fire({
-      icon: 'success',
-      title: '¡Bienvenido!',
-      text: 'Configuración guardada. Inicio de sesión correcto.',
-      timer: 1600,
-      timerProgressBar: true,
-      showConfirmButton: false,
-    });
-    
-    if (pendingRoute) {
-      navigate(pendingRoute);
-    } else {
-      navigate('/dashboard');
-    }
   };
 
   return (
@@ -437,12 +383,6 @@ export default function Login() {
           </div>
         ))}
       </footer>
-
-      <ModalConfiguracion 
-        isOpen={showModalConfig} 
-        onClose={() => setShowModalConfig(false)}
-        onSave={handleSaveConfiguracion}
-      />
     </div>
   );
 }
