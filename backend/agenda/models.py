@@ -334,6 +334,7 @@ class Anuncio(models.Model):
     AUDIENCIA_TODOS = 'todos'
     AUDIENCIAS = [
         (AUDIENCIA_TODOS, 'Todos'),
+        ('colaborador', 'Colaboradores'),
         ('admin', 'Administrativo'),
         ('docente', 'Docentes'),
         ('alumno', 'Alumnos'),

@@ -12,7 +12,7 @@ from ..services import notificaciones_push as push
 
 logger = logging.getLogger(__name__)
 
-AUDIENCIAS_ANUNCIO = {'todos', 'admin', 'docente', 'alumno'}
+AUDIENCIAS_ANUNCIO = {'todos', 'colaborador', 'admin', 'docente', 'alumno'}
 
 
 def _anuncio_dict(an, usuario):
