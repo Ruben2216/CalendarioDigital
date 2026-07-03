@@ -12,13 +12,21 @@ import {
 import { obtenerSesion } from "../../../services/authService.js";
 import SelectorPlantel from "../../../components/selector-plantel/SelectorPlantel.jsx";
 import { avisoExito, avisoError, confirmarAccion } from "../../../lib/alertas.js";
-import { esAdmin as rolEsAdmin, esGestorGlobal } from "../../../lib/permisos.js";
+import { esAdmin as rolEsAdmin, esColaborador as rolEsColaborador, esGestorGlobal } from "../../../lib/permisos.js";
 import styles from "./anuncios.module.css";
 
 export default function Anuncios() {
   const sesion = obtenerSesion();
   const esAdmin = rolEsAdmin(sesion);
+  const esColaborador = rolEsColaborador(sesion);
   const esGestor = esGestorGlobal(sesion);
+  
+  const audienciasVisibles = AUDIENCIAS.filter((a) => {
+    if (a.id === "todos") return true;
+    if (esAdmin) return a.id !== "colaborador";
+    if (esColaborador) return a.id !== "docente";
+    return true; 
+  });
   // Planteles asignados al admin (un admin no crea anuncios generales).
   const plantelesAdmin = [...new Set((sesion?.planteles || [])
     .map((p) => p.plantel?.nombre)
@@ -133,7 +141,7 @@ export default function Anuncios() {
             >
               Todos
             </button>
-            {AUDIENCIAS.filter((a) => a.id !== "todos").map((a) => (
+            {audienciasVisibles.filter((a) => a.id !== "todos").map((a) => (
               <button
                 key={a.id}
                 type="button"
@@ -190,6 +198,7 @@ export default function Anuncios() {
         <ModalAnuncio
           anuncio={editando}
           esAdmin={esAdmin}
+          audiencias={audienciasVisibles}
           plantelesAdmin={plantelesAdmin}
           turnosAdmin={turnosAdmin}
           onCerrar={() => setModalAbierto(false)}

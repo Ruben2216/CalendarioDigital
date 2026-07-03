@@ -8,7 +8,7 @@ import styles from "./ModalAnuncio.module.css";
 
 const TURNOS_DISPONIBLES = ["Matutino", "Vespertino", "Mixto"];
 
-export default function ModalAnuncio({ anuncio, esAdmin = false, plantelesAdmin = [], turnosAdmin = [], onCerrar, onGuardar }) {
+export default function ModalAnuncio({ anuncio, esAdmin = false, audiencias = AUDIENCIAS, plantelesAdmin = [], turnosAdmin = [], onCerrar, onGuardar }) {
   const [form, setForm] = useState(() =>
     anuncio
       ? {
@@ -103,7 +103,7 @@ export default function ModalAnuncio({ anuncio, esAdmin = false, plantelesAdmin 
           <label className="formulario__campo">
             <span className="formulario__etiqueta">Dirigido a</span>
             <select value={form.audiencia} onChange={fijar("audiencia")}>
-              {AUDIENCIAS.map((a) => (
+              {audiencias.map((a) => (
                 <option key={a.id} value={a.id}>{a.etiqueta}</option>
               ))}
             </select>

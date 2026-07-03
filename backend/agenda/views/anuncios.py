@@ -39,13 +39,22 @@ class AnuncioListView(APIView):
 
         if usuario:
             rol = usuario.rol.nombre_rol
-            if usuario.es_gestor_global():
-                # Lo mismo que calendario por defecto solo anuncios generales; con plantel_filtro añade los
-                # de ese plantel
+            propios = Q(creado_por_id=usuario.id_usuario)
+            if rol == 'superusuario':
+                # Ve todo: por defecto solo anuncios generales; con plantel_filtro
                 nombre_filtro = request.query_params.get('plantel_filtro')
                 qs = qs.filter(usuario.alcance_plantel(plantel_filtro=nombre_filtro))
+            elif rol == 'colaborador':
+                nombre_filtro = request.query_params.get('plantel_filtro')
+                qs = qs.filter(
+                    usuario.alcance_plantel(plantel_filtro=nombre_filtro)
+                    & (~Q(audiencia__in=['admin', 'docente']) | propios)
+                )
             elif rol == 'admin':
-                qs = qs.filter(usuario.alcance_plantel())
+                qs = qs.filter(
+                    usuario.alcance_plantel()
+                    & (~Q(audiencia='colaborador') | propios)
+                )
             else:
                 qs = qs.filter(
                     usuario.alcance_plantel()
