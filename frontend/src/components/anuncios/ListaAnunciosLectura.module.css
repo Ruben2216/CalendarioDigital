@@ -73,6 +73,32 @@
   flex: none;
 }
 
+.anuncio__plantel {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex: none;
+  max-width: 190px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--panel-soft);
+  color: var(--muted);
+  font-size: 10.5px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.anuncio__plantel svg {
+  flex: none;
+}
+
+.anuncio__plantel-txt {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .anuncio__fecha {
   color: #8a97ab;
   font-size: 10px;
@@ -80,6 +106,12 @@
   letter-spacing: 0.04em;
   flex: none;
   white-space: nowrap;
+}
+
+@media (max-width: 560px) {
+  .anuncio__plantel {
+    max-width: 110px;
+  }
 }
 
 .anuncio__flecha {

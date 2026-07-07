@@ -24,8 +24,8 @@ export default function Anuncios() {
   const audienciasVisibles = AUDIENCIAS.filter((a) => {
     if (a.id === "todos") return true;
     if (esAdmin) return a.id !== "colaborador";
-    if (esColaborador) return a.id !== "docente";
-    return true; 
+    if (esColaborador) return a.id !== "docente" && a.id !== "admin";
+    return true;
   });
   // Planteles asignados al admin (un admin no crea anuncios generales).
   const plantelesAdmin = [...new Set((sesion?.planteles || [])

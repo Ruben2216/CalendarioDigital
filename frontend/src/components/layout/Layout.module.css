@@ -499,7 +499,10 @@
 }
 
 .plantel {
+  display: flex;
+  align-items: center;
   gap: 8px;
+  min-height: 38px;
   color: #344054;
 }
 
@@ -511,8 +514,10 @@
 }
 
 .plantel strong {
+  display: block;
   font-family: var(--font-display);
   font-size: 13px;
+  line-height: 1.15;
   font-weight: 700;
 }
 
@@ -541,6 +546,13 @@
   text-align: right;
 }
 
+.usuario__info small {
+  display: block;
+  color: var(--muted-2);
+  font-size: 11px;
+  margin-bottom: 1px;
+}
+
 .usuario__info strong {
   display: block;
   font-family: var(--font-display);
@@ -548,11 +560,6 @@
   line-height: 1.15;
   font-weight: 700;
   color: #23314b;
-}
-
-.usuario__info span {
-  color: var(--muted-2);
-  font-size: 11px;
 }
 
 /* Menú de perfil */

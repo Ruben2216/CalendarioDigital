@@ -14,8 +14,7 @@ export default function ModalAnuncio({ anuncio, esAdmin = false, audiencias = AU
       ? {
           titulo: anuncio.titulo,
           descripcion: anuncio.descripcion,
-          // Anuncios previos a la audiencia unificada Docente/Administrativo
-          audiencia: anuncio.audiencia === "admin" ? "docente" : anuncio.audiencia,
+          audiencia: anuncio.audiencia,
           plantel: anuncio.plantel || "",
           turno: anuncio.turno || "",
           color: anuncio.color,

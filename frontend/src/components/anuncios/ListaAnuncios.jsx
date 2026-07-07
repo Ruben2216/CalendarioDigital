@@ -1,4 +1,4 @@
-import { Megaphone, MapPin, Pencil, Trash2 } from "lucide-react";
+import { Megaphone, MapPin, Building2, Pencil, Trash2 } from "lucide-react";
 import { ABREV_MES } from "../../lib/fechas.js";
 import { AUDIENCIAS } from "../../data/anuncios.js";
 import { idsLeidos } from "../../lib/anunciosLeidos.js";
@@ -12,7 +12,7 @@ function fechaCorta(iso) {
   return `${d} ${ABREV_MES[m - 1]}`;
 }
 
-export default function ListaAnuncios({ anuncios, onEditar, onEliminar, mostrarAudiencia = false, soloTitulo = false }) {
+export default function ListaAnuncios({ anuncios, onEditar, onEliminar, mostrarAudiencia = false, soloTitulo = false, mostrarPlantel = false }) {
   if (!anuncios || anuncios.length === 0) {
     return <p className={styles["vacio"]}>No hay anuncios.</p>;
   }
@@ -37,6 +37,12 @@ export default function ListaAnuncios({ anuncios, onEditar, onEliminar, mostrarA
                 <h3 className={`${styles["anuncio__titulo"]} ${styles["anuncio__titulo--resumen"]}`}>{a.titulo}</h3>
               </div>
               {noLeido && <span className={styles["anuncio__punto"]} title="No leído" />}
+              {mostrarPlantel && (
+                <span className={styles["anuncio__plantel"]} title={a.plantel || "General"}>
+                  <Building2 size={11} />
+                  <span className={styles["anuncio__plantel-txt"]}>{a.plantel || "General"}</span>
+                </span>
+              )}
               <span className={styles["anuncio__fecha"]}>{fechaCorta(a.fecha)}</span>
             </div>
           );

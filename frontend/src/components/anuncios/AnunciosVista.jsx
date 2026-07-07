@@ -1,12 +1,17 @@
 import { useEffect, useState } from "react";
 import { Megaphone } from "lucide-react";
 import { listarAnuncios } from "../../services/anunciosService.js";
+import { useSesion } from "../../hooks/useSesion.js";
 import ListaAnunciosLectura from "./ListaAnunciosLectura.jsx";
 import styles from "./AnunciosVista.module.css";
 
-// Módulo de anuncios SOLO LECTURA (docente / alumno). 
+// Módulo de anuncios SOLO LECTURA (docente / alumno).
 // Se filtran los anuncios dirigidos a su rol y plantel (más los de "todos"). Sin CRUD.
 export default function AnunciosVista() {
+  const { planteles = [] } = useSesion();
+  const variosPlanteles = new Set(
+    planteles.map((p) => p.plantel?.id).filter(Boolean)
+  ).size > 1;
   const [anuncios, setAnuncios] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [errorCarga, setErrorCarga] = useState(false);
@@ -51,7 +56,7 @@ export default function AnunciosVista() {
             </button>
           </div>
         ) : (
-          <ListaAnunciosLectura anuncios={anuncios} />
+          <ListaAnunciosLectura anuncios={anuncios} mostrarPlantel={variosPlanteles} />
         )}
       </article>
     </section>

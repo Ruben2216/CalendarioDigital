@@ -245,7 +245,7 @@ export default function InicioResumen({ rutaCalendario, rutaAnuncios }) {
               )
             }
           >
-            <ListaAnuncios anuncios={anunciosResumen} soloTitulo />
+            <ListaAnuncios anuncios={anunciosResumen} soloTitulo mostrarPlantel={variosPlanteles} />
           </TarjetaColapsable>
         </div>
 
