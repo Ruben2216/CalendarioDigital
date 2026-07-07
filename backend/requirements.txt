@@ -10,6 +10,7 @@ cryptography==49.0.0
 Django==6.0.5
 django-cors-headers==4.0.0
 djangorestframework==3.17.1
+firebase-admin==7.4.0
 idna==3.18
 mssql-django==1.7.2
 pycparser==3.0

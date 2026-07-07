@@ -130,11 +130,20 @@ class Usuario(models.Model):
     def es_gestor_global(self):
         return self.rol.nombre_rol in self.ROLES_GESTION_GLOBAL
 
+    def _asignaciones_plantel_turno(self):
+        # Cacheado en la instancia: varias vistas llaman ids_planteles()/ids_turnos()
+        # más de una vez por request y values_list() no reutiliza el prefetch_related.
+        if not hasattr(self, '_cache_asignaciones'):
+            self._cache_asignaciones = list(
+                self.planteles_asignados.values_list('plantel_id', 'turno_id')
+            )
+        return self._cache_asignaciones
+
     def ids_planteles(self):
-        return list(self.planteles_asignados.values_list('plantel_id', flat=True))
+        return [plantel_id for plantel_id, _ in self._asignaciones_plantel_turno()]
 
     def ids_turnos(self):
-        return list(self.planteles_asignados.values_list('turno_id', flat=True))
+        return [turno_id for _, turno_id in self._asignaciones_plantel_turno()]
 
     def alcance_plantel(self, campo='plantel', plantel_filtro=None):
         """Q para filtrar `campo` según el rol: los gestores globales ven solo lo
@@ -527,10 +536,12 @@ class SolicitudAdmin(models.Model):
     ESTADO_PENDIENTE = 'pendiente'
     ESTADO_ACEPTADA = 'aceptada'
     ESTADO_RECHAZADA = 'rechazada'
+    ESTADO_REVOCADA = 'revocada'
     ESTADOS = [
         (ESTADO_PENDIENTE, 'Pendiente'),
         (ESTADO_ACEPTADA, 'Aceptada'),
         (ESTADO_RECHAZADA, 'Rechazada'),
+        (ESTADO_REVOCADA, 'Revocada'),
     ]
 
     TIPO_ADMIN = 'admin'

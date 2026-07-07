@@ -153,10 +153,12 @@ class MiSolicitudAdminView(APIView):
 
 
 class ResolverSolicitudAdminView(APIView):
-    """Acepta, rechaza, edita o elimina una solicitud. Al aceptar:
+    """Acepta, rechaza, revoca, edita o elimina una solicitud. Al aceptar:
     - tipo admin: el usuario pasa a rol admin con el plantel/turno solicitados.
     - tipo visualizacion: se agrega el plantel a sus asignaciones (límite 2).
-    - tipo turno: se actualiza el turno de su asignación en ese plantel."""
+    - tipo turno: se actualiza el turno de su asignación en ese plantel.
+    Revocar solo aplica a una visualizacion ya aceptada: quita el UsuarioPlantel
+    correspondiente, así el usuario deja de ver el calendario de ese plantel."""
     permission_classes = [permissions.AllowAny]
 
     def post(self, request, id_solicitud):
@@ -173,13 +175,23 @@ class ResolverSolicitudAdminView(APIView):
             return Response({'error': 'No autorizado.'}, status=status.HTTP_403_FORBIDDEN)
 
         accion = request.data.get('accion')
-        if accion not in ('aceptar', 'rechazar'):
+        if accion not in ('aceptar', 'rechazar', 'revocar'):
             return Response({'error': 'Acción inválida.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        if solicitud.estado != SolicitudAdmin.ESTADO_PENDIENTE:
-            return Response({'error': 'La solicitud ya fue resuelta.'}, status=status.HTTP_409_CONFLICT)
+        if accion == 'revocar':
+            if solicitud.tipo != SolicitudAdmin.TIPO_VISUALIZACION:
+                return Response(
+                    {'error': 'Solo se puede revocar una visualización de plantel.'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            if solicitud.estado != SolicitudAdmin.ESTADO_ACEPTADA:
+                return Response({'error': 'La solicitud no está aceptada.'}, status=status.HTTP_409_CONFLICT)
 
-        if accion == 'aceptar':
+            UsuarioPlantel.objects.filter(usuario=solicitud.usuario, plantel=solicitud.plantel).delete()
+            solicitud.estado = SolicitudAdmin.ESTADO_REVOCADA
+        elif solicitud.estado != SolicitudAdmin.ESTADO_PENDIENTE:
+            return Response({'error': 'La solicitud ya fue resuelta.'}, status=status.HTTP_409_CONFLICT)
+        elif accion == 'aceptar':
             error = self._aplicar(solicitud)
             if error:
                 return error

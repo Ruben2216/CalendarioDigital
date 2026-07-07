@@ -321,6 +321,11 @@
   color: var(--red) !important;
 }
 
+.acciones__revocar:hover {
+  background: var(--orange-soft) !important;
+  color: var(--orange) !important;
+}
+
 /* Modal: nota del rol */
 .rol-nota {
   display: flex;

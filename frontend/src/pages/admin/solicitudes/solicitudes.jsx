@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   Inbox, Clock, CheckCircle2, Search, Check, X, Pencil, Trash2,
-  MapPin, Mail, Eye, RefreshCw,
+  MapPin, Mail, Eye, RefreshCw, ShieldOff,
 } from "lucide-react";
 import Modal from "../../../components/modal/Modal.jsx";
 import { avisoExito, avisoError, confirmarAccion } from "../../../lib/alertas.js";
@@ -22,6 +22,7 @@ const ESTADOS_SOLICITUD = [
   { id: "pendiente", etiqueta: "Pendiente", color: "naranja" },
   { id: "aceptada", etiqueta: "Aceptada", color: "verde" },
   { id: "rechazada", etiqueta: "Rechazada", color: "rojo" },
+  { id: "revocada", etiqueta: "Revocada", color: "gris" },
 ];
 const ESTADOS_MAP = Object.fromEntries(ESTADOS_SOLICITUD.map((e) => [e.id, e]));
 
@@ -129,6 +130,23 @@ export default function Solicitudes() {
       avisoExito("Solicitud rechazada");
     } catch (err) {
       avisoError(err.message || "No se pudo rechazar la solicitud");
+    }
+  };
+
+  const revocar = async (s) => {
+    const { isConfirmed } = await confirmarAccion({
+      titulo: "Revocar visualización",
+      html: `¿Seguro que deseas revocar el acceso de <b>${s.nombre}</b> para visualizar el plantel <b>${s.plantel}</b>? Dejará de ver sus eventos de inmediato.`,
+      confirmar: "Revocar",
+      peligro: true,
+    });
+    if (!isConfirmed) return;
+    try {
+      const actualizada = await resolverSolicitud(s.id, "revocar");
+      actualizarFila(actualizada);
+      avisoExito("Visualización de plantel revocada");
+    } catch (err) {
+      avisoError(err.message || "No se pudo revocar la visualización");
     }
   };
 
@@ -353,6 +371,17 @@ export default function Solicitudes() {
                                 <Pencil size={15} />
                               </button>
                             </>
+                          )}
+                          {s.tipo === "visualizacion" && s.estado === "aceptada" && (
+                            <button
+                              type="button"
+                              className={styles["acciones__revocar"]}
+                              onClick={() => revocar(s)}
+                              aria-label="Revocar visualización"
+                              title="Revocar visualización del plantel"
+                            >
+                              <ShieldOff size={15} />
+                            </button>
                           )}
                           {s.estado !== "pendiente" && (
                             <button
