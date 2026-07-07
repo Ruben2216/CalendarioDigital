@@ -11,7 +11,7 @@ import esLocale from "@fullcalendar/core/locales/es";
 import {
   CalendarDays, CalendarRange, LayoutGrid, List, ChevronLeft, ChevronRight,
   ChevronDown, Plus, CalendarSync, Pencil, Trash2, Filter, Tag,
-  PanelRight, X, Clock, MapPin, Hourglass, Check, Eye, Download,
+  PanelRight, X, Clock, MapPin, Building2, Hourglass, Check, Eye, Download,
 } from "lucide-react";
 import Modal from "../../../components/modal/Modal.jsx";
 import FormularioEvento from "../../../components/formulario-evento/FormularioEvento.jsx";
@@ -1330,6 +1330,10 @@ export default function Calendario({ soloLectura = false, publico = false }) {
                 {popover.ev.lugar}
               </li>
             )}
+            <li>
+              <Building2 size={14} />
+              {popover.ev.plantel || "Todos los planteles"}{popover.ev.turno ? ` · ${popover.ev.turno}` : ""}
+            </li>
             <li>
               <Tag size={14} />
               <span className="etiqueta" style={{ backgroundColor: colorTipo(popover.ev.tipo) + '20', color: colorTipo(popover.ev.tipo) }}>

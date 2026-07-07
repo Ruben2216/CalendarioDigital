@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  Calendar, Clock, MapPin, CalendarDays, CalendarCheck, ChevronRight, Hourglass, Megaphone,
+  Calendar, Clock, MapPin, Building2, CalendarDays, CalendarCheck, ChevronRight, Hourglass, Megaphone,
 } from "lucide-react";
 import {
   ZONA, ABREV_MES, ahoraMexico, aClaveFecha, desdeClaveFecha, formatoHora,
@@ -37,7 +37,10 @@ function cuenta(dias) {
 // Resumen de inicio (solo lectura) compartido por alumno y docente.
 export default function InicioResumen({ rutaCalendario, rutaAnuncios }) {
   const navigate = useNavigate();
-  const { nombre } = useSesion();
+  const { nombre, planteles = [] } = useSesion();
+  const variosPlanteles = new Set(
+    planteles.map((p) => p.plantel?.id).filter(Boolean)
+  ).size > 1;
   const hoy = useMemo(() => ahoraMexico(), []);
   const claveHoy = aClaveFecha(hoy);
   const {
@@ -211,6 +214,12 @@ export default function InicioResumen({ rutaCalendario, rutaAnuncios }) {
                               {ev.lugar}
                             </span>
                           )}
+                          {variosPlanteles && (
+                            <span className={styles["meta"]}>
+                              <Building2 size={11} />
+                              {ev.plantel || "Todos los planteles"}
+                            </span>
+                          )}
                         </div>
                       </div>
                       <span className={`etiqueta etiqueta--${c.color} ${styles["evento__cuenta"]}`}>
@@ -246,6 +255,7 @@ export default function InicioResumen({ rutaCalendario, rutaAnuncios }) {
             tipos={tipos}
             calendarios={calendarios}
             calendarioActivo={calendarioActivo}
+            mostrarPlantel={variosPlanteles}
             onCalendario={setCalendarioActivo}
           />
         </aside>

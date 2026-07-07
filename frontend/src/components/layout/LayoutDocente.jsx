@@ -76,7 +76,7 @@ export default function LayoutDocente() {
       plantelHeader={{
         label: tipoEmpleado === 'Administrativo' ? 'Departamento' : 'Adscripción',
         valor: plantelHeaderText,
-        conChevron: true,
+        conChevron: false,
       }}
       sidebarExtra={sidebarExtra}
       perfilContenido={perfilContenido}

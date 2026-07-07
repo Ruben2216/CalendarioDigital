@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Calendar, ChevronLeft, ChevronRight, ChevronDown, Clock, MapPin, Tag } from "lucide-react";
+import { Calendar, ChevronLeft, ChevronRight, ChevronDown, Clock, MapPin, Building2, Tag } from "lucide-react";
 import {
   NOMBRES_MES, ahoraMexico, aClaveFecha, desdeClaveFecha, formatoHora, formatoFechaLarga,
 } from "../../lib/fechas.js";
@@ -13,6 +13,7 @@ export default function MiniCalendario({
   tipos = [],
   calendarios = [],
   calendarioActivo = null,
+  mostrarPlantel = false,
   onCalendario,
 }) {
   const tiposMap = useMemo(() => Object.fromEntries(tipos.map((t) => [t.id, t])), [tipos]);
@@ -220,6 +221,12 @@ export default function MiniCalendario({
                         <span className={styles["meta"]}>
                           <MapPin size={11} />
                           {ev.lugar}
+                        </span>
+                      )}
+                      {mostrarPlantel && (
+                        <span className={styles["meta"]}>
+                          <Building2 size={11} />
+                          {ev.plantel || "Todos los planteles"}
                         </span>
                       )}
                     </div>
