@@ -39,6 +39,17 @@ export const avisoCreado = (titulo) => avisoAccion(titulo, "verde");
 export const avisoEditado = (titulo) => avisoAccion(titulo, "azul");
 export const avisoEliminado = (titulo) => avisoAccion(titulo, "rojo");
 
+export const avisoCerrandoSesion = () =>
+  Modal.fire({
+    title: "Cerrando sesión",
+    allowOutsideClick: false,
+    allowEscapeKey: false,
+    showConfirmButton: false,
+    didOpen: () => {
+      Modal.showLoading();
+    },
+  });
+
 export const avisoInfo = (titulo, texto) =>
   Modal.fire({
     icon: "info",

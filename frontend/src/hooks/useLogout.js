@@ -1,6 +1,8 @@
 import { useNavigate } from 'react-router-dom';
+import Swal from 'sweetalert2';
 import { useSesion } from './useSesion.js';
 import { obtenerTokenFCM } from '../services/pushService.js';
+import { avisoCerrandoSesion } from '../lib/alertas.js';
 
 const BACKEND =
   window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
@@ -12,6 +14,7 @@ export function useLogout() {
   const { id_usuario } = useSesion();
 
   return async function cerrarSesion() {
+    avisoCerrandoSesion();
     const token_fcm = await obtenerTokenFCM().catch(() => null);
     try {
       await fetch(`${BACKEND}/api/auth/logout/`, {
@@ -24,6 +27,7 @@ export function useLogout() {
     }
     localStorage.removeItem('authToken');
     localStorage.removeItem('sesion');
+    Swal.close();
     navigate('/login', { replace: true });
   };
 }
