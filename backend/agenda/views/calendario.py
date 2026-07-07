@@ -46,7 +46,9 @@ class TipoEventoListView(APIView):
                 cond |= Q(plantel_id=plantel_id)
             elif plantel_nombre:
                 cond |= Q(plantel_id__in=Plantel.equivalentes(plantel_nombre))
-            tipos = TipoEvento.objects.select_related('plantel').filter(cond)
+            else:
+                cond |= Q(eventos__publico=True)
+            tipos = TipoEvento.objects.select_related('plantel').filter(cond).distinct()
         elif usuario.es_gestor_global():
             tipos = TipoEvento.objects.select_related('plantel').all()
         else:
