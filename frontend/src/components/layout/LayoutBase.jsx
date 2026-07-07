@@ -245,8 +245,8 @@ export default function LayoutBase({
                   >
                     <span className={styles["usuario__avatar"]}>{iniciales || 'US'}</span>
                     <div className={styles["usuario__info"]}>
+                      <small>{rolLabel}</small>
                       <strong>{nombre || 'Usuario'}</strong>
-                      <span>{rolLabel}</span>
                     </div>
                     <ChevronDown size={14} />
                   </button>
@@ -268,8 +268,8 @@ export default function LayoutBase({
                 <div className={styles["usuario"]}>
                   <span className={styles["usuario__avatar"]}>{iniciales || 'US'}</span>
                   <div className={styles["usuario__info"]}>
+                    <small>{rolLabel}</small>
                     <strong>{nombre || 'Usuario'}</strong>
-                    <span>{rolLabel}</span>
                   </div>
                 </div>
               )}
