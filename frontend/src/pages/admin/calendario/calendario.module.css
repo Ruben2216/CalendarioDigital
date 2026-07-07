@@ -1135,6 +1135,9 @@
 }
 
 .pop-evento__datos :global(.etiqueta) {
+  display: block;
+  text-align: center;
+  line-height: 20px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

@@ -502,10 +502,73 @@
   transform: rotate(180deg);
 }
 
+.simbologia__grupos {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.simbologia__grupo {
+  display: grid;
+  gap: 4px;
+}
+
+.simbologia__grupo-titulo {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  width: 100%;
+  padding: 3px 2px;
+  border: 0;
+  border-bottom: 1px solid var(--line, #e2e8f0);
+  background: transparent;
+  font-family: var(--font-display);
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #94a3b8;
+  cursor: pointer;
+}
+
+.simbologia__grupo-titulo:hover {
+  color: #64748b;
+}
+
+.simbologia__grupo-chevron {
+  flex: none;
+  transition: transform 0.18s ease;
+}
+
+.simbologia__grupo-chevron--cerrado {
+  transform: rotate(-90deg);
+}
+
+.simbologia__grupo-nombre {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.simbologia__grupo-conteo {
+  flex: none;
+  min-width: 16px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: #eef2f8;
+  color: #64748b;
+  font-size: 9px;
+  font-weight: 800;
+  text-align: center;
+}
+
 .simbologia__lista {
   list-style: none;
-  margin: 0 0 10px;
-  padding: 2px 2px 0;
+  margin: 2px 0 0;
+  padding: 0 0 0 2px;
   display: grid;
   gap: 8px;
 }

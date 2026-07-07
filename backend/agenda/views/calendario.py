@@ -39,7 +39,16 @@ class TipoEventoListView(APIView):
     def get(self, request):
         usuario = _usuario_sesion(request)
         if usuario is None:
-            tipos = TipoEvento.objects.select_related('plantel').filter(plantel__isnull=True)
+            cond = Q(plantel__isnull=True)
+            plantel_id = request.query_params.get('plantel_id')
+            plantel_nombre = request.query_params.get('plantel')
+            if plantel_id:
+                cond |= Q(plantel_id=plantel_id)
+            elif plantel_nombre:
+                cond |= Q(plantel_id__in=Plantel.equivalentes(plantel_nombre))
+            else:
+                cond |= Q(eventos__publico=True)
+            tipos = TipoEvento.objects.select_related('plantel').filter(cond).distinct()
         elif usuario.es_gestor_global():
             tipos = TipoEvento.objects.select_related('plantel').all()
         else:
