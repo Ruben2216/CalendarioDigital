@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Megaphone, ChevronDown } from "lucide-react";
+import { Megaphone, ChevronDown, Building2 } from "lucide-react";
 import { ABREV_MES } from "../../lib/fechas.js";
 import { idsLeidos, marcarLeido } from "../../lib/anunciosLeidos.js";
 import styles from "./ListaAnunciosLectura.module.css";
@@ -10,7 +10,7 @@ function fechaCorta(iso) {
   return `${d} ${ABREV_MES[m - 1]}`;
 }
 
-export default function ListaAnunciosLectura({ anuncios }) {
+export default function ListaAnunciosLectura({ anuncios, mostrarPlantel = false }) {
   const [abierto, setAbierto] = useState(null);
   const [leidos, setLeidos] = useState(() => idsLeidos());
 
@@ -48,6 +48,12 @@ export default function ListaAnunciosLectura({ anuncios }) {
               </span>
               <span className={styles["anuncio__titulo"]}>{a.titulo}</span>
               {noLeido && <span className={styles["anuncio__punto"]} title="No leído" />}
+              {mostrarPlantel && (
+                <span className={styles["anuncio__plantel"]} title={a.plantel || "General"}>
+                  <Building2 size={11} />
+                  <span className={styles["anuncio__plantel-txt"]}>{a.plantel || "General"}</span>
+                </span>
+              )}
               <span className={styles["anuncio__fecha"]}>{fechaCorta(a.fecha)}</span>
               <ChevronDown
                 size={16}
