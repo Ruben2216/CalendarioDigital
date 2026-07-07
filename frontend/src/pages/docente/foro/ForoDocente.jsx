@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Plus, UserPlus } from 'lucide-react';
 import { useSesion } from '../../../hooks/useSesion.js';
 import { useMensajeria } from '../../../hooks/useMensajeria.js';
@@ -30,6 +30,7 @@ export default function ForoDocente() {
   const [modalAbierto, setModalAbierto] = useState(false);
   const [selectorAdminAbierto, setSelectorAdminAbierto] = useState(false);
   const [enviando, setEnviando] = useState(false);
+  const enviandoRef = useRef(false); 
   const [errorAdmin, setErrorAdmin] = useState(null);
   const [selectorSolicitudAbierto, setSelectorSolicitudAbierto] = useState(false);
   const [adminsSolicitud, setAdminsSolicitud] = useState([]);
@@ -136,6 +137,8 @@ export default function ForoDocente() {
   };
 
   const enviarSolicitudAAdmin = async (idAdmin, texto, metadatos) => {
+    if (enviandoRef.current) return;
+    enviandoRef.current = true;
     setEnviando(true);
     setErrorAdmin(null);
     try {
@@ -146,6 +149,7 @@ export default function ForoDocente() {
     } catch {
       setErrorAdmin('No se pudo enviar la solicitud. Intenta de nuevo.');
     } finally {
+      enviandoRef.current = false;
       setEnviando(false);
     }
   };

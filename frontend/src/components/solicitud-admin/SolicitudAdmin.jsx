@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ShieldCheck, Send, Clock, MapPin, X, AlertTriangle } from "lucide-react";
 import Modal from "../modal/Modal.jsx";
 import { avisoExito, avisoError, avisoInfo } from "../../lib/alertas.js";
@@ -88,6 +88,7 @@ export default function SolicitudAdmin({ abierto, onCerrar }) {
   const [pendiente, setPendiente] = useState(null);
   const [cargando, setCargando] = useState(false);
   const [enviando, setEnviando] = useState(false);
+  const enviandoRef = useRef(false);
 
   // Al abrir, reinicia el formulario.
   useEffect(() => {
@@ -129,6 +130,8 @@ export default function SolicitudAdmin({ abierto, onCerrar }) {
 
   const enviar = async (e) => {
     e.preventDefault();
+    if (enviandoRef.current) return;
+    enviandoRef.current = true;
     setEnviando(true);
     try {
       // Nombre y correo no viajan: el backend los toma del usuario de la sesión.
@@ -147,6 +150,7 @@ export default function SolicitudAdmin({ abierto, onCerrar }) {
     } catch (err) {
       avisoError(err.message || "No se pudo enviar la solicitud");
     } finally {
+      enviandoRef.current = false;
       setEnviando(false);
     }
   };

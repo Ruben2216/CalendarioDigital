@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { crearTipo, actualizarTipo, eliminarTipo } from "../../../../services/eventosService.js";
 import { avisoError, confirmarEliminacion } from "../../../../lib/alertas.js";
 
@@ -17,6 +17,7 @@ export function useTipoEventoCrud({ setTipos, esAdmin, plantelPorDefectoId }) {
   const [nuevoColor, setNuevoColor] = useState(randomColor);
   const [nuevoPlantelId, setNuevoPlantelId] = useState("");
   const [guardandoTipo, setGuardandoTipo] = useState(false);
+  const guardandoTipoRef = useRef(false);
 
   const iniciarEdicionTipo = (t) => {
     setTipoEditandoId(t.id);
@@ -50,7 +51,8 @@ export function useTipoEventoCrud({ setTipos, esAdmin, plantelPorDefectoId }) {
   };
 
   const guardarNuevoTipo = async () => {
-    if (!nuevoNombre.trim() || guardandoTipo) return;
+    if (!nuevoNombre.trim() || guardandoTipoRef.current) return;
+    guardandoTipoRef.current = true;
     setGuardandoTipo(true);
     try {
       const plantel_id = esAdmin
@@ -65,6 +67,7 @@ export function useTipoEventoCrud({ setTipos, esAdmin, plantelPorDefectoId }) {
     } catch (err) {
       avisoError(err.message || "No se pudo crear el tipo.");
     } finally {
+      guardandoTipoRef.current = false;
       setGuardandoTipo(false);
     }
   };

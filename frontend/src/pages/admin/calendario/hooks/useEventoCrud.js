@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { crearEvento, actualizarEvento, eliminarEvento } from "../../../../services/eventosService.js";
 import { validarEvento } from "../../../../lib/validaciones.js";
 import { avisoCreado, avisoEditado, avisoEliminado, avisoError, confirmarEliminacion } from "../../../../lib/alertas.js";
@@ -17,6 +17,7 @@ export function useEventoCrud({
   const [eventoEditando, setEventoEditando] = useState(null);
   const [guardandoEvento, setGuardandoEvento] = useState(false);
   const [errorEvento, setErrorEvento] = useState(null);
+  const guardandoRef = useRef(false);
 
   const abrirNuevoEventoEnFecha = (fecha, fechaFin = "") => {
     setEventoEditando(null);
@@ -48,7 +49,7 @@ export function useEventoCrud({
 
   const guardarEvento = async (e) => {
     e.preventDefault();
-    if (!calendarioActivo || guardandoEvento) return;
+    if (!calendarioActivo || guardandoRef.current) return;
     const errorValidacion = validarEvento(formEvento, { hoy: claveHoy });
     if (errorValidacion) {
       setErrorEvento(errorValidacion);
@@ -71,6 +72,7 @@ export function useEventoCrud({
       semestre: dirigidoEspecifico && formEvento.semestre ? Number(formEvento.semestre) : null,
       grupo: dirigidoEspecifico && formEvento.grupo ? formEvento.grupo : null,
     };
+    guardandoRef.current = true;
     setGuardandoEvento(true);
     try {
       if (eventoEditando) {
@@ -86,6 +88,7 @@ export function useEventoCrud({
     } catch (err) {
       avisoError(err.message || "No se pudo guardar el evento.");
     } finally {
+      guardandoRef.current = false;
       setGuardandoEvento(false);
     }
   };

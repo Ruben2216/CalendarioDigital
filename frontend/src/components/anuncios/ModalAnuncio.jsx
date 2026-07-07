@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Megaphone } from "lucide-react";
 import Modal from "../modal/Modal.jsx";
 import { AUDIENCIAS, COLORES_ANUNCIO } from "../../data/anuncios.js";
@@ -30,6 +30,7 @@ export default function ModalAnuncio({ anuncio, esAdmin = false, audiencias = AU
   );
 
   const [enviando, setEnviando] = useState(false);
+  const enviandoRef = useRef(false);
   const [error, setError] = useState("");
 
   const fijar = (campo) => (e) => {
@@ -39,7 +40,7 @@ export default function ModalAnuncio({ anuncio, esAdmin = false, audiencias = AU
 
   const enviar = async (e) => {
     e.preventDefault();
-    if (enviando) return;
+    if (enviandoRef.current) return;
     const titulo = form.titulo.trim();
     const descripcion = form.descripcion.trim();
     if (!titulo || !descripcion) {
@@ -47,10 +48,12 @@ export default function ModalAnuncio({ anuncio, esAdmin = false, audiencias = AU
       return;
     }
     setError("");
+    enviandoRef.current = true;
     setEnviando(true);
     try {
       await onGuardar({ ...form, titulo, descripcion });
     } finally {
+      enviandoRef.current = false;
       setEnviando(false);
     }
   };

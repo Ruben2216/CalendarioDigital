@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Users, UserCheck, Clock, Search, Plus, Check, X, Pencil, Trash2,
   MapPin, ShieldCheck, Mail,
@@ -71,6 +71,7 @@ export default function Usuarios() {
   const [usuarios, setUsuarios] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [errorCarga, setErrorCarga] = useState(false);
+  const resolviendoRef = useRef(false);
   const [busqueda, setBusqueda] = useState("");
   const [filtroEstado, setFiltroEstado] = useState("todos");
   const [plantelesDisponibles, setPlantelesDisponibles] = useState([]);
@@ -260,43 +261,55 @@ export default function Usuarios() {
   };
 
   const aceptar = async (usuario) => {
-    const { isConfirmed } = await confirmarAccion({
-      icono: "question",
-      titulo: "Aceptar administrador",
-      html: `¿Conceder acceso a <b>${usuario.nombre}</b> como <b>${ROL.etiqueta}</b>? Su cuenta pasará a administrador y podrá gestionar el calendario.`,
-      confirmar: "Aceptar",
-    });
-    if (!isConfirmed) return;
-    if (usuario.origenBackend) {
-      try {
-        await resolverSolicitud(usuario.solicitudId, "aceptar");
-      } catch (err) {
-        avisoError(err.message || "No se pudo aceptar la solicitud");
-        return;
+    if (resolviendoRef.current) return;
+    resolviendoRef.current = true;
+    try {
+      const { isConfirmed } = await confirmarAccion({
+        icono: "question",
+        titulo: "Aceptar administrador",
+        html: `¿Conceder acceso a <b>${usuario.nombre}</b> como <b>${ROL.etiqueta}</b>? Su cuenta pasará a administrador y podrá gestionar el calendario.`,
+        confirmar: "Aceptar",
+      });
+      if (!isConfirmed) return;
+      if (usuario.origenBackend) {
+        try {
+          await resolverSolicitud(usuario.solicitudId, "aceptar");
+        } catch (err) {
+          avisoError(err.message || "No se pudo aceptar la solicitud");
+          return;
+        }
       }
+      setUsuarios((prev) => prev.map((u) => (u.id === usuario.id ? { ...u, estado: "activo" } : u)));
+      avisoExito("Administrador aceptado");
+    } finally {
+      resolviendoRef.current = false;
     }
-    setUsuarios((prev) => prev.map((u) => (u.id === usuario.id ? { ...u, estado: "activo" } : u)));
-    avisoExito("Administrador aceptado");
   };
 
   const rechazar = async (usuario) => {
-    const { isConfirmed } = await confirmarAccion({
-      titulo: "Rechazar solicitud",
-      html: `¿Seguro que deseas rechazar a <b>${usuario.nombre}</b>? No podrá gestionar fechas.`,
-      confirmar: "Rechazar",
-      peligro: true,
-    });
-    if (!isConfirmed) return;
-    if (usuario.origenBackend) {
-      try {
-        await resolverSolicitud(usuario.solicitudId, "rechazar");
-      } catch (err) {
-        avisoError(err.message || "No se pudo rechazar la solicitud");
-        return;
+    if (resolviendoRef.current) return;
+    resolviendoRef.current = true;
+    try {
+      const { isConfirmed } = await confirmarAccion({
+        titulo: "Rechazar solicitud",
+        html: `¿Seguro que deseas rechazar a <b>${usuario.nombre}</b>? No podrá gestionar fechas.`,
+        confirmar: "Rechazar",
+        peligro: true,
+      });
+      if (!isConfirmed) return;
+      if (usuario.origenBackend) {
+        try {
+          await resolverSolicitud(usuario.solicitudId, "rechazar");
+        } catch (err) {
+          avisoError(err.message || "No se pudo rechazar la solicitud");
+          return;
+        }
       }
+      setUsuarios((prev) => prev.map((u) => (u.id === usuario.id ? { ...u, estado: "rechazado" } : u)));
+      avisoExito("Solicitud rechazada");
+    } finally {
+      resolviendoRef.current = false;
     }
-    setUsuarios((prev) => prev.map((u) => (u.id === usuario.id ? { ...u, estado: "rechazado" } : u)));
-    avisoExito("Solicitud rechazada");
   };
 
   const eliminar = async (usuario) => {

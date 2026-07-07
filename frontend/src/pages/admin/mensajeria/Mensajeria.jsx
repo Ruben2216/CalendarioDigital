@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { MessageSquare, UserPlus } from 'lucide-react';
 import { useSesion } from '../../../hooks/useSesion.js';
 import { useMensajeria } from '../../../hooks/useMensajeria.js';
@@ -18,9 +18,11 @@ export default function Mensajeria() {
   const { refrescar: refrescarBadge } = useMensajeriaCtx();
   const [selectorAbierto, setSelectorAbierto] = useState(false);
   const [aprobando, setAprobando] = useState(false);
+  const aprobandoRef = useRef(false);
   const [rechazoAbierto, setRechazoAbierto] = useState(false);
   const [motivoRechazo, setMotivoRechazo] = useState('');
   const [rechazando, setRechazando] = useState(false);
+  const rechazandoRef = useRef(false);
   const esMovil = useMediaQuery('(max-width: 720px)');
 
   const {
@@ -63,20 +65,21 @@ export default function Mensajeria() {
   };
 
   const aprobarSolicitud = async (mensaje) => {
-    if (aprobando) return;
+    if (aprobandoRef.current) return;
+    aprobandoRef.current = true;
     const de = mensaje?.solicitud?.datos_evento;
 
-    const { isConfirmed } = await confirmarAccion({
-      titulo: 'Aprobar solicitud',
-      html: de
-        ? 'Se <b>creará el evento</b> en el calendario escolarizado y se le avisará al docente. ¿Continuar?'
-        : 'Esta solicitud no trae datos del evento (es antigua); solo se marcará como aprobada. ¿Continuar?',
-      confirmar: 'Aprobar',
-    });
-    if (!isConfirmed) return;
-
-    setAprobando(true);
     try {
+      const { isConfirmed } = await confirmarAccion({
+        titulo: 'Aprobar solicitud',
+        html: de
+          ? 'Se <b>creará el evento</b> en el calendario escolarizado y se le avisará al docente. ¿Continuar?'
+          : 'Esta solicitud no trae datos del evento (es antigua); solo se marcará como aprobada. ¿Continuar?',
+        confirmar: 'Aprobar',
+      });
+      if (!isConfirmed) return;
+
+      setAprobando(true);
       if (de) {
         const cals = await listarCalendarios();
         const escolar = cals.find((c) => c.clave === 'escolarizado');
@@ -119,6 +122,7 @@ export default function Mensajeria() {
     } catch (e) {
       avisoError('No se pudo aprobar', e.message || 'Intenta de nuevo.');
     } finally {
+      aprobandoRef.current = false;
       setAprobando(false);
     }
   };
@@ -129,8 +133,9 @@ export default function Mensajeria() {
   };
 
   const confirmarRechazo = async () => {
-    if (rechazando) return;
+    if (rechazandoRef.current) return;
     const motivo = motivoRechazo.trim();
+    rechazandoRef.current = true;
     setRechazando(true);
     try {
       await enviarResolucion(
@@ -149,6 +154,7 @@ export default function Mensajeria() {
     } catch (e) {
       avisoError('No se pudo rechazar', e.message || 'Intenta de nuevo.');
     } finally {
+      rechazandoRef.current = false;
       setRechazando(false);
     }
   };
