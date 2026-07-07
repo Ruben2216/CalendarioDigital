@@ -91,6 +91,7 @@ export default function ModalAnuncio({ anuncio, esAdmin = false, audiencias = AU
             rows={3}
             required
             placeholder="Detalle del anuncio…"
+            style={{ resize: "vertical" }}
             value={form.descripcion}
             onChange={fijar("descripcion")}
           />

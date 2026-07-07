@@ -24,6 +24,7 @@ import { useTipoEventoCrud } from "./hooks/useTipoEventoCrud.js";
 import { useDatosCalendario } from "./hooks/useDatosCalendario.js";
 import { useEventoCrud } from "./hooks/useEventoCrud.js";
 import SelectorPlantel from "../../../components/selector-plantel/SelectorPlantel.jsx";
+import SelectorFecha from "../../../components/campos/SelectorFecha.jsx";
 import { useSesion } from "../../../hooks/useSesion.js";
 import { usePreferencia } from "../../../hooks/usePreferencia.js";
 import VistaAnual from "./vistas/VistaAnual.jsx";
@@ -1539,14 +1540,23 @@ export default function Calendario({ soloLectura = false, publico = false }) {
           </label>
 
           <div className="formulario__fila">
-            <label className="formulario__campo">
+            <div className="formulario__campo">
               <span className="formulario__etiqueta">Desde</span>
-              <input type="date" value={filtroFechaDesde} onChange={(e) => setFiltroFechaDesde(e.target.value)} />
-            </label>
-            <label className="formulario__campo">
+              <SelectorFecha
+                value={filtroFechaDesde}
+                placeholder="Cualquiera"
+                onChange={setFiltroFechaDesde}
+              />
+            </div>
+            <div className="formulario__campo">
               <span className="formulario__etiqueta">Hasta</span>
-              <input type="date" value={filtroFechaHasta} onChange={(e) => setFiltroFechaHasta(e.target.value)} />
-            </label>
+              <SelectorFecha
+                value={filtroFechaHasta}
+                min={filtroFechaDesde}
+                placeholder="Cualquiera"
+                onChange={setFiltroFechaHasta}
+              />
+            </div>
           </div>
         </div>
       </Modal>
