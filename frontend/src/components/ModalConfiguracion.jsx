@@ -27,9 +27,13 @@ export default function ModalConfiguracion({ isOpen, onClose, onSave }) {
   }, [isOpen]);
 
   const plantelesFiltrados = useMemo(() => {
-    const termino = busqueda.toLowerCase();
-    const filtrados = plantelesDisponibles.filter(p => 
-      p.nombre.toLowerCase().includes(termino) || p.id.includes(termino)
+    const termino = busqueda.trim().toLowerCase();
+    const numerico = /^\d+$/.test(termino);
+    const numeroPlantel = (nombre) => (nombre.match(/\d+/) ?? [''])[0];
+    const filtrados = plantelesDisponibles.filter(p =>
+      numerico
+        ? numeroPlantel(p.nombre).startsWith(termino)
+        : p.nombre.toLowerCase().includes(termino)
     );
     
     // Mover seleccionados al principio

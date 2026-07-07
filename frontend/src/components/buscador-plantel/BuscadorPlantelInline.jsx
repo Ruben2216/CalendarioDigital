@@ -44,23 +44,27 @@ export default function BuscadorPlantelInline({
 
   const excluirSet = new Set(excluirIds);
   const q = query.trim().toLowerCase();
+  const qNumerico = /^\d+$/.test(q);
+
+  const numeroPlantel = (nombre) => (nombre.match(/\d+/) ?? [''])[0];
+
+  const coincide = (p) => {
+    if (excluirSet.has(p.id)) return false;
+    if (qNumerico) return numeroPlantel(p.nombre).startsWith(q);
+    return p.nombre.toLowerCase().includes(q);
+  };
 
   // Si el término es numérico, ordena poniendo el número exacto primero y luego ascendente
   const sortPorNumero = (a, b) => {
-    if (!/^\d+$/.test(q)) return a.nombre.localeCompare(b.nombre);
-    const nA = (a.nombre.match(/\d+/) ?? ['0'])[0];
-    const nB = (b.nombre.match(/\d+/) ?? ['0'])[0];
+    if (!qNumerico) return a.nombre.localeCompare(b.nombre);
+    const nA = numeroPlantel(a.nombre) || '0';
+    const nB = numeroPlantel(b.nombre) || '0';
     if ((nA === q) !== (nB === q)) return nA === q ? -1 : 1;
     return parseInt(nA) - parseInt(nB);
   };
 
   const resultados = q.length > 0
-    ? planteles
-        .filter(p =>
-          !excluirSet.has(p.id) && p.nombre.toLowerCase().includes(q)
-        )
-        .sort(sortPorNumero)
-        .slice(0, maxResultados)
+    ? planteles.filter(coincide).sort(sortPorNumero).slice(0, maxResultados)
     : [];
 
   const handleSeleccionar = (p) => {

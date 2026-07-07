@@ -57,20 +57,27 @@ export default function SelectorPlantel({
 
   const buscando = query.trim().length > 0;
   const termino = query.trim().toLowerCase();
+  const terminoNumerico = /^\d+$/.test(termino);
+
+  const numeroPlantel = (nombre) => (nombre.match(/\d+/) ?? [''])[0];
+
+  const coincide = (p) => {
+    if (p.nombre === value) return false;
+    if (terminoNumerico) return numeroPlantel(p.nombre).startsWith(termino);
+    return p.nombre.toLowerCase().includes(termino);
+  };
 
   // Si el término es numérico, ordena poniendo el número exacto primero y luego ascendente
   const sortPorNumero = (a, b) => {
-    if (!/^\d+$/.test(termino)) return a.nombre.localeCompare(b.nombre);
-    const nA = (a.nombre.match(/\d+/) ?? ['0'])[0];
-    const nB = (b.nombre.match(/\d+/) ?? ['0'])[0];
+    if (!terminoNumerico) return a.nombre.localeCompare(b.nombre);
+    const nA = numeroPlantel(a.nombre) || '0';
+    const nB = numeroPlantel(b.nombre) || '0';
     if ((nA === termino) !== (nB === termino)) return nA === termino ? -1 : 1;
     return parseInt(nA) - parseInt(nB);
   };
 
   const disponibles = buscando
-    ? planteles
-        .filter((p) => p.nombre.toLowerCase().includes(termino) && p.nombre !== value)
-        .sort(sortPorNumero)
+    ? planteles.filter(coincide).sort(sortPorNumero)
     : [];
 
   return (
