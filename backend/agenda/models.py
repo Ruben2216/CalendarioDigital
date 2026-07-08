@@ -2,6 +2,7 @@ import json
 import re
 import uuid
 
+from django.contrib.auth.hashers import check_password, make_password
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import OuterRef, Q
@@ -129,6 +130,15 @@ class Usuario(models.Model):
 
     def es_gestor_global(self):
         return self.rol.nombre_rol in self.ROLES_GESTION_GLOBAL
+
+    def asignar_password_mock(self, password):
+        self.password_mock = make_password(password)
+        Usuario.objects.filter(pk=self.pk).update(password_mock=self.password_mock)
+
+    def verificar_password_mock(self, password):
+        # password_mock guarda un hash PBKDF2; los valores en texto plano
+        # heredados no validan y deben reasignarse con asignar_password_mock.
+        return bool(self.password_mock) and check_password(password, self.password_mock)
 
     def _asignaciones_plantel_turno(self):
         # Cacheado en la instancia: varias vistas llaman ids_planteles()/ids_turnos()

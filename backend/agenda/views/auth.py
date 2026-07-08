@@ -47,7 +47,7 @@ class LoginInstitucionalView(APIView):
             except Usuario.DoesNotExist:
                 pass
 
-        if usuario_local and usuario_local.password_mock and usuario_local.password_mock == password:
+        if usuario_local and usuario_local.verificar_password_mock(password):
             credenciales_validas = True
             id_externo = usuario_local.correo
             respuesta_institucional = {'token': f'local-{usuario_local.id_usuario}', 'foto': '', 'qr': ''}
@@ -359,7 +359,7 @@ class GoogleAuthView(APIView):
         datos_institucional = obtener_datos_por_correo(correo)
         if (datos_institucional.get('estatus') or '').strip().upper() != 'ACTIVO':
             return Response(
-                {'error': 'Cuenta inactiva en el sistema institucional.'},
+                {'error': 'Solo se permite el acceso a usuarios activos'},
                 status=status.HTTP_403_FORBIDDEN,
             )
 
