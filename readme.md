@@ -1,35 +1,101 @@
-# Configuracion inicial de backend
-dentro de backend
-```
-python -m venv venv 
+# Calendario Digital — Guía de instalación
+
+Proyecto con **backend Django** (`/backend`) y **frontend React + Vite** (`/frontend`).
+
+## Requisitos previos
+
+| Herramienta | Versión mínima | Notas |
+|-------------|----------------|-------|
+| Python      | **3.12**       | Requerido por Django 6.0. Verificar con `python --version`. |
+| Node.js     | **20.19+**     | Requerido por Vite 8. Verificar con `node --version`. |
+| SQL Server + ODBC Driver 17 for SQL Server | — | Base de datos del backend (motor `mssql`). |
+
+---
+
+## 1. Backend (Django)
+
+Todos los comandos se ejecutan **dentro de la carpeta `backend/`**.
+
+### 1.1. Crear el entorno virtual
+
+```bash
+cd backend
+python -m venv venv
 ```
 
-si es bash la consola
-venv\Scripts\activate    
+### 1.2. Activar el entorno virtual
+
+Según la consola que uses:
+
+```powershell
+# PowerShell Windows
+venv\Scripts\Activate.ps1
+```
+```bat
+:: CMD Windows
+venv\Scripts\activate.bat
+```
+```bash
+# Terminal macOS
+source venv/bin/activate
+```
+
+Si PowerShell bloquea el script de activación, ejecuta una vez:
+`Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`
+
+Con el entorno activo verás el prefijo `(venv)` en la terminal.
+
+### 1.3. Instalar dependencias
+
+```bash
 pip install -r requirements.txt
+```
 
-# Estructura de carpetas en frontend:
+### 1.4. Crear el archivo `.env`
+
+Ubicación: **`backend/.env`** (misma carpeta que `manage.py`). Contenido:
+
+
+### 1.5. Aplicar migraciones y arrancar
+
+```bash
+python manage.py runserver 0.0.0.0:8000        # http://localhost:8000
+```
+
+---
+
+## 2. Frontend (React + Vite)
+
+Todos los comandos se ejecutan **dentro de la carpeta `frontend/`**.
+
+### 2.1. Instalar dependencias
+
+```bash
+cd frontend
+npm install
+```
+
+
+### 2.2. Crear el archivo `.env`
+
+Ubicación: **`frontend/.env`** (raíz del frontend, junto a `package.json`):
+
+
+### 2.3. Arrancar en desarrollo
+
+```bash
+npm run dev                       # http://localhost:5173
+```
+---
+
+## Estructura de carpetas en frontend
+
 1. components (vistas reutilizables, botones, inputs, etc)
 2. pages (pantallas completas)
 3. api o services (peticiones al backend)
 4. hooks (controladores de logica de React)
 5. routes (manejar navegacion entre páginas)
 6. assets (imagenes y CSS global)
-
-Instalar las dependencias:
-```
-npm install
-```
-
-Instalacion de React Router:
-```
-npm install react-router-dom
-```
-
-Iniciar frontend 
-```
-npm run dev
-```
 
 # Explicacion de libreria FullCalendar (calendario.jsx)
 El calendario en sí (la rejilla) lo dibuja la librería FullCalendar:
