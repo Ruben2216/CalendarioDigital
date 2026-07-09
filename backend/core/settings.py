@@ -154,8 +154,6 @@ FIREBASE_CREDENTIALS_FILE = os.environ.get(
     os.path.join(BASE_DIR, 'firebase-credentials.json'),
 )
 
-FRONTEND_DASHBOARD_URL = os.environ.get('FRONTEND_DASHBOARD_URL', 'http://localhost:5173/dashboard')
-
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework.authentication.TokenAuthentication',
