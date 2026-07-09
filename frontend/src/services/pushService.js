@@ -1,5 +1,5 @@
 import { getToken, onMessage } from "firebase/messaging";
-import { messaging } from "./firebaseConfig";
+import { messagingPromise } from "./firebaseConfig";
 import Swal from "sweetalert2";
 
 const VAPID_KEY = import.meta.env.VITE_VAPID_KEY;
@@ -17,6 +17,12 @@ let _escuchandoPrimerPlano = false;
  */
 export const inicializarNotificaciones = async (usuarioActual) => {
   try {
+    const messaging = await messagingPromise;
+    if (!messaging) {
+      console.log('Notificaciones push no soportadas en este navegador/contexto.');
+      return;
+    }
+
     const permission = await Notification.requestPermission();
     if (permission !== 'granted') {
       console.log('Permisos de notificación denegados.');
@@ -30,7 +36,7 @@ export const inicializarNotificaciones = async (usuarioActual) => {
     }
 
     await registrarDispositivo(currentToken, usuarioActual);
-    escucharPrimerPlano();
+    escucharPrimerPlano(messaging);
   } catch (error) {
     console.error('Error al inicializar notificaciones:', error);
   }
@@ -41,6 +47,8 @@ export async function obtenerTokenFCM() {
     if (typeof Notification === 'undefined' || Notification.permission !== 'granted') {
       return null;
     }
+    const messaging = await messagingPromise;
+    if (!messaging) return null;
     return await getToken(messaging, { vapidKey: VAPID_KEY });
   } catch {
     return null;
@@ -76,7 +84,7 @@ async function registrarDispositivo(token, usuarioActual = {}) {
 /**
  * Las notificaciones push NO se muestran solas mientras la app está abierta
  */
-export function escucharPrimerPlano() {
+export function escucharPrimerPlano(messaging) {
   if (_escuchandoPrimerPlano) return;
   _escuchandoPrimerPlano = true;
 
