@@ -1607,14 +1607,23 @@ export default function Calendario({ soloLectura = false, publico = false }) {
           onSubmit={guardarEvento}
         />
         {(esAdmin || esGestor) && calVinculado?.vinculado && !eventoEditando && (
-          <label className={styles["google-cal-opcion"]}>
-            <input
-              type="checkbox"
-              checked={formEvento.agregarAGoogleCalendar}
-              onChange={(e) => setFormEvento((prev) => ({ ...prev, agregarAGoogleCalendar: e.target.checked }))}
-            />
-            <span>Agregar a mi Google Calendar</span>
-          </label>
+          <div className={styles["interruptor"]}>
+            <div>
+              <span className="formulario__etiqueta">Agregar a mi Google Calendar</span>
+              <p className={styles["interruptor__nota"]}>
+                Si se activa, este evento también se creará en tu Google Calendar.
+              </p>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={formEvento.agregarAGoogleCalendar}
+              className={`${styles["switch"]} ${formEvento.agregarAGoogleCalendar ? styles["switch--on"] : ""}`}
+              onClick={() => setFormEvento((prev) => ({ ...prev, agregarAGoogleCalendar: !prev.agregarAGoogleCalendar }))}
+            >
+              <span className={styles["switch__bolita"]} />
+            </button>
+          </div>
         )}
       </Modal>
     </div>

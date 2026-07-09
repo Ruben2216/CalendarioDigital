@@ -168,10 +168,10 @@ export default function FormularioEvento({
       </div>
 
       <label className="formulario__campo">
-        <span className="formulario__etiqueta">Lugar</span>
+        <span className="formulario__etiqueta">Lugar -Descripción</span>
         <input
           type="text"
-          placeholder="Aula, auditorio, explanada..."
+          placeholder="Aula, auditorio, explanada, url..."
           value={form.lugar}
           onChange={set('lugar')}
         />
