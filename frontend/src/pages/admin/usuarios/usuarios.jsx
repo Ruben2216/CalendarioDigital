@@ -201,7 +201,7 @@ export default function Usuarios() {
       if (rolFinal === "docente") {
         setUsuarios((prev) => prev.filter((u) => u.id !== editando));
         setModalAbierto(false);
-        avisoExito("Acceso revocado. El usuario volverá a su rol según sus credenciales institucionales.");
+        avisoExito("Acceso revocado\nEl usuario volverá a su rol según sus credenciales institucionales.");
         return;
       }
       setUsuarios((prev) =>

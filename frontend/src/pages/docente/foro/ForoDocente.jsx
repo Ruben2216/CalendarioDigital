@@ -12,7 +12,23 @@ import ConvLista from '../../../components/mensajeria/ConvLista.jsx';
 import ChatPanel from '../../../components/mensajeria/ChatPanel.jsx';
 import SelectorDocente from '../../../components/mensajeria/SelectorDocente.jsx';
 import ModalSolicitud from './ModalSolicitud.jsx';
+import { avisoAdvertencia } from '../../../lib/alertas.js';
 import styles from './ForoDocente.module.css';
+
+function combosPlantelTurno(asignaciones) {
+  const vistos = new Set();
+  const combos = [];
+  for (const a of asignaciones) {
+    const plantelId = a.plantel?.id;
+    const turno = a.turno?.nombre;
+    const clave = `${plantelId}|${turno}`;
+    if (plantelId && !vistos.has(clave)) {
+      vistos.add(clave);
+      combos.push({ plantelId, turno });
+    }
+  }
+  return combos;
+}
 
 export default function ForoDocente() {
   const { id_usuario, nombre, iniciales, planteles = [] } = useSesion();
@@ -40,8 +56,26 @@ export default function ForoDocente() {
   const avatarUsuario = iniciales || nombre?.slice(0, 2).toUpperCase() || 'DC';
   const esMovil = useMediaQuery('(max-width: 720px)');
 
-  const iniciarSolicitud = () => {
+  const iniciarSolicitud = async () => {
     setErrorAdmin(null);
+
+    const combos = combosPlantelTurno(planteles);
+
+    try {
+      if (combos.length) {
+        const resultados = await Promise.all(
+          combos.map((c) => listarAdminsSolicitud(c.plantelId, c.turno)),
+        );
+        const hayAlgunAdmin = resultados.some((admins) => admins.length > 0);
+        if (!hayAlgunAdmin) {
+          avisoAdvertencia('Aún no hay administradores en tu plantel o turno');
+          return;
+        }
+      }
+    } catch {
+      // Si falla la verificación previa, se deja continuar y se valida al enviar.
+    }
+
     setModalAbierto(true);
   };
 
@@ -118,7 +152,7 @@ export default function ForoDocente() {
     try {
       const admins = await listarAdminsSolicitud(plantelId, datos.turno || null);
       if (!admins.length) {
-        setErrorAdmin('No hay un administrador asignado a ese plantel y turno.');
+        avisoAdvertencia('Aún no hay administradores en tu plantel o turno');
         setEnviando(false);
         return;
       }

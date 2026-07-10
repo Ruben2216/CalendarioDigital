@@ -68,6 +68,14 @@ export const avisoError = (titulo, texto) =>
     confirmButtonText: "Entendido",
   });
 
+export const avisoAdvertencia = (titulo, texto) =>
+  Modal.fire({
+    icon: "warning",
+    title: titulo,
+    text: texto,
+    confirmButtonText: "Entendido",
+  });
+
 export const confirmarEliminacion = (nombre) =>
   Modal.fire({
     icon: "warning",
