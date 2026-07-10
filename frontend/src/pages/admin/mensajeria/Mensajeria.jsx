@@ -36,7 +36,7 @@ export default function Mensajeria() {
     enviarMensaje,
     recargarMensajes,
     recargarConversaciones,
-  } = useMensajeria(id_usuario);
+  } = useMensajeria(id_usuario, refrescarBadge);
 
   const esSuperadmin = rol === 'superusuario';
 

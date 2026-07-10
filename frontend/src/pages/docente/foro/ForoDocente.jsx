@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { Plus, UserPlus } from 'lucide-react';
 import { useSesion } from '../../../hooks/useSesion.js';
 import { useMensajeria } from '../../../hooks/useMensajeria.js';
+import { useMensajeriaCtx } from '../../../context/MensajeriaContext.jsx';
 import { useMediaQuery } from '../../../hooks/useMediaQuery.js';
 import {
   obtenerOCrearConversacion,
@@ -32,6 +33,7 @@ function combosPlantelTurno(asignaciones) {
 
 export default function ForoDocente() {
   const { id_usuario, nombre, iniciales, planteles = [] } = useSesion();
+  const { refrescar: refrescarBadge } = useMensajeriaCtx();
   const {
     conversaciones,
     idConvActiva,
@@ -41,7 +43,7 @@ export default function ForoDocente() {
     enviarMensaje,
     recargarMensajes,
     recargarConversaciones,
-  } = useMensajeria(id_usuario);
+  } = useMensajeria(id_usuario, refrescarBadge);
 
   const [modalAbierto, setModalAbierto] = useState(false);
   const [selectorAdminAbierto, setSelectorAdminAbierto] = useState(false);

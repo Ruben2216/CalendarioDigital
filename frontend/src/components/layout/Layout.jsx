@@ -61,9 +61,7 @@ export default function Layout() {
       usuario={{
         nombre,
         iniciales,
-        rolLabel: rol === 'colaborador'
-          ? ROL_ETIQUETA.colaborador
-          : (tipoEmpleado || ROL_ETIQUETA[rol] || 'Usuario'),
+        rolLabel: ROL_ETIQUETA[rol] || tipoEmpleado || 'Usuario',
       }}
       nav={nav}
       plantelHeader={{ label: labelPlantel, valor: valorPlantel, conChevron: false }}

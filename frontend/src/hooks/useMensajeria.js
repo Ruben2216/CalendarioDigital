@@ -6,7 +6,7 @@ import {
   marcarLeido,
 } from '../services/mensajeriaService.js';
 
-export function useMensajeria(idUsuario) {
+export function useMensajeria(idUsuario, onLeido) {
   const [conversaciones, setConversaciones] = useState([]);
   const [idConvActiva, setIdConvActiva]     = useState(null);
   const [mensajes, setMensajes]             = useState([]);
@@ -50,12 +50,13 @@ export function useMensajeria(idUsuario) {
       setConversaciones((prev) =>
         prev.map((c) => (c.id === idConv ? { ...c, sin_leer: 0 } : c))
       );
+      onLeido?.();
     } catch (e) {
       setError(e.message);
     } finally {
       setCargandoMsgs(false);
     }
-  }, [idUsuario]);
+  }, [idUsuario, onLeido]);
 
   const seleccionarConversacion = useCallback((idConv) => {
     setIdConvActiva(idConv);
