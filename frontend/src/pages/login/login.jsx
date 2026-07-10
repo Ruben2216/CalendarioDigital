@@ -29,6 +29,7 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [role, setRole] = useState("institucional");
+  const [enviando, setEnviando] = useState(false);
   const navigate = useNavigate();
 
   const isInstitutionalAccess = role === "institucional";
@@ -162,14 +163,29 @@ export default function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    if (enviando) return;
+    setEnviando(true);
+
     if (isPublicAccess) {
       guardarSesion("tutor-public-token", { rol: "tutor", nombre: "Invitado" });
-      navigate("/tutor/calendario");  
+      navigate("/tutor/calendario");
       return;
     }
 
     const rolPeticion = esAlumno ? 'alumno' : 'personal';
-    const resultado = await loginInstitucional(userName, password, rolPeticion);
+    let resultado;
+    try {
+      resultado = await loginInstitucional(userName, password, rolPeticion);
+    } catch (err) {
+      console.error(err);
+      Swal.fire({
+        icon: "error",
+        title: "Acceso denegado",
+        text: "No fue posible conectar con el servidor.",
+      });
+      setEnviando(false);
+      return;
+    }
 
     if (!resultado.exito) {
       Swal.fire({
@@ -177,6 +193,7 @@ export default function Login() {
         title: "Acceso denegado",
         text: resultado.error,
       });
+      setEnviando(false);
       return;
     }
 
@@ -328,8 +345,7 @@ export default function Login() {
               ))}
             </div>
 
-            {/* Inicio de sesion / olvidar contraseña */}
-            <button type="submit" className="login__submit">
+            <button type="submit" className="login__submit" disabled={enviando}>
               <LogIn />
               {isPublicAccess ? "Acceder" : "Iniciar sesión"}
             </button>
