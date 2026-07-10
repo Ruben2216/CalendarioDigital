@@ -8,6 +8,7 @@ import { avisoExito, avisoError, confirmarAccion } from "../../../lib/alertas.js
 import { TURNOS } from "../../../data/usuarios.js";
 import { listarSolicitudes, resolverSolicitud, eliminarSolicitud, editarSolicitud } from "../../../services/solicitudesService.js";
 import { obtenerTurnos } from "../../../services/authService.js";
+import { useSolicitudesCtx } from "../../../context/SolicitudesContext.jsx";
 import { iniciales } from "../../../lib/texto.js";
 import styles from "../usuarios/usuarios.module.css";
 
@@ -37,6 +38,7 @@ function formatoFecha(iso) {
 // administrativos: las resuelven los administradores del plantel destino
 // (aceptar, rechazar o editar el turno antes de aceptar).
 export default function Solicitudes() {
+  const { refrescar: refrescarBadge } = useSolicitudesCtx();
   const [solicitudes, setSolicitudes] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [errorCarga, setErrorCarga] = useState(false);
@@ -110,6 +112,7 @@ export default function Solicitudes() {
     try {
       const actualizada = await resolverSolicitud(s.id, "aceptar");
       actualizarFila(actualizada);
+      refrescarBadge();
       avisoExito(s.tipo === "visualizacion" ? "Visualización de plantel concedida" : "Turno actualizado");
     } catch (err) {
       avisoError(err.message || "No se pudo aceptar la solicitud");
@@ -117,9 +120,10 @@ export default function Solicitudes() {
   };
 
   const rechazar = async (s) => {
+    const htmlRechazar = `¿Seguro que deseas rechazar la solicitud de <b>${s.nombre}</b>?`;
     const { isConfirmed } = await confirmarAccion({
       titulo: "Rechazar solicitud",
-      html: `¿Seguro que deseas rechazar la solicitud de <b>${s.nombre}</b>?`,
+      html: s.motivo ? `${htmlRechazar}<br/><br/><small>Motivo: ${s.motivo}</small>` : htmlRechazar,
       confirmar: "Rechazar",
       peligro: true,
     });
@@ -127,6 +131,7 @@ export default function Solicitudes() {
     try {
       const actualizada = await resolverSolicitud(s.id, "rechazar");
       actualizarFila(actualizada);
+      refrescarBadge();
       avisoExito("Solicitud rechazada");
     } catch (err) {
       avisoError(err.message || "No se pudo rechazar la solicitud");
@@ -311,6 +316,11 @@ export default function Solicitudes() {
                               <Mail size={11} />
                               {s.correo}
                             </span>
+                            {s.estado === "pendiente" && s.motivo && (
+                              <span className={styles["usuario__motivo"]} title={s.motivo}>
+                                “{s.motivo}”
+                              </span>
+                            )}
                           </div>
                         </div>
                       </td>

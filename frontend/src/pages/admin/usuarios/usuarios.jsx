@@ -8,6 +8,7 @@ import { avisoExito, avisoError, confirmarAccion, confirmarEliminacion } from ".
 import { ROL, ROLES_GESTION, ESTADOS, TURNOS } from "../../../data/usuarios.js";
 import { listarSolicitudes, listarAdministradores, resolverSolicitud, eliminarSolicitud, crearAdmin, actualizarAdmin } from "../../../services/solicitudesService.js";
 import { obtenerPlanteles, obtenerTurnos } from "../../../services/authService.js";
+import { useSolicitudesCtx } from "../../../context/SolicitudesContext.jsx";
 import BuscadorPlantelInline from "../../../components/buscador-plantel/BuscadorPlantelInline.jsx";
 import BuscadorUsuarioInline from "../../../components/buscador-usuario/BuscadorUsuarioInline.jsx";
 import { iniciales } from "../../../lib/texto.js";
@@ -32,6 +33,7 @@ function solicitudAFila(s) {
     planteles: s.plantel ? [s.plantel] : [],
     estado: ESTADO_BACKEND[s.estado] || "pendiente",
     solicitado: (s.fecha_solicitud || "").slice(0, 10),
+    motivo: s.motivo || "",
   };
 }
 
@@ -68,6 +70,7 @@ function formatoFecha(clave) {
 }
 
 export default function Usuarios() {
+  const { refrescar: refrescarBadge } = useSolicitudesCtx();
   const [usuarios, setUsuarios] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [errorCarga, setErrorCarga] = useState(false);
@@ -264,10 +267,13 @@ export default function Usuarios() {
     if (resolviendoRef.current) return;
     resolviendoRef.current = true;
     try {
+      const htmlAceptar = `¿Conceder acceso a <b>${usuario.nombre}</b> como <b>${ROL.etiqueta}</b>? Su cuenta pasará a administrador y podrá gestionar el calendario.`;
       const { isConfirmed } = await confirmarAccion({
         icono: "question",
         titulo: "Aceptar administrador",
-        html: `¿Conceder acceso a <b>${usuario.nombre}</b> como <b>${ROL.etiqueta}</b>? Su cuenta pasará a administrador y podrá gestionar el calendario.`,
+        html: usuario.motivo
+          ? `${htmlAceptar}<br/><br/><small>Motivo: ${usuario.motivo}</small>`
+          : htmlAceptar,
         confirmar: "Aceptar",
       });
       if (!isConfirmed) return;
@@ -280,6 +286,7 @@ export default function Usuarios() {
         }
       }
       setUsuarios((prev) => prev.map((u) => (u.id === usuario.id ? { ...u, estado: "activo" } : u)));
+      refrescarBadge();
       avisoExito("Administrador aceptado");
     } finally {
       resolviendoRef.current = false;
@@ -290,9 +297,12 @@ export default function Usuarios() {
     if (resolviendoRef.current) return;
     resolviendoRef.current = true;
     try {
+      const htmlRechazar = `¿Seguro que deseas rechazar a <b>${usuario.nombre}</b>? No podrá gestionar fechas.`;
       const { isConfirmed } = await confirmarAccion({
         titulo: "Rechazar solicitud",
-        html: `¿Seguro que deseas rechazar a <b>${usuario.nombre}</b>? No podrá gestionar fechas.`,
+        html: usuario.motivo
+          ? `${htmlRechazar}<br/><br/><small>Motivo: ${usuario.motivo}</small>`
+          : htmlRechazar,
         confirmar: "Rechazar",
         peligro: true,
       });
@@ -306,6 +316,7 @@ export default function Usuarios() {
         }
       }
       setUsuarios((prev) => prev.map((u) => (u.id === usuario.id ? { ...u, estado: "rechazado" } : u)));
+      refrescarBadge();
       avisoExito("Solicitud rechazada");
     } finally {
       resolviendoRef.current = false;
@@ -322,6 +333,7 @@ export default function Usuarios() {
       return;
     }
     setUsuarios((prev) => prev.filter((u) => u.id !== usuario.id));
+    refrescarBadge();
     avisoExito("Solicitud eliminada");
   };
 
@@ -455,6 +467,11 @@ export default function Usuarios() {
                               <Mail size={11} />
                               {u.correo}
                             </span>
+                            {u.estado === "pendiente" && u.motivo && (
+                              <span className={styles["usuario__motivo"]} title={u.motivo}>
+                                “{u.motivo}”
+                              </span>
+                            )}
                           </div>
                         </div>
                       </td>

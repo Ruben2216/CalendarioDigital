@@ -258,6 +258,17 @@
   color: var(--muted);
 }
 
+.usuario__motivo {
+  display: block;
+  margin-top: 4px;
+  max-width: 280px;
+  font-size: 11.5px;
+  font-style: italic;
+  color: var(--muted);
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
 /* Planteles */
 .planteles {
   display: flex;

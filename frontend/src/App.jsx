@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate, Outlet, useParams } from "react-router-dom";
 import { MensajeriaProvider } from "./context/MensajeriaContext.jsx";
+import { SolicitudesProvider } from "./context/SolicitudesContext.jsx";
 import { inicializarNotificaciones } from "./services/pushService.js";
 import Login from "./pages/login/login.jsx";
 import GoogleCalendarCallback from "./pages/google-calendar-callback/GoogleCalendarCallback.jsx";
@@ -100,7 +101,7 @@ function App() {
 
         {/* Rutas admin / superusuario / colaborador */}
         <Route element={<ProtectedRoute roles={['admin', 'superusuario', 'colaborador']} />}>
-          <Route element={<MensajeriaProvider><Layout /></MensajeriaProvider>}>
+          <Route element={<MensajeriaProvider><SolicitudesProvider><Layout /></SolicitudesProvider></MensajeriaProvider>}>
             <Route path="/dashboard"  element={<Suspense fallback={<Cargando />}><Dashboard /></Suspense>} />
             <Route path="/calendario" element={<Suspense fallback={<Cargando />}><Calendario /></Suspense>} />
             <Route path="/anuncios"   element={<Suspense fallback={<Cargando />}><Anuncios /></Suspense>} />
@@ -109,7 +110,7 @@ function App() {
 
         {/* Ruta Mensajería: admin y superusuario (el colaborador no participa) */}
         <Route element={<ProtectedRoute roles={['admin', 'superusuario']} />}>
-          <Route element={<MensajeriaProvider><Layout /></MensajeriaProvider>}>
+          <Route element={<MensajeriaProvider><SolicitudesProvider><Layout /></SolicitudesProvider></MensajeriaProvider>}>
             <Route path="/mensajeria" element={<Suspense fallback={<Cargando />}><Mensajeria /></Suspense>} />
             {/* Solicitudes de visualización de plantel y cambio de turno */}
             <Route path="/solicitudes" element={<Suspense fallback={<Cargando />}><Solicitudes /></Suspense>} />
@@ -118,7 +119,7 @@ function App() {
 
         {/* Ruta Usuarios: solo superusuario */}
         <Route element={<ProtectedRoute roles={['superusuario']} />}>
-          <Route element={<MensajeriaProvider><Layout /></MensajeriaProvider>}>
+          <Route element={<MensajeriaProvider><SolicitudesProvider><Layout /></SolicitudesProvider></MensajeriaProvider>}>
             <Route path="/usuarios" element={<Suspense fallback={<Cargando />}><Usuarios /></Suspense>} />
           </Route>
         </Route>

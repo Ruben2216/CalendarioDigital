@@ -3,6 +3,7 @@ import { LayoutDashboard, Calendar, Users, MessageSquare, Megaphone, Inbox } fro
 import { leerSesion } from "../../hooks/useSesion.js";
 import { refrescarSesion } from "../../services/authService.js";
 import { useMensajeriaCtx } from "../../context/MensajeriaContext.jsx";
+import { useSolicitudesCtx } from "../../context/SolicitudesContext.jsx";
 import LayoutBase from "./LayoutBase.jsx";
 import { ROL_ETIQUETA, cicloEscolar } from "./layoutUtils.js";
 import styles from "./Layout.module.css";
@@ -27,14 +28,21 @@ export default function Layout() {
   const [sesion, setSesion] = useState(leerSesion);
   const { nombre, iniciales, rol, plantel, turno, tipoEmpleado, adscripcion } = sesion;
   const { totalSinLeer } = useMensajeriaCtx();
+  const { pendientesPlantel, pendientesAdmin } = useSolicitudesCtx();
 
   useEffect(() => {
     refrescarSesion().then(() => setSesion(leerSesion()));
   }, []);
 
+  const BADGES = {
+    'Mensajería': totalSinLeer,
+    'Solicitudes': pendientesPlantel,
+    'Usuarios': pendientesAdmin,
+  };
+
   const ocultas = RUTAS_OCULTAS[rol] || [];
   const nav = NAV.filter(item => !ocultas.includes(item.ruta))
-    .map(item => ({ ...item, badge: item.etiqueta === 'Mensajería' ? totalSinLeer : 0 }));
+    .map(item => ({ ...item, badge: BADGES[item.etiqueta] || 0 }));
 
   const labelPlantel = plantel?.nombre ? 'Plantel' : (tipoEmpleado === 'Administrativo' ? 'Departamento' : 'Plantel');
   const valorPlantel = rol === 'superusuario'
