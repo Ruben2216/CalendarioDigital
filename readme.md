@@ -1,4 +1,29 @@
-# Calendario Digital — Guía de instalación
+<div align="center">
+  <img src="frontend/src/assets/img/logo-cobach.png" width="160" alt="COBACH Logo">
+
+  <h1>Calendario Digital</h1>
+  <p><b>Sistema de calendario institucional — COBACH</b></p>
+
+  <p>
+    <a href="#requisitos-previos">Requisitos</a> •
+    <a href="#1-backend-django">Backend</a> •
+    <a href="#2-frontend-react--vite">Frontend</a> •
+    <a href="#estructura-de-carpetas-en-frontend">Estructura</a> •
+    <a href="#solicitudes-de-acceso-de-administrador-docente--admin">Roles y permisos</a>
+  </p>
+
+  <p>
+    <img src="https://img.shields.io/badge/Django-6.0.5-092E20?logo=django&logoColor=white" alt="Django">
+    <img src="https://img.shields.io/badge/DRF-3.17.1-A30000?logo=django&logoColor=white" alt="Django REST Framework">
+    <img src="https://img.shields.io/badge/React-19.2.6-61DAFB?logo=react&logoColor=black" alt="React">
+    <img src="https://img.shields.io/badge/Vite-8.0.12-646CFF?logo=vite&logoColor=white" alt="Vite">
+    <img src="https://img.shields.io/badge/Node-20.19+-339933?logo=node.js&logoColor=white" alt="Node">
+    <img src="https://img.shields.io/badge/Python-3.12+-3776AB?logo=python&logoColor=white" alt="Python">
+    <img src="https://img.shields.io/badge/DB-SQL_Server-CC2927?logo=microsoftsqlserver&logoColor=white" alt="SQL Server">
+  </p>
+</div>
+
+---
 
 Proyecto con **backend Django** (`/backend`) y **frontend React + Vite** (`/frontend`).
 
