@@ -65,10 +65,6 @@ venv\Scripts\activate.bat
 source venv/bin/activate
 ```
 
-Si PowerShell bloquea el script de activación, ejecuta una vez:
-`Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`
-
-Con el entorno activo verás el prefijo `(venv)` en la terminal.
 
 ### 1.3. Instalar dependencias
 
