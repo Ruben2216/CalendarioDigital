@@ -9,6 +9,22 @@ export const ROL_ETIQUETA = {
   tutor: 'Visitante',
 };
 
+// Roles de gestión global: no pertenecen a un solo plantel, administran todos.
+const GESTION_GLOBAL = ['superusuario', 'colaborador'];
+
+// Etiqueta ÚNICA del "lugar" del usuario
+export function etiquetaLugar({ rol, tipoEmpleado, tienePlantel, nombreLugar } = {}) {
+  if (GESTION_GLOBAL.includes(rol)) return 'Plantel';
+  if (esAreaAdministrativa(nombreLugar)) return 'Departamento';
+  if (tienePlantel) return 'Plantel';
+  return tipoEmpleado === 'Administrativo' ? 'Departamento' : 'Plantel';
+}
+
+export function valorLugar({ rol, nombrePlantel, adscripcion } = {}) {
+  if (GESTION_GLOBAL.includes(rol)) return 'Todos los planteles';
+  return nombrePlantel || adscripcion || 'Sin plantel';
+}
+
 // Ciclo escolar actual (Agosto inicia el nuevo ciclo).
 export function cicloEscolar() {
   const anio = new Date().getFullYear();
@@ -32,6 +48,12 @@ const ABREV_PRIMERA = {
   area: 'Área',
   oficina: 'Of.',
 };
+
+export function esAreaAdministrativa(nombre) {
+  if (!nombre) return false;
+  const primera = nombre.trim().split(/\s+/)[0]?.toLowerCase();
+  return Boolean(primera) && Object.prototype.hasOwnProperty.call(ABREV_PRIMERA, primera);
+}
 
 // Solo para uso en móvil: abrevia la primera palabra de un nombre de adscripción
 // cuando es un término institucional largo (Departamento → Dpto., etc.).

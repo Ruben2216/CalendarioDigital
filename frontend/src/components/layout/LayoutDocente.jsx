@@ -7,7 +7,7 @@ import { useMensajeriaCtx } from "../../context/MensajeriaContext.jsx";
 import SolicitudAdmin from "../solicitud-admin/SolicitudAdmin.jsx";
 import PlantelesAsignados from "./PlantelesAsignados.jsx";
 import LayoutBase from "./LayoutBase.jsx";
-import { ROL_ETIQUETA, cicloEscolar } from "./layoutUtils.js";
+import { ROL_ETIQUETA, cicloEscolar, etiquetaLugar } from "./layoutUtils.js";
 import styles from "./Layout.module.css";
 
 const NAV_DOCENTE_BASE = [
@@ -81,7 +81,7 @@ export default function LayoutDocente() {
       usuario={{ nombre, iniciales, rolLabel: tipoEmpleado || ROL_ETIQUETA[rol] || 'Usuario' }}
       nav={nav}
       plantelHeader={{
-        label: tipoEmpleado === 'Administrativo' ? 'Departamento' : 'Adscripción',
+        label: etiquetaLugar({ rol, tipoEmpleado, tienePlantel: false, nombreLugar: plantelHeaderText }),
         valor: plantelHeaderText,
         conChevron: false,
       }}

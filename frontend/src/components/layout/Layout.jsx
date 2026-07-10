@@ -5,7 +5,7 @@ import { refrescarSesion } from "../../services/authService.js";
 import { useMensajeriaCtx } from "../../context/MensajeriaContext.jsx";
 import { useSolicitudesCtx } from "../../context/SolicitudesContext.jsx";
 import LayoutBase from "./LayoutBase.jsx";
-import { ROL_ETIQUETA, cicloEscolar } from "./layoutUtils.js";
+import { ROL_ETIQUETA, cicloEscolar, etiquetaLugar, valorLugar } from "./layoutUtils.js";
 import styles from "./Layout.module.css";
 
 const NAV = [
@@ -44,20 +44,20 @@ export default function Layout() {
   const nav = NAV.filter(item => !ocultas.includes(item.ruta))
     .map(item => ({ ...item, badge: BADGES[item.etiqueta] || 0 }));
 
-  const labelPlantel = plantel?.nombre ? 'Plantel' : (tipoEmpleado === 'Administrativo' ? 'Departamento' : 'Plantel');
-  const valorPlantel = rol === 'superusuario'
-    ? 'Todos los planteles'
-    : (plantel?.nombre || adscripcion || 'Sin plantel');
+  const nombrePlantel = plantel?.nombre || null;
+  const valorPlantel = valorLugar({ rol, nombrePlantel, adscripcion });
+  const labelPlantel = etiquetaLugar({
+    rol,
+    tipoEmpleado,
+    tienePlantel: !!nombrePlantel,
+    nombreLugar: nombrePlantel || adscripcion,
+  });
 
   const perfilContenido = (
     <ul className={styles["menu-perfil__datos"]}>
       <li>
-        <span>{plantel?.nombre ? 'Plantel' : (tipoEmpleado === 'Administrativo' ? 'Departamento' : 'Plantel')}</span>
-        <strong>
-          {rol === 'superusuario'
-            ? 'Todos los planteles'
-            : (plantel?.nombre || adscripcion || '—')}
-        </strong>
+        <span>{labelPlantel}</span>
+        <strong>{valorPlantel}</strong>
       </li>
       <li><span>Turno</span><strong>{turno?.nombre || '—'}</strong></li>
       <li><span>Ciclo escolar</span><strong>{cicloEscolar()}</strong></li>
