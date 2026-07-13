@@ -3,6 +3,7 @@ import { Megaphone } from "lucide-react";
 import { listarAnuncios } from "../../services/anunciosService.js";
 import { useSesion } from "../../hooks/useSesion.js";
 import ListaAnunciosLectura from "./ListaAnunciosLectura.jsx";
+import Cargando from "../Cargando.jsx";
 import styles from "./AnunciosVista.module.css";
 
 // Módulo de anuncios SOLO LECTURA (docente / alumno).
@@ -42,7 +43,7 @@ export default function AnunciosVista() {
 
       <article className="tarjeta">
         {cargando ? (
-          <p className={styles["vacio"]}>Cargando…</p>
+          <Cargando />
         ) : errorCarga ? (
           <div className={styles["vacio"]}>
             <p>No se pudieron cargar los anuncios.</p>
@@ -56,7 +57,7 @@ export default function AnunciosVista() {
             </button>
           </div>
         ) : (
-          <ListaAnunciosLectura anuncios={anuncios} mostrarPlantel={variosPlanteles} />
+          <ListaAnunciosLectura anuncios={anuncios} mostrarPlantel={variosPlanteles} animarEntrada />
         )}
       </article>
     </section>

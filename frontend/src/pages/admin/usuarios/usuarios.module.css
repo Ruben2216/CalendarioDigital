@@ -201,6 +201,20 @@
   background: var(--panel-soft);
 }
 
+/* Aparición escalonada de filas */
+.fila-anima {
+  animation: fila-aparece 0.3s ease both;
+}
+
+@keyframes fila-aparece {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fila-anima { animation: none; }
+}
+
 .tabla__tenue {
   color: var(--muted);
   white-space: nowrap;

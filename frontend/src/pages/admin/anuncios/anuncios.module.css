@@ -88,6 +88,15 @@
   white-space: nowrap;
 }
 
+/* Estado para cargando / error */
+.vacio {
+  margin: 0;
+  padding: 44px 16px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 13px;
+}
+
 .barra__derecha {
   display: flex;
   align-items: center;

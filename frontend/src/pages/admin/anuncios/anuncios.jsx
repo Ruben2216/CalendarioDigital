@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Plus } from "lucide-react";
 import ListaAnuncios from "../../../components/anuncios/ListaAnuncios.jsx";
 import ModalAnuncio from "../../../components/anuncios/ModalAnuncio.jsx";
+import Cargando from "../../../components/Cargando.jsx";
 import { AUDIENCIAS } from "../../../data/anuncios.js";
 import {
   listarAnuncios,
@@ -171,9 +172,9 @@ export default function Anuncios() {
         </div>
 
         {cargando ? (
-          <p className={styles["conteo"]}>Cargando…</p>
+          <Cargando />
         ) : errorCarga ? (
-          <div className={styles["conteo"]} style={{ textAlign: "center", padding: "24px 12px" }}>
+          <div className={styles["vacio"]}>
             <p>No se pudieron cargar los anuncios.</p>
             <button
               type="button"
@@ -190,6 +191,7 @@ export default function Anuncios() {
             onEditar={abrirEditar}
             onEliminar={eliminar}
             mostrarAudiencia
+            animarEntrada
           />
         )}
       </article>

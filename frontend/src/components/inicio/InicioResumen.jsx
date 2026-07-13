@@ -9,6 +9,7 @@ import {
 import { listarAnuncios } from "../../services/anunciosService.js";
 import { useSesion } from "../../hooks/useSesion.js";
 import { usePreferencia } from "../../hooks/usePreferencia.js";
+import { useContador } from "../../hooks/useContador.js";
 import { RANGOS_PROXIMOS, limiteRango } from "../../lib/rangosEventos.js";
 import { useCalendarioEventos } from "../../hooks/useCalendarioEventos.js";
 import MiniCalendario from "../mini-calendario/MiniCalendario.jsx";
@@ -97,6 +98,9 @@ export default function InicioResumen({ rutaCalendario, rutaAnuncios }) {
   const proximo = proximos[0];
   const cuentaProximo = proximo ? cuenta(diasRestantes(claveHoy, proximo.fecha)) : null;
 
+  const eventosHoyMostrado = useContador(eventosHoy.length);
+  const estaSemanaMostrado = useContador(estaSemana.length);
+
   return (
     <section className={styles["pagina"]}>
       {/* Encabezado */}
@@ -119,7 +123,7 @@ export default function InicioResumen({ rutaCalendario, rutaAnuncios }) {
             <CalendarCheck size={20} />
           </span>
           <div>
-            <div className={styles["indicador__valor"]}>{eventosHoy.length}</div>
+            <div className={styles["indicador__valor"]}>{eventosHoyMostrado}</div>
             <div className={styles["indicador__etiqueta"]}>Eventos hoy</div>
           </div>
         </article>
@@ -128,7 +132,7 @@ export default function InicioResumen({ rutaCalendario, rutaAnuncios }) {
             <CalendarDays size={20} />
           </span>
           <div>
-            <div className={styles["indicador__valor"]}>{estaSemana.length}</div>
+            <div className={styles["indicador__valor"]}>{estaSemanaMostrado}</div>
             <div className={styles["indicador__etiqueta"]}>Eventos esta semana</div>
           </div>
         </article>
@@ -177,13 +181,17 @@ export default function InicioResumen({ rutaCalendario, rutaAnuncios }) {
               {proximosResumen.length === 0 ? (
                 <p className={styles["eventos__vacio"]}>No hay eventos próximos en este rango.</p>
               ) : (
-                proximosResumen.map((ev) => {
+                proximosResumen.map((ev, i) => {
                   const fecha = desdeClaveFecha(ev.fecha);
                   const c = cuenta(diasRestantes(claveHoy, ev.fecha));
                   const etiq = etiquetaTipo(ev.tipo);
                   const tieneTituloReal = ev.titulo && ev.titulo !== etiq;
                   return (
-                    <div key={ev.id} className={styles["evento"]}>
+                    <div
+                      key={ev.id}
+                      className={styles["evento"]}
+                      style={{ animationDelay: `${Math.min(i, 8) * 55}ms` }}
+                    >
                       <div className={styles["evento__fecha"]}>
                         <strong>{fecha.getDate()}</strong>
                         <span>{ABREV_MES[fecha.getMonth()]}</span>
@@ -245,7 +253,7 @@ export default function InicioResumen({ rutaCalendario, rutaAnuncios }) {
               )
             }
           >
-            <ListaAnuncios anuncios={anunciosResumen} soloTitulo mostrarPlantel={variosPlanteles} />
+            <ListaAnuncios anuncios={anunciosResumen} soloTitulo mostrarPlantel={variosPlanteles} animarEntrada />
           </TarjetaColapsable>
         </div>
 

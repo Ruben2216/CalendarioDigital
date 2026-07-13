@@ -13,6 +13,7 @@ import BuscadorPlantelInline from "../../../components/buscador-plantel/Buscador
 import BuscadorUsuarioInline from "../../../components/buscador-usuario/BuscadorUsuarioInline.jsx";
 import { iniciales } from "../../../lib/texto.js";
 import { useCampoFormulario } from "../../../hooks/useCampoFormulario.js";
+import { useContador } from "../../../hooks/useContador.js";
 import styles from "./usuarios.module.css";
 
 const ESTADOS_MAP = Object.fromEntries(ESTADOS.map((e) => [e.id, e]));
@@ -115,6 +116,10 @@ export default function Usuarios() {
     pendientes: usuarios.filter((u) => u.estado === "pendiente").length,
     activos: usuarios.filter((u) => u.estado === "activo").length,
   }), [usuarios]);
+
+  const totalMostrado = useContador(totales.total);
+  const pendientesMostrado = useContador(totales.pendientes);
+  const activosMostrado = useContador(totales.activos);
 
   const usuariosFiltrados = useMemo(() => {
     const termino = busqueda.trim().toLowerCase();
@@ -363,7 +368,7 @@ export default function Usuarios() {
             <Users size={20} />
           </span>
           <div>
-            <div className={styles["indicador__valor"]}>{totales.total}</div>
+            <div className={styles["indicador__valor"]}>{totalMostrado}</div>
             <div className={styles["indicador__etiqueta"]}>Usuarios totales</div>
           </div>
         </article>
@@ -372,7 +377,7 @@ export default function Usuarios() {
             <Clock size={20} />
           </span>
           <div>
-            <div className={styles["indicador__valor"]}>{totales.pendientes}</div>
+            <div className={styles["indicador__valor"]}>{pendientesMostrado}</div>
             <div className={styles["indicador__etiqueta"]}>Solicitudes pendientes</div>
           </div>
         </article>
@@ -381,7 +386,7 @@ export default function Usuarios() {
             <UserCheck size={20} />
           </span>
           <div>
-            <div className={styles["indicador__valor"]}>{totales.activos}</div>
+            <div className={styles["indicador__valor"]}>{activosMostrado}</div>
             <div className={styles["indicador__etiqueta"]}>Administradores activos</div>
           </div>
         </article>
@@ -449,13 +454,17 @@ export default function Usuarios() {
                 </tr>
               </thead>
               <tbody>
-                {usuariosFiltrados.map((u) => {
+                {usuariosFiltrados.map((u, i) => {
                   const estado = ESTADOS_MAP[u.estado];
                   const turno = TURNOS_MAP[u.turno];
                   const rolFila = ROLES_GESTION[u.rol] || ROL;
                   const colorRol = u.rol === "colaborador" ? ROL.color : rolFila.color;
                   return (
-                    <tr key={u.id}>
+                    <tr
+                      key={u.id}
+                      className={styles["fila-anima"]}
+                      style={{ animationDelay: `${Math.min(i, 10) * 40}ms` }}
+                    >
                       <td>
                         <div className={styles["usuario"]}>
                           <span className={`${styles["usuario__avatar"]} ${styles[`usuario__avatar--${colorRol}`]}`}>

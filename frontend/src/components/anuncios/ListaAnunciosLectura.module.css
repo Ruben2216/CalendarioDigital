@@ -14,6 +14,20 @@
   border-top: 1px solid #edf1f7;
 }
 
+/* Aparición escalonada */
+.anuncio--anima {
+  animation: anuncio-aparece 0.35s ease both;
+}
+
+@keyframes anuncio-aparece {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .anuncio--anima { animation: none; }
+}
+
 .anuncio__cab {
   width: 100%;
   display: flex;

@@ -12,23 +12,29 @@ function fechaCorta(iso) {
   return `${d} ${ABREV_MES[m - 1]}`;
 }
 
-export default function ListaAnuncios({ anuncios, onEditar, onEliminar, mostrarAudiencia = false, soloTitulo = false, mostrarPlantel = false }) {
+export default function ListaAnuncios({ anuncios, onEditar, onEliminar, mostrarAudiencia = false, soloTitulo = false, mostrarPlantel = false, animarEntrada = false }) {
   if (!anuncios || anuncios.length === 0) {
     return <p className={styles["vacio"]}>No hay anuncios.</p>;
   }
 
   const conAcciones = Boolean(onEditar || onEliminar);
   const leidos = soloTitulo ? idsLeidos() : null;
+  
+  // Aparición escalonada 
+  const claseAnima = animarEntrada ? styles["anuncio--anima"] : "";
+  const estiloRetardo = (i) =>
+    animarEntrada ? { animationDelay: `${Math.min(i, 8) * 55}ms` } : undefined;
 
   return (
     <div className={styles["lista"]}>
-      {anuncios.map((a) => {
+      {anuncios.map((a, i) => {
         if (soloTitulo) {
           const noLeido = !leidos.has(a.id);
           return (
             <div
               key={a.id}
-              className={`${styles["anuncio"]} ${noLeido ? styles["anuncio--no-leido"] : ""}`}
+              className={`${styles["anuncio"]} ${claseAnima} ${noLeido ? styles["anuncio--no-leido"] : ""}`}
+              style={estiloRetardo(i)}
             >
               <span className={`${styles["anuncio__icono"]} ${styles[`anuncio__icono--${a.color}`]}`}>
                 <Megaphone size={14} />
@@ -49,7 +55,7 @@ export default function ListaAnuncios({ anuncios, onEditar, onEliminar, mostrarA
         }
         const aud = AUDIENCIA_MAP[a.audiencia];
         return (
-          <div key={a.id} className={styles["anuncio"]}>
+          <div key={a.id} className={`${styles["anuncio"]} ${claseAnima}`} style={estiloRetardo(i)}>
             <span className={`${styles["anuncio__icono"]} ${styles[`anuncio__icono--${a.color}`]}`}>
               <Megaphone size={14} />
             </span>

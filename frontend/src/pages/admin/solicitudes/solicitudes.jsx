@@ -9,6 +9,7 @@ import { TURNOS } from "../../../data/usuarios.js";
 import { listarSolicitudes, resolverSolicitud, eliminarSolicitud, editarSolicitud } from "../../../services/solicitudesService.js";
 import { obtenerTurnos } from "../../../services/authService.js";
 import { useSolicitudesCtx } from "../../../context/SolicitudesContext.jsx";
+import { useContador } from "../../../hooks/useContador.js";
 import { iniciales } from "../../../lib/texto.js";
 import styles from "../usuarios/usuarios.module.css";
 
@@ -71,6 +72,10 @@ export default function Solicitudes() {
     pendientes: solicitudes.filter((s) => s.estado === "pendiente").length,
     aceptadas: solicitudes.filter((s) => s.estado === "aceptada").length,
   }), [solicitudes]);
+
+  const totalMostrado = useContador(totales.total);
+  const pendientesMostrado = useContador(totales.pendientes);
+  const aceptadasMostrado = useContador(totales.aceptadas);
 
   const solicitudesFiltradas = useMemo(() => {
     const termino = busqueda.trim().toLowerCase();
@@ -208,7 +213,7 @@ export default function Solicitudes() {
             <Inbox size={20} />
           </span>
           <div>
-            <div className={styles["indicador__valor"]}>{totales.total}</div>
+            <div className={styles["indicador__valor"]}>{totalMostrado}</div>
             <div className={styles["indicador__etiqueta"]}>Solicitudes totales</div>
           </div>
         </article>
@@ -217,7 +222,7 @@ export default function Solicitudes() {
             <Clock size={20} />
           </span>
           <div>
-            <div className={styles["indicador__valor"]}>{totales.pendientes}</div>
+            <div className={styles["indicador__valor"]}>{pendientesMostrado}</div>
             <div className={styles["indicador__etiqueta"]}>Pendientes</div>
           </div>
         </article>
@@ -226,7 +231,7 @@ export default function Solicitudes() {
             <CheckCircle2 size={20} />
           </span>
           <div>
-            <div className={styles["indicador__valor"]}>{totales.aceptadas}</div>
+            <div className={styles["indicador__valor"]}>{aceptadasMostrado}</div>
             <div className={styles["indicador__etiqueta"]}>Aceptadas</div>
           </div>
         </article>
@@ -299,12 +304,16 @@ export default function Solicitudes() {
                 </tr>
               </thead>
               <tbody>
-                {solicitudesFiltradas.map((s) => {
+                {solicitudesFiltradas.map((s, i) => {
                   const tipo = TIPOS[s.tipo];
                   const estado = ESTADOS_MAP[s.estado];
                   const turno = TURNOS_MAP[s.turno];
                   return (
-                    <tr key={s.id}>
+                    <tr
+                      key={s.id}
+                      className={styles["fila-anima"]}
+                      style={{ animationDelay: `${Math.min(i, 10) * 40}ms` }}
+                    >
                       <td>
                         <div className={styles["usuario"]}>
                           <span className={`${styles["usuario__avatar"]} ${styles[`usuario__avatar--${tipo?.color || "azul"}`]}`}>

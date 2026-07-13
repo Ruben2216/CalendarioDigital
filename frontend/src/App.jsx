@@ -4,6 +4,7 @@ import { MensajeriaProvider } from "./context/MensajeriaContext.jsx";
 import { SolicitudesProvider } from "./context/SolicitudesContext.jsx";
 import { inicializarNotificaciones } from "./services/pushService.js";
 import Login from "./pages/login/login.jsx";
+import Cargando from "./components/Cargando.jsx";
 import GoogleCalendarCallback from "./pages/google-calendar-callback/GoogleCalendarCallback.jsx";
 import Layout from "./components/layout/Layout.jsx";
 import LayoutDocente from "./components/layout/LayoutDocente.jsx";
@@ -20,14 +21,6 @@ const DocenteInicio    = lazy(() => import("./pages/docente/inicio.jsx"));
 const AlumnoInicio     = lazy(() => import("./pages/alumno/inicio.jsx"));
 const Alumno           = lazy(() => import("./pages/alumno/alumno.jsx"));
 const AnunciosVista    = lazy(() => import("./components/anuncios/AnunciosVista.jsx"));
-
-function Cargando() {
-  return (
-    <div style={{ padding: 40, textAlign: "center", color: "var(--muted)" }}>
-      Cargando…
-    </div>
-  );
-}
 
 function ProtectedRoute({ roles }) {
   const token = localStorage.getItem('authToken');

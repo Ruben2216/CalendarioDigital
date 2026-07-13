@@ -10,13 +10,15 @@ function fechaCorta(iso) {
   return `${d} ${ABREV_MES[m - 1]}`;
 }
 
-export default function ListaAnunciosLectura({ anuncios, mostrarPlantel = false }) {
+export default function ListaAnunciosLectura({ anuncios, mostrarPlantel = false, animarEntrada = false }) {
   const [abierto, setAbierto] = useState(null);
   const [leidos, setLeidos] = useState(() => idsLeidos());
 
   if (!anuncios || anuncios.length === 0) {
     return <p className={styles["vacio"]}>No hay anuncios.</p>;
   }
+
+  const claseAnima = animarEntrada ? styles["anuncio--anima"] : "";
 
   const alternar = (a) => {
     const nuevo = abierto === a.id ? null : a.id;
@@ -29,13 +31,14 @@ export default function ListaAnunciosLectura({ anuncios, mostrarPlantel = false 
 
   return (
     <div className={styles["lista"]}>
-      {anuncios.map((a) => {
+      {anuncios.map((a, i) => {
         const expandido = abierto === a.id;
         const noLeido = !leidos.has(a.id);
         return (
           <div
             key={a.id}
-            className={`${styles["anuncio"]} ${noLeido ? styles["anuncio--no-leido"] : ""}`}
+            className={`${styles["anuncio"]} ${claseAnima} ${noLeido ? styles["anuncio--no-leido"] : ""}`}
+            style={animarEntrada ? { animationDelay: `${Math.min(i, 8) * 55}ms` } : undefined}
           >
             <button
               type="button"

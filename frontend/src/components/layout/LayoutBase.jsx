@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { NavLink, Outlet } from "react-router-dom";
+import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { Menu, ChevronDown, LogOut } from "lucide-react";
 import { useLogout } from "../../hooks/useLogout.js";
 import { useNotificaciones } from "../../hooks/useNotificaciones.js";
@@ -35,6 +35,7 @@ export default function LayoutBase({
   sesionAnonima = false,
 }) {
   const cerrarSesion = useLogout();
+  const { pathname } = useLocation();
   const { nombre, iniciales, rolLabel } = usuario;
 
   const textoSalir = sesionAnonima ? "Salir" : "Cerrar sesión";
@@ -283,7 +284,7 @@ export default function LayoutBase({
           </div>
         </header>
 
-        <div className={styles["contenido"]}>
+        <div key={pathname} className={`${styles["contenido"]} ${styles["contenido--entra"]}`}>
           <Outlet />
         </div>
       </main>

@@ -16,6 +16,7 @@ import { useCalendarioEventos } from "../../../hooks/useCalendarioEventos.js";
 import { listarAnuncios } from "../../../services/anunciosService.js";
 import { obtenerEstadisticasDashboard } from "../../../services/estadisticasService.js";
 import { usePreferencia } from "../../../hooks/usePreferencia.js";
+import { useContador } from "../../../hooks/useContador.js";
 import { RANGOS_PROXIMOS, limiteRango } from "../../../lib/rangosEventos.js";
 import styles from "./dashboard.module.css";
 
@@ -173,6 +174,9 @@ export default function Dashboard() {
     };
   }, [eventos, claveHoy, hoy]);
 
+  const usuariosMostrado = useContador(estadisticas?.usuarios_activos ?? 0);
+  const eventosMesMostrado = useContador(eventosMes);
+
   const celdasCalendario = useMemo(() => {
     const anio = mesVisible.getFullYear();
     const mes = mesVisible.getMonth();
@@ -247,7 +251,7 @@ export default function Dashboard() {
             </span>
             <div>
               <div className={styles["indicador__valor"]}>
-                {estadisticas ? estadisticas.usuarios_activos : "—"}
+                {estadisticas ? usuariosMostrado : "—"}
               </div>
               <div className={styles["indicador__etiqueta"]}>
                 {estadisticas?.ambito === "plantel" ? "Usuarios de mi plantel" : "Usuarios activos"}
@@ -266,7 +270,7 @@ export default function Dashboard() {
               <CalendarDays size={21} />
             </span>
             <div>
-              <div className={styles["indicador__valor"]}>{eventosMes}</div>
+              <div className={styles["indicador__valor"]}>{eventosMesMostrado}</div>
               <div className={styles["indicador__etiqueta"]}>Eventos este mes</div>
               {eventosSemana > 0 && (
                 <div className={`${styles["indicador__nota"]} ${styles["indicador__nota--positiva"]}`}>
@@ -305,13 +309,17 @@ export default function Dashboard() {
             {proximosEventos.length === 0 ? (
               <p className={styles["eventos__vacio"]}>No hay eventos próximos en este rango.</p>
             ) : (
-              proximosEventos.map((evento) => {
+              proximosEventos.map((evento, i) => {
                 const fecha = desdeClaveFecha(evento.fecha);
                 const c = cuenta(diasRestantes(claveHoy, evento.fecha));
                 const etiq = etiquetaTipo(evento.tipo);
                 const tieneTituloReal = evento.titulo && evento.titulo !== etiq;
                 return (
-                  <div key={evento.id} className={styles["evento"]}>
+                  <div
+                    key={evento.id}
+                    className={styles["evento"]}
+                    style={{ animationDelay: `${Math.min(i, 8) * 55}ms` }}
+                  >
                     <div className={styles["evento__fecha"]}>
                       <strong>{fecha.getDate()}</strong>
                       <span>{ABREV_MES[fecha.getMonth()]}</span>
@@ -365,7 +373,7 @@ export default function Dashboard() {
             </button>
           }
         >
-          <ListaAnuncios anuncios={anunciosResumen} mostrarAudiencia />
+          <ListaAnuncios anuncios={anunciosResumen} mostrarAudiencia animarEntrada />
         </TarjetaColapsable>
       </div>
 
