@@ -137,7 +137,7 @@ export default function LayoutBase({
         onMouseLeave={() => setMenuPeek(false)}
       >
         <div className={styles["barra-lateral__marca"]}>
-          <img src={logoCobach} alt="Logo de Cobach" width="155" height="75" />
+          <img src={logoCobach} alt="Logo de Cobach" width="155" height="75" onClick={() => window.location.href = '/'}/>
         </div>
 
         <nav className={styles["navegacion"]} aria-label="Navegación principal">
