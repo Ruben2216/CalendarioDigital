@@ -28,13 +28,14 @@ export default function ModalExportarPdf({
   defaultMes,
   calendarioNombre,
   plantelesAsignados = [],
+  permitirFiltros = true,
   onCerrar,
 }) {
   const [vista, setVista] = useState("anual");
   const [anioCiclo, setAnioCiclo] = useState(defaultAnioCiclo);
   const [mes, setMes] = useState(defaultMes);
   const [anio, setAnio] = useState(defaultAnio);
-  const [aplicarFiltros, setAplicarFiltros] = useState(true);
+  const [aplicarFiltros, setAplicarFiltros] = useState(permitirFiltros);
   const [generando, setGenerando] = useState(false);
 
   const ciclos = [defaultAnioCiclo - 1, defaultAnioCiclo, defaultAnioCiclo + 1];
@@ -126,22 +127,24 @@ export default function ModalExportarPdf({
           </div>
         )}
 
-        <label className={`${styles.opcion} ${aplicarFiltros ? styles.opcionActiva : ""}`}>
-          <input
-            type="checkbox"
-            className={styles.check}
-            checked={aplicarFiltros}
-            onChange={(e) => setAplicarFiltros(e.target.checked)}
-          />
-          <span className={styles.opcionTexto}>
-            <span className={styles.opcionTitulo}>Aplicar los filtros activos en pantalla</span>
-            <span className={styles.opcionDesc}>
-              {plantelesAsignados.length > 0
-                ? "Respeta los filtros de tipo, turno, semestre y fechas, e incluye únicamente los eventos de tu plantel (no los generales de todos los planteles). Desactívalo para incluir todos los eventos."
-                : "Respeta tipo, plantel, turno y semestre seleccionados. Desactívalo para incluir todos los eventos."}
+        {permitirFiltros && (
+          <label className={`${styles.opcion} ${aplicarFiltros ? styles.opcionActiva : ""}`}>
+            <input
+              type="checkbox"
+              className={styles.check}
+              checked={aplicarFiltros}
+              onChange={(e) => setAplicarFiltros(e.target.checked)}
+            />
+            <span className={styles.opcionTexto}>
+              <span className={styles.opcionTitulo}>Aplicar los filtros activos en pantalla</span>
+              <span className={styles.opcionDesc}>
+                {plantelesAsignados.length > 0
+                  ? "Respeta los filtros de tipo, turno, semestre y fechas, e incluye únicamente los eventos de tu plantel (no los generales de todos los planteles). Desactívalo para incluir todos los eventos."
+                  : "Respeta tipo, plantel, turno y semestre seleccionados. Desactívalo para incluir todos los eventos."}
+              </span>
             </span>
-          </span>
-        </label>
+          </label>
+        )}
 
         <div className={styles.hint}>
           <Info size={16} className={styles.hintIcono} />

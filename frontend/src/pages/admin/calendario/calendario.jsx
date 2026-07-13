@@ -1264,6 +1264,7 @@ export default function Calendario({ soloLectura = false, publico = false }) {
             defaultMes={fechaActual.getMonth()}
             calendarioNombre={calActivo?.nombre}
             plantelesAsignados={plantelesPermitidos}
+            permitirFiltros={!esInvitado}
             onCerrar={() => setModalExportar(false)}
           />
         </Suspense>

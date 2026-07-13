@@ -45,6 +45,7 @@ export default function LayoutAlumno() {
       perfilContenido={perfilContenido}
       perfilDesplegable={rol !== 'tutor'}
       mostrarNotificaciones={rol !== 'tutor'}
+      sesionAnonima={rol === 'tutor'}
     />
   );
 }

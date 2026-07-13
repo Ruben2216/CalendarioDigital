@@ -32,9 +32,15 @@ export default function LayoutBase({
   mostrarNotificaciones = true,
   sidebarExtra,
   extraModales,
+  sesionAnonima = false,
 }) {
   const cerrarSesion = useLogout();
   const { nombre, iniciales, rolLabel } = usuario;
+
+  const textoSalir = sesionAnonima ? "Salir" : "Cerrar sesión";
+  const mensajeSalir = sesionAnonima
+    ? "¿Deseas salir del calendario? Volverás a la pantalla de inicio."
+    : "¿Estás seguro de que deseas cerrar sesión? Tendrás que iniciar sesión nuevamente para volver a entrar.";
 
   const [esMovil, setEsMovil] = useState(
     () => window.matchMedia("(max-width: 920px)").matches
@@ -182,7 +188,7 @@ export default function LayoutBase({
             onClick={() => setCerrarSesionAbierto(true)}
           >
             <LogOut size={18} />
-            Cerrar sesión
+            {textoSalir}
           </button>
         </div>
       </aside>
@@ -284,7 +290,7 @@ export default function LayoutBase({
 
       <Modal
         abierto={cerrarSesionAbierto}
-        titulo="Cerrar sesión"
+        titulo={textoSalir}
         onCerrar={() => setCerrarSesionAbierto(false)}
         pie={
           <>
@@ -304,14 +310,13 @@ export default function LayoutBase({
               }}
             >
               <LogOut size={16} />
-              Cerrar sesión
+              {textoSalir}
             </button>
           </>
         }
       >
         <p className={styles["confirmacion"]}>
-          ¿Estás seguro de que deseas cerrar sesión? Tendrás que iniciar sesión
-          nuevamente para volver a entrar.
+          {mensajeSalir}
         </p>
       </Modal>
 
