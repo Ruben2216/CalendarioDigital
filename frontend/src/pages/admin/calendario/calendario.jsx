@@ -72,6 +72,7 @@ export default function Calendario({ soloLectura = false, publico = false }) {
   const esAlumno = sesion.rol === "alumno";
   const esGestor = esGestorGlobal(sesion);
   const esAdmin = sesion.rol === "admin";
+  const esInvitado = publico || sesion.rol === "tutor";
 
   // los roles de solo lectura nunca editan - el admin/superusuario sí.
   const lectura = soloLectura || publico;
@@ -885,17 +886,19 @@ export default function Calendario({ soloLectura = false, publico = false }) {
               )}
 
               {/* Filtros rápidos — abre modal */}
-              <button
-                type="button"
-                className={`boton boton--fantasma ${styles["barra__panel-btn"]}`}
-                onClick={() => setFiltrosModalAbierto(true)}
-                aria-label="Filtros rápidos"
-                title="Filtros rápidos"
-              >
-                <Filter size={16} />
-                Filtros
-                {hayFiltros && <span className={styles["barra__panel-punto"]} />}
-              </button>
+              {!esInvitado && (
+                <button
+                  type="button"
+                  className={`boton boton--fantasma ${styles["barra__panel-btn"]}`}
+                  onClick={() => setFiltrosModalAbierto(true)}
+                  aria-label="Filtros rápidos"
+                  title="Filtros rápidos"
+                >
+                  <Filter size={16} />
+                  Filtros
+                  {hayFiltros && <span className={styles["barra__panel-punto"]} />}
+                </button>
+              )}
 
               {/* Descargar el calendario en PDF */}
               {puedeExportar && (
@@ -1468,27 +1471,31 @@ export default function Calendario({ soloLectura = false, publico = false }) {
             </select>
           </label>
 
-          <label className="formulario__campo">
-            <span className="formulario__etiqueta">Semestre</span>
-            <select value={filtroSemestre} disabled={esAlumno} onChange={(e) => setFiltroSemestre(e.target.value)}>
-              <option value="">Todos</option>
-              {SEMESTRES.map((s) => (
-                <option key={s} value={s}>{s}.º</option>
-              ))}
-            </select>
-          </label>
+          {!esInvitado && (
+            <label className="formulario__campo">
+              <span className="formulario__etiqueta">Semestre</span>
+              <select value={filtroSemestre} disabled={esAlumno} onChange={(e) => setFiltroSemestre(e.target.value)}>
+                <option value="">Todos</option>
+                {SEMESTRES.map((s) => (
+                  <option key={s} value={s}>{s}.º</option>
+                ))}
+              </select>
+            </label>
+          )}
 
-          <label className="formulario__campo">
-            <span className="formulario__etiqueta">Grupo</span>
-            <select value={filtroGrupo} disabled={esAlumno} onChange={(e) => setFiltroGrupo(e.target.value)}>
-              <option value="">Todos</option>
-              {GRUPOS.map((g) => (
-                <option key={g} value={g}>{g}</option>
-              ))}
-            </select>
-          </label>
+          {!esInvitado && (
+            <label className="formulario__campo">
+              <span className="formulario__etiqueta">Grupo</span>
+              <select value={filtroGrupo} disabled={esAlumno} onChange={(e) => setFiltroGrupo(e.target.value)}>
+                <option value="">Todos</option>
+                {GRUPOS.map((g) => (
+                  <option key={g} value={g}>{g}</option>
+                ))}
+              </select>
+            </label>
+          )}
 
-          {!esGestor && (
+          {!esInvitado && !esGestor && (
             <label className="formulario__campo">
               <span className="formulario__etiqueta">Plantel</span>
               {plantelesPermitidos.length > 0 ? (
@@ -1514,50 +1521,54 @@ export default function Calendario({ soloLectura = false, publico = false }) {
             </label>
           )}
 
-          <label className="formulario__campo">
-            <span className="formulario__etiqueta">Turno</span>
-            {turnosPermitidos.length > 0 ? (
-              turnosPermitidos.length === 1 ? (
-                <select value={turnosPermitidos[0]} disabled>
-                  <option value={turnosPermitidos[0]}>{turnosPermitidos[0]}</option>
-                </select>
+          {!esInvitado && (
+            <label className="formulario__campo">
+              <span className="formulario__etiqueta">Turno</span>
+              {turnosPermitidos.length > 0 ? (
+                turnosPermitidos.length === 1 ? (
+                  <select value={turnosPermitidos[0]} disabled>
+                    <option value={turnosPermitidos[0]}>{turnosPermitidos[0]}</option>
+                  </select>
+                ) : (
+                  <select value={filtroTurno} onChange={(e) => setFiltroTurno(e.target.value)}>
+                    <option value="">Todos mis turnos</option>
+                    {turnosPermitidos.map((t) => (
+                      <option key={t} value={t}>{t}</option>
+                    ))}
+                  </select>
+                )
               ) : (
                 <select value={filtroTurno} onChange={(e) => setFiltroTurno(e.target.value)}>
-                  <option value="">Todos mis turnos</option>
-                  {turnosPermitidos.map((t) => (
+                  <option value="">Todos</option>
+                  {TURNOS.map((t) => (
                     <option key={t} value={t}>{t}</option>
                   ))}
                 </select>
-              )
-            ) : (
-              <select value={filtroTurno} onChange={(e) => setFiltroTurno(e.target.value)}>
-                <option value="">Todos</option>
-                {TURNOS.map((t) => (
-                  <option key={t} value={t}>{t}</option>
-                ))}
-              </select>
-            )}
-          </label>
+              )}
+            </label>
+          )}
 
-          <div className="formulario__fila">
-            <div className="formulario__campo">
-              <span className="formulario__etiqueta">Desde</span>
-              <SelectorFecha
-                value={filtroFechaDesde}
-                placeholder="Cualquiera"
-                onChange={setFiltroFechaDesde}
-              />
+          {!esInvitado && (
+            <div className="formulario__fila">
+              <div className="formulario__campo">
+                <span className="formulario__etiqueta">Desde</span>
+                <SelectorFecha
+                  value={filtroFechaDesde}
+                  placeholder="Cualquiera"
+                  onChange={setFiltroFechaDesde}
+                />
+              </div>
+              <div className="formulario__campo">
+                <span className="formulario__etiqueta">Hasta</span>
+                <SelectorFecha
+                  value={filtroFechaHasta}
+                  min={filtroFechaDesde}
+                  placeholder="Cualquiera"
+                  onChange={setFiltroFechaHasta}
+                />
+              </div>
             </div>
-            <div className="formulario__campo">
-              <span className="formulario__etiqueta">Hasta</span>
-              <SelectorFecha
-                value={filtroFechaHasta}
-                min={filtroFechaDesde}
-                placeholder="Cualquiera"
-                onChange={setFiltroFechaHasta}
-              />
-            </div>
-          </div>
+          )}
         </div>
       </Modal>
 
