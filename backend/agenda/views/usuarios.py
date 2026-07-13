@@ -261,11 +261,9 @@ class ActualizarAdminView(APIView):
             if usuario.rol_id != rol_obj.id_rol:
                 usuario.rol = rol_obj
                 usuario.save(update_fields=['rol'])
-            # El colaborador se reinicia sin asignación: su plantel se
-            # re-sincroniza desde la adscripción institucional en el login
-            if nuevo_rol == 'colaborador':
+            # Docentes y colaboradores se reinician sin asignación: su plantel se
+            if nuevo_rol in ('colaborador', 'docente'):
                 UsuarioPlantel.objects.filter(usuario=usuario).delete()
-            # Docente y colaborador no gestionan plantel/turno desde aquí
             if nuevo_rol != 'admin':
                 if nombre:
                     Usuario.objects.filter(pk=usuario.pk).update(nombre=nombre)

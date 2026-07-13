@@ -22,6 +22,8 @@ const TENUE = "#6b7280";
 const SUAVE = "#9ca3af";
 const LINEA = "#e5e7eb";
 const FINDE_BG = "#f7f9fc";
+const MAX_ALTO_EVENTOS_PRIMERA = 330;
+const MAX_ALTO_EVENTOS_CONTINUACION = 390;
 
 function textoLegible(hex) {
   const c = (hex || "").replace("#", "");
@@ -71,6 +73,50 @@ function aclarar(hex, t) {
   return `rgb(${m(parseInt(c.slice(0, 2), 16))},${m(parseInt(c.slice(2, 4), 16))},${m(parseInt(c.slice(4, 6), 16))})`;
 }
 
+function contarLineasEstimadas(texto, charsPorLinea) {
+  const lineas = String(texto || "").split("\n");
+  return lineas.reduce((total, linea) => total + Math.max(1, Math.ceil(linea.length / charsPorLinea)), 0);
+}
+
+function estimarAlturaEvento(ev) {
+  const titulo = `${ev.rango} · ${ev.titulo}`;
+  const meta = `${ev.periodo ? `${ev.periodo} · ` : ""}${ev.hora}${ev.lugar ? ` · ${ev.lugar}` : ""}${ev.plantel ? ` · ${ev.plantel}` : ""}${ev.turno ? ` · ${ev.turno}` : ""}`;
+  const lineasTitulo = contarLineasEstimadas(titulo, 42);
+  const lineasMeta = contarLineasEstimadas(meta, 52);
+  return 10 + (lineasTitulo * 7) + (lineasMeta * 5) + 2;
+}
+
+function partirEventosPorAltura(eventos) {
+  const paginas = [];
+  let restantes = [...eventos];
+  let limite = MAX_ALTO_EVENTOS_PRIMERA;
+
+  while (restantes.length > 0) {
+    const bloque = [];
+    let altura = 0;
+    let indice = 0;
+
+    for (; indice < restantes.length; indice += 1) {
+      const ev = restantes[indice];
+      const alto = estimarAlturaEvento(ev);
+      if (bloque.length > 0 && altura + alto > limite) break;
+      bloque.push(ev);
+      altura += alto;
+    }
+
+    if (bloque.length === 0) {
+      bloque.push(restantes[0]);
+      indice = 1;
+    }
+
+    paginas.push(bloque);
+    restantes = restantes.slice(indice);
+    limite = MAX_ALTO_EVENTOS_CONTINUACION;
+  }
+
+  return paginas;
+}
+
 const s = StyleSheet.create({
   page: { paddingTop: 18, paddingBottom: 18, paddingHorizontal: 20, fontSize: 8, color: TEXTO },
 
@@ -106,29 +152,29 @@ const s = StyleSheet.create({
   diaChipTexto: { fontSize: 7.5, fontFamily: "Helvetica-Bold" },
 
   // Simbología
-  card: { borderWidth: 1, borderColor: LINEA, borderRadius: 8, padding: 14, backgroundColor: "#ffffff" },
+  card: { borderWidth: 1, borderColor: LINEA, borderRadius: 8, paddingTop: 12, paddingBottom: 12, paddingHorizontal: 12, backgroundColor: "#ffffff" },
   cardTitulo: { fontSize: 12, fontFamily: "Helvetica-Bold", color: NAVY, letterSpacing: 0.5 },
-  cardSub: { fontSize: 7.5, color: TENUE, marginTop: 2, marginBottom: 10 },
-  simCardItem: { flexDirection: "row", alignItems: "flex-start", marginBottom: 8 },
+  cardSub: { fontSize: 7.5, color: TENUE, marginTop: 1, marginBottom: 8 },
+  simCardItem: { flexDirection: "row", alignItems: "flex-start", marginBottom: 6 },
   simCardCuad: { width: 13, height: 13, borderRadius: 3, marginRight: 9, marginTop: 1 },
   simCardTxt: { fontSize: 7, fontFamily: "Helvetica-Bold", color: TEXTO, letterSpacing: 0.3,
     textTransform: "uppercase", lineHeight: 1.25, flex: 1 },
   cardVacio: { fontSize: 7.5, color: TENUE, fontStyle: "italic" },
-  cardDivisor: { borderTopWidth: 0.5, borderTopColor: LINEA, marginTop: 8, marginBottom: 9 },
-  cardSeccion: { fontSize: 9.5, fontFamily: "Helvetica-Bold", color: NAVY, marginBottom: 6,
+  cardDivisor: { borderTopWidth: 0.5, borderTopColor: LINEA, marginTop: 7, marginBottom: 7 },
+  cardSeccion: { fontSize: 9.5, fontFamily: "Helvetica-Bold", color: NAVY, marginBottom: 5,
     textTransform: "uppercase", letterSpacing: 0.4 },
-  semFila: { flexDirection: "row", alignItems: "center", marginBottom: 5 },
+  semFila: { flexDirection: "row", alignItems: "center", marginBottom: 4 },
   semCuadro: { width: 13, height: 13, borderRadius: 3, marginRight: 9 },
   semTexto: { fontSize: 8, color: TENUE },
 
   // Eventos del mes (dentro de la tarjeta — solo mensual)
   item: { flexDirection: "row", alignItems: "flex-start", paddingVertical: 2,
     borderBottomWidth: 0.5, borderBottomColor: LINEA },
-  itemPunto: { width: 6, height: 6, borderRadius: 3, marginRight: 5, marginTop: 1 },
+  itemPunto: { width: 6, height: 6, borderRadius: 3, marginRight: 5, marginTop: 2 },
   itemCuerpo: { flexGrow: 1, flexShrink: 1 },
   itemTitulo: { fontSize: 7, fontFamily: "Helvetica-Bold", color: TEXTO },
   itemDia: { color: TENUE, fontFamily: "Helvetica" },
-  itemMeta: { fontSize: 6, color: TENUE, marginTop: 0 },
+  itemMeta: { fontSize: 6, color: TENUE, marginTop: -1 },
 
   // MENSUAL: título del mes 
   mesTitulo: { position: "absolute",right: 18, top: 14, alignItems: "flex-end", marginBottom: 8 },
@@ -138,6 +184,9 @@ const s = StyleSheet.create({
   mtNota: { flexDirection: "row", alignItems: "center", marginTop: 3 },
   mtNotaDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: ACCENT, marginRight: 5 },
   mtNotaTxt: { fontSize: 8.5, color: TENUE },
+  eventosContinuacion: { width: "100%", marginTop: 44, alignSelf: "stretch" },
+  eventosContinuacionTitulo: { fontSize: 18, fontFamily: "Helvetica-Bold", color: NAVY, letterSpacing: 0.4 },
+  eventosContinuacionSub: { fontSize: 8.5, color: TENUE, marginTop: 2, marginBottom: 10 },
 
   // MENSUAL: cuadros 
   ladoMes: { width: "27%", paddingLeft: 14 },
@@ -216,40 +265,44 @@ function Cabecera({ ciclo }) {
   );
 }
 
-function PanelLateral({ simbologia, conSemestres = false, eventos = null }) {
+function PanelLateral({ simbologia, conSemestres = false, eventos = null, mostrarSimbologia = true, tituloEventos = "Eventos del mes" }) {
   return (
     <View style={s.card}>
-      <Text style={s.cardTitulo}>SIMBOLOGÍA</Text>
-      <Text style={s.cardSub}>Categorías de eventos</Text>
-      {simbologia.length === 0 ? (
-        <Text style={s.cardVacio}>Sin tipos de evento en este periodo.</Text>
-      ) : (
-        simbologia.map((t, i) => (
-          <View key={i} style={s.simCardItem}>
-            <View style={[s.simCardCuad, { backgroundColor: t.color }]} />
-            <Text style={s.simCardTxt}>{t.nombre}</Text>
-          </View>
-        ))
-      )}
-
-      {conSemestres && (
+      {mostrarSimbologia && (
         <>
-          <View style={s.cardDivisor} />
-          <View style={s.semFila}>
-            <View style={[s.semCuadro, { backgroundColor: SEM_A }]} />
-            <Text style={s.semTexto}>Semestre A (ago–ene)</Text>
-          </View>
-          <View style={s.semFila}>
-            <View style={[s.semCuadro, { backgroundColor: SEM_B }]} />
-            <Text style={s.semTexto}>Semestre B (feb–jul)</Text>
-          </View>
+          <Text style={s.cardTitulo}>SIMBOLOGÍA</Text>
+          <Text style={s.cardSub}>Categorías de eventos</Text>
+          {simbologia.length === 0 ? (
+            <Text style={s.cardVacio}>Sin tipos de evento en este periodo.</Text>
+          ) : (
+            simbologia.map((t, i) => (
+              <View key={i} style={s.simCardItem}>
+                <View style={[s.simCardCuad, { backgroundColor: t.color }]} />
+                <Text style={s.simCardTxt}>{t.nombre}</Text>
+              </View>
+            ))
+          )}
+
+          {conSemestres && (
+            <>
+              <View style={s.cardDivisor} />
+              <View style={s.semFila}>
+                <View style={[s.semCuadro, { backgroundColor: SEM_A }]} />
+                <Text style={s.semTexto}>Semestre A (ago–ene)</Text>
+              </View>
+              <View style={s.semFila}>
+                <View style={[s.semCuadro, { backgroundColor: SEM_B }]} />
+                <Text style={s.semTexto}>Semestre B (feb–jul)</Text>
+              </View>
+            </>
+          )}
         </>
       )}
 
       {eventos && (
         <>
-          <View style={s.cardDivisor} />
-          <Text style={s.cardSeccion}>Eventos del mes</Text>
+          {mostrarSimbologia && <View style={s.cardDivisor} />}
+          <Text style={s.cardSeccion}>{tituloEventos}</Text>
           {eventos.length === 0 ? (
             <Text style={s.cardVacio}>No hay eventos registrados en este mes.</Text>
           ) : (
@@ -425,6 +478,7 @@ function SemanaMes({ semana, alto }) {
 function DocumentoMensual({ datos }) {
   const semLetra = datos.mes === 0 || datos.mes >= 7 ? "A" : "B";
   const altoSemana = ALTO_SEMANA;
+  const paginasEventos = partirEventosPorAltura(datos.eventos);
   return (
     <Document
       title={`Calendario ${datos.nombreMes} ${datos.anio}`}
@@ -457,10 +511,44 @@ function DocumentoMensual({ datos }) {
           </View>
 
           <View style={s.ladoMes}>
-            <PanelLateral simbologia={datos.simbologia} eventos={datos.eventos} />
+            <PanelLateral
+              simbologia={datos.simbologia}
+              eventos={paginasEventos[0] || []}
+              tituloEventos="Eventos del mes"
+            />
           </View>
         </View>
       </Page>
+
+      {paginasEventos.slice(1).map((bloque, indice) => (
+        <Page key={`eventos-${indice}`} size="A4" orientation="landscape" style={s.page}>
+          <Cabecera ciclo={datos.ciclo} />
+
+          <View style={s.mesTitulo}>
+            <View style={s.mtLinea}>
+              <Text style={s.mtNombre}>{datos.nombreMes.toUpperCase()}</Text>
+              <Text style={s.mtAnio}>{datos.anio}</Text>
+            </View>
+            <View style={s.mtNota}>
+              <View style={s.mtNotaDot} />
+              <Text style={s.mtNotaTxt}>Semestre académico {semLetra} · Ciclo {datos.ciclo}</Text>
+            </View>
+          </View>
+
+          <View style={s.eventosContinuacion}>
+            <Text style={s.eventosContinuacionTitulo}>EVENTOS DEL MES</Text>
+            <Text style={s.eventosContinuacionSub}>
+              {datos.nombreMes.toUpperCase()} {datos.anio} · Continuación {indice + 1}
+            </Text>
+            <PanelLateral
+              simbologia={datos.simbologia}
+              eventos={bloque}
+              mostrarSimbologia={false}
+              tituloEventos="Eventos del mes"
+            />
+          </View>
+        </Page>
+      ))}
     </Document>
   );
 }

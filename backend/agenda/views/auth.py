@@ -107,8 +107,8 @@ class LoginInstitucionalView(APIView):
                 Usuario.objects.filter(pk=usuario.pk).update(id_api=id_api_value)
 
         # Sincronizar plantel desde adscripción institucional: usuarios nuevos y
-        # colaboradores reiniciados (sin asignación) recuperan su adscripción original
-        resincronizar = usuario.rol.nombre_rol == 'colaborador' and not usuario.ids_planteles()
+        # usuarios reiniciados (sin asignación) recuperan su adscripción original
+        resincronizar = usuario.rol.nombre_rol in ('colaborador', 'docente', 'personal') and not usuario.ids_planteles()
         if datos_empleado and (not usuario_local or resincronizar):
             adscripcion_nombre = (
                 datos_empleado.get('adscripcion') or
