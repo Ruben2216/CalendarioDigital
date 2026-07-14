@@ -44,6 +44,12 @@
   border-bottom-color: rgba(229, 72, 77, 0.2);
 }
 
+.tarjeta--vencida .tarjeta__cabecera {
+  background: #FFF3CD;
+  color: #856404;
+  border-bottom-color: rgba(133, 100, 4, 0.2);
+}
+
 .tarjeta__cuerpo {
   padding: 10px 14px;
   display: flex;

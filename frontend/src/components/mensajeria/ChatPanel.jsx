@@ -112,26 +112,40 @@ export default function ChatPanel({
       </div>
 
       <div className={styles['chat-panel__mensajes']} ref={listaRef}>
-        {mensajes.map((m, i) => {
-          const resuelta =
+        {mensajes.flatMap((m, i) => {
+          let resuelta =
             m.solicitud?.tipo === 'solicitud_espacio' &&
             mensajes
               .slice(i + 1)
               .some((x) =>
-                ['solicitud_aprobada', 'solicitud_rechazada'].includes(x.solicitud?.tipo),
+                ['solicitud_aprobada', 'solicitud_rechazada', 'solicitud_vencida'].includes(x.solicitud?.tipo),
               );
 
-          let mensaje = m;
+          let vencida = false;
+          if (m.solicitud?.tipo === 'solicitud_espacio' && !resuelta) {
+            const de = m.solicitud.datos_evento;
+            if (de && de.fecha && de.horaInicio) {
+              const [yyyy, mm, dd] = de.fecha.split('-').map(Number);
+              const [HH, MM] = de.horaInicio.split(':').map(Number);
+              const eventDate = new Date(yyyy, mm - 1, dd, HH, MM);
+              if (eventDate < new Date()) {
+                vencida = true;
+                resuelta = true;
+              }
+            }
+          }
+
+          let mensaje = { ...m };
           let iniUsuario = inicialesUsuario;
           let iniOtro = inicialesOtro;
           if (observando) {
             const esDeA = m.remitenteId === pA.id;
-            mensaje = { ...m, tipo: esDeA ? 'recibido' : 'enviado' };
-            iniUsuario = pB.iniciales; 
-            iniOtro = pA.iniciales;   
+            mensaje = { ...mensaje, tipo: esDeA ? 'recibido' : 'enviado' };
+            iniUsuario = pB.iniciales;
+            iniOtro = pA.iniciales;
           }
 
-          return (
+          const nodos = [
             <BurbujaMensaje
               key={m.id}
               mensaje={mensaje}
@@ -142,7 +156,44 @@ export default function ChatPanel({
               onRechazar={onRechazar}
               resuelta={resuelta}
             />
-          );
+          ];
+
+          if (vencida) {
+            let tipoMsgVencida = esAdmin ? 'enviado' : 'recibido';
+            if (observando) {
+              const esDeA = m.remitenteId === pA.id;
+              tipoMsgVencida = esDeA ? 'enviado' : 'recibido';
+            }
+
+            const msgVencida = {
+              id: `vencida-${m.id}`,
+              tipo: tipoMsgVencida,
+              solicitud: {
+                tipo: 'solicitud_vencida',
+                titulo: 'Solicitud vencida',
+                icono: 'reloj',
+                campos: [
+                  { clave: 'Estado', valor: 'Vencida' },
+                  { clave: 'Motivo', valor: 'El tiempo de espera ha transcurrido.' }
+                ]
+              },
+              texto: 'La solicitud ha vencido por tiempo.',
+              hora: m.hora,
+            };
+
+            nodos.push(
+              <BurbujaMensaje
+                key={msgVencida.id}
+                mensaje={msgVencida}
+                inicialesUsuario={iniUsuario}
+                inicialesOtro={iniOtro}
+                esAdmin={esAdmin}
+                resuelta={true}
+              />
+            );
+          }
+
+          return nodos;
         })}
       </div>
 

@@ -26,6 +26,12 @@ const ICONOS = {
       <polyline points="20 6 9 17 4 12" />
     </svg>
   ),
+  reloj: (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+      <circle cx="12" cy="12" r="10" />
+      <polyline points="12 6 12 12 16 14" />
+    </svg>
+  ),
 };
 
 export default function TarjetaSolicitud({ solicitud, tipo }) {
@@ -33,6 +39,7 @@ export default function TarjetaSolicitud({ solicitud, tipo }) {
   const claseEstado =
     solicitud.tipo === 'solicitud_aprobada' ? styles['tarjeta--aprobada']
     : solicitud.tipo === 'solicitud_rechazada' ? styles['tarjeta--rechazada']
+    : solicitud.tipo === 'solicitud_vencida' ? styles['tarjeta--vencida']
     : '';
   return (
     <div className={`${styles['tarjeta']} ${styles[`tarjeta--${tipo}`]} ${claseEstado}`}>
