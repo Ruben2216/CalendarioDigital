@@ -1,5 +1,6 @@
 import { obtenerSesion } from './authService';
 import { BASE_URL, idUsuario, peticionJson, peticionSinCuerpo } from './api';
+import { purgarCacheEventos } from '../lib/cacheSeguro';
 
 export async function listarCalendarios() {
     return peticionJson(`${BASE_URL}/api/calendarios/`, {}, 'No se pudieron cargar los calendarios.');
@@ -42,7 +43,7 @@ export async function listarEventos(idCalendario, { publico = false, plantelFilt
 }
 
 export async function crearEvento(datos, { agregarAGoogleCalendar = true } = {}) {
-    return peticionJson(
+    const res = await peticionJson(
         `${BASE_URL}/api/eventos/`,
         {
             method: 'POST',
@@ -50,10 +51,12 @@ export async function crearEvento(datos, { agregarAGoogleCalendar = true } = {})
         },
         'No se pudo crear el evento.'
     );
+    purgarCacheEventos();
+    return res;
 }
 
 export async function actualizarEvento(idEvento, datos) {
-    return peticionJson(
+    const res = await peticionJson(
         `${BASE_URL}/api/eventos/${idEvento}/`,
         {
             method: 'PUT',
@@ -61,14 +64,18 @@ export async function actualizarEvento(idEvento, datos) {
         },
         'No se pudo actualizar el evento.'
     );
+    purgarCacheEventos();
+    return res;
 }
 
 export async function eliminarEvento(idEvento) {
-    return peticionSinCuerpo(
+    const res = await peticionSinCuerpo(
         `${BASE_URL}/api/eventos/${idEvento}/?id_usuario=${idUsuario()}`,
         { method: 'DELETE' },
         'No se pudo eliminar el evento.'
     );
+    purgarCacheEventos();
+    return res;
 }
 
 export async function crearTipo({ nombre, color_hex, plantel_id }) {
