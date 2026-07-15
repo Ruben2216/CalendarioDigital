@@ -34,8 +34,9 @@ export function filtrarEventos(eventos, filtros) {
   });
 }
 
-export function eventosParaFullCalendar(eventos, colorTipo) {
-  return eventos.map((ev) => {
+export function eventosParaFullCalendar(eventos, colorTipo, vista) {
+  const result = [];
+  for (const ev of eventos) {
     const color = colorTipo(ev.tipo);
     const base = {
       id: String(ev.id),
@@ -44,21 +45,41 @@ export function eventosParaFullCalendar(eventos, colorTipo) {
       borderColor: color,
       extendedProps: { original: ev },
     };
+
     if (ev.horaInicio) {
-      return {
+      const fechaFinal = ev.fechaFin || ev.fecha;
+      if (vista === "semana" && fechaFinal !== ev.fecha) {
+        const inicio = desdeClaveFecha(ev.fecha);
+        const fin = desdeClaveFecha(fechaFinal);
+        const cursor = new Date(inicio);
+        while (cursor <= fin) {
+          const clave = aClaveFecha(cursor);
+          result.push({
+            ...base,
+            id: `${ev.id}_${clave}`,
+            start: `${clave}T${ev.horaInicio}`,
+            end: ev.horaFin ? `${clave}T${ev.horaFin}` : undefined,
+          });
+          cursor.setDate(cursor.getDate() + 1);
+        }
+      } else {
+        result.push({
+          ...base,
+          start: `${ev.fecha}T${ev.horaInicio}`,
+          end: ev.horaFin ? `${fechaFinal}T${ev.horaFin}` : undefined,
+        });
+      }
+    } else {
+      const finBase = ev.fechaFin || ev.fecha;
+      result.push({
         ...base,
-        start: `${ev.fecha}T${ev.horaInicio}`,
-        end: ev.horaFin ? `${ev.fecha}T${ev.horaFin}` : undefined,
-      };
+        allDay: true,
+        start: ev.fecha,
+        end: aClaveFecha(sumarDias(desdeClaveFecha(finBase), 1)),
+      });
     }
-    const finBase = ev.fechaFin || ev.fecha;
-    return {
-      ...base,
-      allDay: true,
-      start: ev.fecha,
-      end: aClaveFecha(sumarDias(desdeClaveFecha(finBase), 1)),
-    };
-  });
+  }
+  return result;
 }
 
 export function agruparEventosPorDia(eventos) {

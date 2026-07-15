@@ -4,7 +4,7 @@ import { formatoHora, formatoFechaLarga, aClaveFecha, ahoraMexico } from "../../
 import { alcanceEvento } from "../../../../data/calendario.js";
 import styles from "./VistaLista.module.css";
 
-export default function VistaLista({ eventos, fechaActual, colorTipo, etiquetaTipo, onSeleccionarDia, onEditar, onEliminar, soloLectura = false, })
+export default function VistaLista({ eventosPorDia, fechaActual, colorTipo, etiquetaTipo, onSeleccionarDia, onEditar, onEliminar, soloLectura = false, })
 {
   const [colapsados, setColapsados] = useState(() => new Set());
 
@@ -18,24 +18,21 @@ export default function VistaLista({ eventos, fechaActual, colorTipo, etiquetaTi
       return sig;
     });
 
-  // Eventos del mes visible, agrupados por su día de inicio */
+  // Eventos del mes visible, agrupados por su día
   const grupos = useMemo(() => {
     const mes = fechaActual.getMonth();
     const anio = fechaActual.getFullYear();
-    const mapa = new Map();
-    for (const ev of eventos) {
-      const [a, m] = ev.fecha.split("-").map(Number);
-      if (a !== anio || m - 1 !== mes) continue;
-      if (!mapa.has(ev.fecha)) mapa.set(ev.fecha, []);
-      mapa.get(ev.fecha).push(ev);
+    const arr = [];
+    
+    for (const [clave, evs] of eventosPorDia.entries()) {
+      const [a, m] = clave.split("-").map(Number);
+      if (a === anio && m - 1 === mes) {
+        arr.push({ clave, eventos: evs });
+      }
     }
-    return [...mapa.entries()]
-      .sort((a, b) => a[0].localeCompare(b[0]))
-      .map(([clave, evs]) => ({
-        clave,
-        eventos: evs.sort((x, y) => (x.horaInicio || "").localeCompare(y.horaInicio || "")),
-      }));
-  }, [eventos, fechaActual]);
+    
+    return arr.sort((a, b) => a.clave.localeCompare(b.clave));
+  }, [eventosPorDia, fechaActual]);
 
   if (grupos.length === 0) {
     return (

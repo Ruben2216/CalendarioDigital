@@ -314,8 +314,8 @@ export default function Calendario({ soloLectura = false, publico = false }) {
   ]);
 
   const eventosFC = useMemo(
-    () => eventosParaFullCalendar(eventosFiltrados, colorTipo),
-    [eventosFiltrados, colorTipo]
+    () => eventosParaFullCalendar(eventosFiltrados, colorTipo, vista),
+    [eventosFiltrados, colorTipo, vista]
   );
 
   /* Mapa "YYYY-MM-DD" -> eventos de ese día (para el panel inferior). Incluye
@@ -1021,7 +1021,7 @@ export default function Calendario({ soloLectura = false, publico = false }) {
             />
           ) : (
             <VistaLista
-              eventos={eventosFiltrados}
+              eventosPorDia={eventosPorDia}
               fechaActual={fechaActual}
               colorTipo={colorTipo}
               etiquetaTipo={etiquetaTipo}
