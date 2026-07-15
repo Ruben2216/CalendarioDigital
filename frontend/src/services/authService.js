@@ -1,4 +1,5 @@
 const BASE_URL = import.meta.env.VITE_BACKEND_URL ?? '';
+import { purgarCacheEventos } from '../lib/cacheSeguro.js';
 
 function baseHeaders() {
     return {
@@ -64,6 +65,12 @@ export async function refrescarSesion() {
             nombre: datos.nombre || sesion.nombre,
             planteles: datos.planteles,
         };
+        const cambioPermisos =
+            actualizada.rol !== sesion.rol ||
+            JSON.stringify(actualizada.planteles || []) !== JSON.stringify(sesion.planteles || []);
+        if (cambioPermisos) {
+            purgarCacheEventos();
+        }
         localStorage.setItem('sesion', JSON.stringify(actualizada));
         return actualizada;
     } catch {
@@ -72,6 +79,7 @@ export async function refrescarSesion() {
 }
 
 export function guardarSesion(token, sesion) {
+    purgarCacheEventos();
     localStorage.setItem('authToken', token);
     localStorage.setItem('sesion', JSON.stringify(sesion));
 }
@@ -84,4 +92,5 @@ export function obtenerSesion() {
 export function cerrarSesion() {
     localStorage.removeItem('authToken');
     localStorage.removeItem('sesion');
+    purgarCacheEventos();
 }
