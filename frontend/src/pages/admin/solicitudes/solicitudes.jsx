@@ -10,6 +10,7 @@ import { listarSolicitudes, resolverSolicitud, eliminarSolicitud, editarSolicitu
 import { obtenerTurnos } from "../../../services/authService.js";
 import { useSolicitudesCtx } from "../../../context/SolicitudesContext.jsx";
 import { useContador } from "../../../hooks/useContador.js";
+import { useRefrescoAutomatico } from "../../../hooks/useRefrescoAutomatico.js";
 import { iniciales } from "../../../lib/texto.js";
 import styles from "../usuarios/usuarios.module.css";
 
@@ -66,6 +67,10 @@ export default function Solicitudes() {
       .finally(() => { if (vigente) setCargando(false); });
     return () => { vigente = false; };
   }, [reintento]);
+
+  useRefrescoAutomatico(async () => {
+    setSolicitudes(await listarSolicitudes(null, "visualizacion,turno"));
+  });
 
   const totales = useMemo(() => ({
     total: solicitudes.length,

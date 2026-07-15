@@ -14,6 +14,7 @@ import BuscadorUsuarioInline from "../../../components/buscador-usuario/Buscador
 import { iniciales } from "../../../lib/texto.js";
 import { useCampoFormulario } from "../../../hooks/useCampoFormulario.js";
 import { useContador } from "../../../hooks/useContador.js";
+import { useRefrescoAutomatico } from "../../../hooks/useRefrescoAutomatico.js";
 import styles from "./usuarios.module.css";
 
 const ESTADOS_MAP = Object.fromEntries(ESTADOS.map((e) => [e.id, e]));
@@ -55,6 +56,14 @@ function adminAFila(u) {
   };
 }
 
+function fusionarFilas(solicitudes, admins) {
+  const correosAdmin = new Set(admins.map((a) => a.correo));
+  const filasSolicitudes = solicitudes
+    .filter((s) => s.estado !== "aceptada" && !correosAdmin.has(s.correo))
+    .map(solicitudAFila);
+  return [...filasSolicitudes, ...admins.map(adminAFila)];
+}
+
 const ROLES_EDICION = [
   { id: "admin", etiqueta: "Administrador" },
   { id: "colaborador", etiqueta: "Colaborador" },
@@ -94,15 +103,7 @@ export default function Usuarios() {
     Promise.all([listarSolicitudes(null, "admin"), listarAdministradores(), obtenerPlanteles(), obtenerTurnos()])
       .then(([solicitudes, admins, planteles, turnos]) => {
         if (!vigente) return;
-        // Los admins activos (creados directo o por solicitud aceptada) vienen de
-        // /api/usuarios?rol=admin. Las solicitudes aceptadas ya son admins (o dejaron
-        // de serlo si se les revocó), así que de las solicitudes solo se conservan
-        // las pendientes/rechazadas (sin duplicar).
-        const correosAdmin = new Set(admins.map((a) => a.correo));
-        const filasSolicitudes = solicitudes
-          .filter((s) => s.estado !== "aceptada" && !correosAdmin.has(s.correo))
-          .map(solicitudAFila);
-        setUsuarios([...filasSolicitudes, ...admins.map(adminAFila)]);
+        setUsuarios(fusionarFilas(solicitudes, admins));
         setPlantelesDisponibles(planteles);
         setTurnosDisponibles(turnos);
       })
@@ -110,6 +111,15 @@ export default function Usuarios() {
       .finally(() => { if (vigente) setCargando(false); });
     return () => { vigente = false; };
   }, [reintento]);
+
+  useRefrescoAutomatico(async () => {
+    if (resolviendoRef.current) return;
+    const [solicitudes, admins] = await Promise.all([
+      listarSolicitudes(null, "admin"),
+      listarAdministradores(),
+    ]);
+    setUsuarios(fusionarFilas(solicitudes, admins));
+  });
 
   const totales = useMemo(() => ({
     total: usuarios.length,
