@@ -321,13 +321,12 @@ class Evento(models.Model):
         return self.plantel_id is None and self.turno_id is None
 
     def puede_editar(self, usuario) -> bool:
-        """Los gestores globales editan todo; el resto solo lo que creó."""
         if usuario is None:
             return False
         if usuario.es_gestor_global():
             return True
         if usuario.rol.nombre_rol == 'admin':
-            return self.creado_por_id == usuario.id_usuario
+            return self.plantel_id in usuario.ids_planteles()
         return False
 
 

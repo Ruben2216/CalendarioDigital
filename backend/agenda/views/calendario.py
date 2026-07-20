@@ -395,7 +395,6 @@ class EventoListView(APIView):
             # propio plantel. Solo se rechazan los de OTRO plantel.
             if tipo.plantel_id is not None and tipo.plantel_id not in ids_plantel:
                 return None, 'El tipo de evento no pertenece a tu catálogo de plantel.'
-            turno = par_valido.turno
 
         datos = {
             'calendario': calendario,
