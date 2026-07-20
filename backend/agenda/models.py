@@ -612,3 +612,25 @@ class DispositivoFCM(models.Model):
 
     def __str__(self):
         return f'{self.token_fcm[:12]}…'
+
+
+class AuditoriaLog(models.Model):
+    id_log = models.BigAutoField(primary_key=True)
+    fecha_hora = models.DateTimeField(auto_now_add=True)
+    usuario_id = models.BigIntegerField(null=True, blank=True)
+    usuario_nombre = models.CharField(max_length=150, null=True, blank=True)
+    usuario_correo = models.CharField(max_length=100, null=True, blank=True)
+    usuario_rol = models.CharField(max_length=50, null=True, blank=True)
+    accion = models.CharField(max_length=20)
+    entidad_tipo = models.CharField(max_length=50)
+    entidad_id = models.CharField(max_length=100, null=True, blank=True)
+    datos_previos = models.JSONField(null=True, blank=True)
+    datos_nuevos = models.JSONField(null=True, blank=True)
+
+    class Meta:
+        db_table = 'AuditoriaLog'
+        indexes = [
+            models.Index(fields=['fecha_hora']),
+            models.Index(fields=['usuario_id']),
+            models.Index(fields=['entidad_tipo']),
+        ]
