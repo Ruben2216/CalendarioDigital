@@ -86,16 +86,28 @@ class TipoEventoListView(APIView):
         if not nombre:
             return Response({'error': 'El nombre es obligatorio.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        if usuario.es_gestor_global():
-            plantel = None
-        else:
-            plantel_id = request.data.get('plantel_id')
+        plantel_id = request.data.get('plantel_id')
+        plantel = None
+        if plantel_id:
+            try:
+                plantel = Plantel.objects.get(pk=plantel_id)
+            except Plantel.DoesNotExist:
+                return Response({'error': 'Plantel no encontrado.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if usuario.agrupacion_id and usuario.es_gestor_global():
+            ids_permitidos = [str(pid) for pid in usuario.ids_planteles_agrupacion_herencia()]
+            if plantel_id and str(plantel_id) not in ids_permitidos:
+                return Response({'error': 'No tienes acceso a ese plantel.'}, status=status.HTTP_403_FORBIDDEN)
+        elif usuario.agrupacion_id:
+            ids_permitidos = [str(pid) for pid in usuario.ids_planteles_agrupacion()]
+            if plantel_id and str(plantel_id) not in ids_permitidos:
+                return Response({'error': 'No tienes acceso a ese plantel.'}, status=status.HTTP_403_FORBIDDEN)
+        elif not usuario.es_gestor_global():
             if not plantel_id:
                 return Response({'error': 'Plantel inválido.'}, status=status.HTTP_400_BAD_REQUEST)
             ids = [str(pid) for pid in usuario.ids_planteles()]
             if str(plantel_id) not in ids:
                 return Response({'error': 'No tienes acceso a ese plantel.'}, status=status.HTTP_403_FORBIDDEN)
-            plantel = Plantel.objects.get(pk=plantel_id)
 
         tipo = TipoEvento.objects.create(nombre=nombre, color_hex=color_hex, plantel=plantel)
         return Response(
@@ -379,20 +391,31 @@ class EventoListView(APIView):
 
         semestre_obj, grupo_obj = _resolver_semestre_grupo(d.get('semestre'), d.get('grupo'))
 
-        if rol == 'admin':
-            if calendario.clave != Calendario.CLAVE_ESCOLARIZADO:
-                return None, 'Solo puedes crear eventos en el calendario escolarizado.'
-            asignaciones = list(usuario.planteles_asignados.select_related('plantel', 'turno').all())
+        if usuario.agrupacion_id and usuario.es_gestor_global():
+            ids_permitidos = usuario.ids_planteles_agrupacion_herencia()
+        elif usuario.agrupacion_id:
+            ids_permitidos = usuario.ids_planteles_agrupacion()
+        else:
+            ids_permitidos = usuario.ids_planteles()
+        if ids_permitidos:
             if not plantel:
                 return None, 'Debes seleccionar tu plantel.'
+            if plantel.id_plantel not in ids_permitidos:
+                return None, 'No tienes permiso para crear eventos en este plantel.'
+            if tipo.plantel_id is not None and tipo.plantel_id not in ids_permitidos:
+                return None, 'El tipo de evento no pertenece a tu catálogo de plantel.'
+        elif rol == 'admin':
+            if calendario.clave != Calendario.CLAVE_ESCOLARIZADO:
+                return None, 'Solo puedes crear eventos en el calendario escolarizado.'
+            if not plantel:
+                return None, 'Debes seleccionar tu plantel.'
+            asignaciones = list(usuario.planteles_asignados.select_related('plantel', 'turno').all())
             par_valido = next(
                 (a for a in asignaciones if a.plantel_id == plantel.id_plantel), None
             )
             if not par_valido:
                 return None, 'Solo puedes crear eventos en tu plantel asignado.'
             ids_plantel = [a.plantel_id for a in asignaciones]
-            # Permitidos: tipos generales (sin plantel, institucionales) o los del
-            # propio plantel. Solo se rechazan los de OTRO plantel.
             if tipo.plantel_id is not None and tipo.plantel_id not in ids_plantel:
                 return None, 'El tipo de evento no pertenece a tu catálogo de plantel.'
 

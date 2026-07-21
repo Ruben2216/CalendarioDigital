@@ -226,12 +226,12 @@ export default function Usuarios() {
         prev.map((u) =>
           u.id === editando
             ? {
-                ...u,
-                nombre,
-                rol: rolFinal,
-                turno: rolFinal === "admin" ? form.turno : null,
-                planteles: rolFinal === "admin" ? [...form.planteles] : [],
-              }
+              ...u,
+              nombre,
+              rol: rolFinal,
+              turno: rolFinal === "admin" ? form.turno : null,
+              planteles: rolFinal === "admin" ? [...form.planteles] : [],
+            }
             : u,
         ),
       );
@@ -607,7 +607,7 @@ export default function Usuarios() {
                 className={modoBusqueda === "nombre" ? styles["modo-busqueda__activo"] : ""}
                 onClick={() => { setModoBusqueda("nombre"); setForm((prev) => ({ ...FORM_VACIO, rol: prev.rol })); }}
               >
-                Por nombre 
+                Por nombre
               </button>
             </div>
           )}

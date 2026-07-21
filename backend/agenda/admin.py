@@ -1,3 +1,10 @@
 from django.contrib import admin
 
-# Register your models here.
+from .models import Agrupacion
+
+
+@admin.register(Agrupacion)
+class AgrupacionAdmin(admin.ModelAdmin):
+    list_display = ('nombre', 'id_agrupacion')
+    search_fields = ('nombre',)
+    ordering = ('nombre',)

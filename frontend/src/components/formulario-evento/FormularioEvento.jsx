@@ -141,7 +141,7 @@ export default function FormularioEvento({
 
       <div className="formulario__fila">
         <label className="formulario__campo">
-          <span className="formulario__etiqueta">Plantel</span>
+          <span className="formulario__etiqueta">Plantel o Departamento</span>
           {restringido ? (
             <select value={form.plantel} onChange={set('plantel')} required>
               {planteles.map((p) => (

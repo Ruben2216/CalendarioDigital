@@ -21,10 +21,33 @@ class Rol(models.Model):
         return self.nombre_rol
 
 
+class Agrupacion(models.Model):
+    id_agrupacion = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False, db_column='id_agrupacion')
+    nombre = models.CharField(max_length=200, unique=True)
+    parent = models.ForeignKey(
+        'self', on_delete=models.CASCADE, null=True, blank=True,
+        related_name='subagrupaciones', db_column='parent_id'
+    )
+
+    class Meta:
+        db_table = 'Agrupacion'
+
+    def __str__(self):
+        return self.nombre
+
+
 class Plantel(models.Model):
     id_plantel = UniqueIdentifierField(primary_key=True, default=uuid.uuid4, editable=False)
     clave = models.CharField(max_length=10, unique=True)
     nombre = models.CharField(max_length=250)
+    agrupacion = models.ForeignKey(
+        'Agrupacion',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        db_column='agrupacion_id',
+        related_name='planteles'
+    )
 
     class Meta:
         db_table = 'Plantel'
@@ -119,6 +142,14 @@ class Usuario(models.Model):
     matricula = models.CharField(max_length=20, null=True, blank=True, unique=True)
     password_mock = models.CharField(max_length=128, null=True, blank=True)
     id_api = models.CharField(max_length=100, null=True, blank=True)
+    agrupacion = models.ForeignKey(
+        'Agrupacion',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        db_column='agrupacion_id',
+        related_name='usuarios'
+    )
     activo = models.BooleanField(default=True)
     ultima_sesion = models.DateTimeField(null=True, blank=True)
 
@@ -155,16 +186,36 @@ class Usuario(models.Model):
     def ids_turnos(self):
         return [turno_id for _, turno_id in self._asignaciones_plantel_turno()]
 
+    def ids_planteles_agrupacion(self):
+        if not self.agrupacion_id:
+            return []
+        return list(self.agrupacion.planteles.values_list('id_plantel', flat=True))
+
+    def ids_planteles_agrupacion_herencia(self):
+        """Planteles de la agrupación del usuario + los de todas sus
+        subagrupaciones (para herencia jerárquica Director → Subdirecciones)."""
+        if not self.agrupacion_id:
+            return []
+        q = Q(agrupacion=self.agrupacion) | Q(agrupacion__parent=self.agrupacion)
+        return list(Plantel.objects.filter(q).values_list('id_plantel', flat=True))
+
     def alcance_plantel(self, campo='plantel', plantel_filtro=None):
-        """Q para filtrar `campo` según el rol: los gestores globales ven solo lo
-        general (o + `plantel_filtro`); admin/docente ven lo general + sus
-        planteles asignados."""
+        """Q para filtrar `campo` según el rol y agrupación:
+        - Director (gestor global con agrupación): todos los eventos, sin filtro.
+        - Gestor global sin agrupación: solo eventos generales (+ plantel_filtro).
+        - Subdirector/Colaborador (admin con agrupación): eventos del alcance
+          de su agrupación + generales.
+        - Otros (admin sin agrupación, docente, alumno): eventos de sus planteles
+          asignados + generales."""
         general = Q(**{f'{campo}__isnull': True})
         if self.es_gestor_global():
+            if self.agrupacion_id:
+                return Q()
             if plantel_filtro:
                 return general | Q(**{f'{campo}__nombre': plantel_filtro})
             return general
-        return general | Q(**{f'{campo}_id__in': self.ids_planteles()})
+        base_ids = self.ids_planteles_agrupacion() or self.ids_planteles()
+        return general | Q(**{f'{campo}_id__in': base_ids})
 
     def a_sesion_dict(self, **extra):
         return {
@@ -324,9 +375,12 @@ class Evento(models.Model):
         if usuario is None:
             return False
         if usuario.es_gestor_global():
+            if usuario.agrupacion_id:
+                return self.plantel_id in usuario.ids_planteles_agrupacion_herencia()
             return True
         if usuario.rol.nombre_rol == 'admin':
-            return self.plantel_id in usuario.ids_planteles()
+            ids = usuario.ids_planteles_agrupacion() or usuario.ids_planteles()
+            return self.plantel_id in ids
         return False
 
 
