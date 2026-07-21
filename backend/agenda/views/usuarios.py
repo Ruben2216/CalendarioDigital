@@ -6,8 +6,11 @@ from rest_framework.response import Response
 from rest_framework import status, permissions
 
 from ._comunes import _usuario_sesion
-from ..models import Plantel, Rol, Turno, Usuario, UsuarioPlantel
+from ..models import Notificacion, Plantel, Rol, Turno, Usuario, UsuarioPlantel
+from ..services import notificaciones_personales as notif
 from ..services.mock_institucional import es_alumno, obtener_datos_por_correo
+
+ROL_LEGIBLE = {'docente': 'Docente', 'colaborador': 'Colaborador', 'admin': 'Administrador'}
 
 from datetime import timedelta
 
@@ -224,6 +227,18 @@ class CrearAdminView(APIView):
         if rol_acceso == 'admin':
             UsuarioPlantel.objects.create(usuario=usuario, plantel=plantel, turno=turno)
 
+        if usuario.pk != superadmin.pk:
+            legible = ROL_LEGIBLE.get(rol_acceso, rol_acceso)
+            if rol_acceso == 'admin' and plantel:
+                cuerpo = f'Ahora eres {legible} de {plantel.nombre} · turno {turno.nombre_turno}.' if turno \
+                    else f'Ahora eres {legible} de {plantel.nombre}.'
+            else:
+                cuerpo = f'Ahora tu rol es {legible}.'
+            notif.notificar(
+                usuario, Notificacion.CATEGORIA_CUENTA,
+                'Cambio de rol', cuerpo, {'url': '/ir/inicio'},
+            )
+
         return Response({
             'id_usuario': usuario.id_usuario,
             'nombre': usuario.nombre or '',
@@ -253,6 +268,8 @@ class ActualizarAdminView(APIView):
         nombre = (request.data.get('nombre') or '').strip()
         nuevo_rol = request.data.get('rol')
 
+        es_otro_usuario = usuario.pk != superadmin.pk
+
         if nuevo_rol in ('docente', 'colaborador', 'admin'):
             try:
                 rol_obj = Rol.objects.get(nombre_rol=nuevo_rol)
@@ -261,6 +278,13 @@ class ActualizarAdminView(APIView):
             if usuario.rol_id != rol_obj.id_rol:
                 usuario.rol = rol_obj
                 usuario.save(update_fields=['rol'])
+                if es_otro_usuario:
+                    notif.notificar(
+                        usuario, Notificacion.CATEGORIA_CUENTA,
+                        'Cambio de rol',
+                        f'Ahora tu rol es {ROL_LEGIBLE.get(nuevo_rol, nuevo_rol)}.',
+                        {'url': '/ir/inicio'},
+                    )
             # Docentes y colaboradores se reinician sin asignación: su plantel se
             if nuevo_rol in ('colaborador', 'docente'):
                 UsuarioPlantel.objects.filter(usuario=usuario).delete()
@@ -279,6 +303,13 @@ class ActualizarAdminView(APIView):
                 return Response({'error': 'Plantel o turno no encontrado.'}, status=status.HTTP_400_BAD_REQUEST)
             UsuarioPlantel.objects.filter(usuario=usuario).delete()
             UsuarioPlantel.objects.create(usuario=usuario, plantel=plantel, turno=turno)
+            if es_otro_usuario:
+                notif.notificar(
+                    usuario, Notificacion.CATEGORIA_CUENTA,
+                    'Se actualizó tu asignación',
+                    f'Ahora estás asignado a {plantel.nombre} · turno {turno.nombre_turno}.',
+                    {'url': '/ir/inicio'},
+                )
 
         if nombre:
             Usuario.objects.filter(pk=usuario.pk).update(nombre=nombre)

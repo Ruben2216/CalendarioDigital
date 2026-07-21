@@ -66,6 +66,29 @@ def enviar_a_temas(temas: list[str], titulo: str, cuerpo: str, data: dict | None
 
     return messaging.send(mensaje)
 
+def enviar_a_usuario(usuario, titulo: str, cuerpo: str, data: dict | None = None) -> int:
+    from ..models import DispositivoFCM
+
+    if usuario is None or not getattr(usuario, 'pk', None):
+        return 0
+
+    tokens = list(
+        DispositivoFCM.objects
+        .filter(usuario=usuario, activo=True)
+        .values_list('token_fcm', flat=True)
+    )
+    if not tokens:
+        return 0
+
+    _get_app()
+    payload = {'title': titulo, 'body': cuerpo}
+    payload.update({k: str(v) for k, v in (data or {}).items()})
+
+    mensaje = messaging.MulticastMessage(data=payload, tokens=tokens)
+    respuesta = messaging.send_each_for_multicast(mensaje)
+    return respuesta.success_count
+
+
 def enviar_anuncio(anuncio) -> str:
     """Envía un anuncio al tema correspondiente según plantel + audiencia.
     - Con plantel  -> tema_plantel_{id}

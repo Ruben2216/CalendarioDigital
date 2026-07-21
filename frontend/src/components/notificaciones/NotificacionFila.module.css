@@ -43,6 +43,10 @@
 .fila__icono--naranja { background: var(--orange-soft); color: var(--orange); }
 .fila__icono--gris { background: #f2f5f9; color: var(--muted); }
 
+.fila__icono--morado { background: #ede9fe; color: #7c3aed; } /* Cuenta */
+.fila__icono--cian { background: #cffafe; color: #0891b2; } /* Mensaje */
+.fila__icono--ambar { background: #fef3c7; color: #d97706; } /* Solicitud */
+
 /* Punto de no leído */
 .fila--sin-leer .fila__icono::after {
   content: "";

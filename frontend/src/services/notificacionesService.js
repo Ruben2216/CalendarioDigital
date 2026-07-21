@@ -27,3 +27,13 @@ export async function listarNotificaciones() {
     if (!resp.ok) throw new Error('No se pudieron cargar las notificaciones.');
     return resp.json();
 }
+
+// Marca como leída una notificación personal (o todas)
+export async function marcarNotificacionLeida(id = null) {
+    const sesion = obtenerSesion();
+    if (!sesion?.id_usuario) return;
+    const ruta = id != null ? `${id}/leer/` : 'leer/';
+    const url = new URL(`${BASE_URL}/api/notificaciones/${ruta}`);
+    url.searchParams.set('id_usuario', sesion.id_usuario);
+    await fetch(url, { method: 'POST', headers: headers() }).catch(() => {});
+}

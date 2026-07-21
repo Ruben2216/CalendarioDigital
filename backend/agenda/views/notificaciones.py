@@ -109,14 +109,18 @@ def _notif_dict(n):
         'plantel': n.plantel.nombre if n.plantel else None,
         'turno': n.turno.nombre_turno if n.turno else None,
         'referencia_id': n.evento_id or n.anuncio_id,
+        'personal': n.destinatario_id is not None,
+        'leido': n.leido,
         'fecha': n.fecha_creacion.isoformat(),
     }
 
 
 class NotificacionListView(APIView):
-    """Centro de notificaciones (campana). Devuelve las notificaciones que le
-    corresponden al usuario según su rol y plantel, con el mismo criterio que
-    los anuncios. El estado 'leído' se gestiona en el cliente."""
+    """Centro de notificaciones (campana). Combina:
+    - Masivas: las que le corresponden al usuario según rol/plantel/turno (mismo
+      criterio que los anuncios). El estado 'leído' de estas lo gestiona el cliente.
+    - Personales: las dirigidas específicamente a él (`destinatario`), con estado
+      'leído' persistido en el servidor."""
 
     permission_classes = [permissions.AllowAny]
 
@@ -124,20 +128,23 @@ class NotificacionListView(APIView):
         qs = Notificacion.objects.select_related('plantel', 'turno')
         usuario = _usuario_sesion(request)
         turno_para_todos = Q(turno__isnull=True)
+        sin_destinatario = Q(destinatario__isnull=True)
 
         if usuario:
             rol = usuario.rol.nombre_rol
             if usuario.es_gestor_global():
                 nombre_filtro = request.query_params.get('plantel_filtro')
-                qs = qs.filter(usuario.alcance_plantel(plantel_filtro=nombre_filtro))
+                alcance = usuario.alcance_plantel(plantel_filtro=nombre_filtro)
             elif rol == 'admin':
-                qs = qs.filter(usuario.alcance_plantel())
+                alcance = usuario.alcance_plantel()
             else:
-                qs = qs.filter(
+                alcance = (
                     usuario.alcance_plantel()
                     & Q(audiencia__in=['todos', rol])
                     & (turno_para_todos | Q(turno_id__in=usuario.ids_turnos()))
                 )
+            masivas = sin_destinatario & alcance
+            qs = qs.filter(Q(destinatario=usuario) | masivas)
         else:
             general = Q(plantel__isnull=True)
             rol = request.query_params.get('rol')
@@ -155,5 +162,22 @@ class NotificacionListView(APIView):
                 )
             else:
                 qs = qs.filter(general & Q(audiencia='todos'))
+            qs = qs.filter(sin_destinatario)
 
         return Response([_notif_dict(n) for n in qs[:50]])
+
+
+class MarcarNotificacionLeidaView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request, id_notificacion=None):
+        usuario = _usuario_sesion(request)
+        if not usuario:
+            return Response({'error': 'No autenticado.'}, status=status.HTTP_401_UNAUTHORIZED)
+
+        pendientes = Notificacion.objects.filter(destinatario=usuario, leido=False)
+        if id_notificacion is not None:
+            pendientes = pendientes.filter(pk=id_notificacion)
+
+        actualizadas = pendientes.update(leido=True)
+        return Response({'ok': True, 'actualizadas': actualizadas}, status=status.HTTP_200_OK)
