@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Megaphone, Calendar, Bell } from "lucide-react";
-import { listarNotificaciones } from "../services/notificacionesService.js";
+import { Megaphone, Calendar, Bell, UserCog, MessageSquare, ClipboardCheck } from "lucide-react";
+import { listarNotificaciones, marcarNotificacionLeida } from "../services/notificacionesService.js";
 import { tiempoRelativo } from "../lib/fechas.js";
 import {
     EVENTO_NOTIF, idsLeidas, idsOcultas,
@@ -8,10 +8,13 @@ import {
     marcarUnaLeida as persistirUnaLeida,
 } from "../lib/notificacionesLeidas.js";
 
-// Apariencia de la campana según la categoría (clasificación anuncio/evento).
+// Apariencia de la campana según la categoría anuncio/evento/cuenta/mensaje/solicitud (individuales / masivas)
 const ESTILO_CATEGORIA = {
     anuncio: { icono: Megaphone, color: "azul" },
     evento: { icono: Calendar, color: "verde" },
+    cuenta: { icono: UserCog, color: "morado" },
+    mensaje: { icono: MessageSquare, color: "cian" },
+    solicitud: { icono: ClipboardCheck, color: "ambar" },
 };
 
 function mapear(lista) {
@@ -26,10 +29,12 @@ function mapear(lista) {
         })
         .map((n) => {
             const estilo = ESTILO_CATEGORIA[n.categoria] ?? { icono: Bell, color: "gris" };
-            const lugar = n.plantel || "General";
+            const lugar = n.personal ? "Personal" : (n.plantel || "General");
+            const leida = leidas.has(n.id) || n.leido === true;
             return {
                 id: n.id,
                 categoria: n.categoria,
+                personal: n.personal === true,
                 icono: estilo.icono,
                 color: estilo.color,
                 titulo: n.titulo,
@@ -38,7 +43,7 @@ function mapear(lista) {
                 tiempo: tiempoRelativo(n.fecha),
                 referenciaId: n.referencia_id ?? null,
                 subtitulo: `${tiempoRelativo(n.fecha)} · ${lugar}`,
-                sinLeer: !leidas.has(n.id),
+                sinLeer: !leida,
             };
         });
 }
@@ -74,8 +79,15 @@ export function useNotificaciones() {
 
     const notificaciones = useMemo(() => mapear(crudas), [crudas, version]);
     const notifSinLeer = useMemo(() => notificaciones.filter((n) => n.sinLeer).length, [notificaciones]);
-    const marcarTodasLeidas = useCallback(() => persistirLeidas(crudas), [crudas]);
-    const marcarLeida = useCallback((id) => persistirUnaLeida(id), []);
+    const marcarTodasLeidas = useCallback(() => {
+        persistirLeidas(crudas);
+        if (crudas.some((n) => n.personal)) marcarNotificacionLeida();
+    }, [crudas]);
+    const marcarLeida = useCallback((id) => {
+        persistirUnaLeida(id);
+        const n = crudas.find((x) => x.id === id);
+        if (n?.personal) marcarNotificacionLeida(id);
+    }, [crudas]);
     const limpiarNotificaciones = useCallback(() => persistirOcultas(crudas), [crudas]);
 
     return { notificaciones, notifSinLeer, marcarTodasLeidas, marcarLeida, limpiarNotificaciones, refrescar };

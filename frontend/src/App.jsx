@@ -44,12 +44,12 @@ function RedireccionNotif() {
   if (!sesion) return <Navigate to="/login" replace />;
 
   const mapa = {
-    admin:                    { anuncios: '/anuncios', calendario: '/calendario', inicio: '/dashboard' },
-    superusuario:             { anuncios: '/anuncios', calendario: '/calendario', inicio: '/dashboard' },
-    colaborador:              { anuncios: '/anuncios', calendario: '/calendario', inicio: '/dashboard' },
+    admin:                    { anuncios: '/anuncios', calendario: '/calendario', inicio: '/dashboard', mensajes: '/mensajeria' },
+    superusuario:             { anuncios: '/anuncios', calendario: '/calendario', inicio: '/dashboard', mensajes: '/mensajeria' },
+    colaborador:              { anuncios: '/anuncios', calendario: '/calendario', inicio: '/dashboard', mensajes: '/mensajeria' },
     director_departamento:    { anuncios: '/anuncios', calendario: '/calendario', inicio: '/dashboard' },
     subdirector_departamento: { anuncios: '/anuncios', calendario: '/calendario', inicio: '/dashboard' },
-    docente:                  { anuncios: '/docente/anuncios', calendario: '/docente/calendario', inicio: '/docente/inicio' },
+    docente:                  { anuncios: '/docente/anuncios', calendario: '/docente/calendario', inicio: '/docente/inicio', mensajes: '/docente/foro' },
     alumno:                   { anuncios: '/alumno/anuncios', calendario: '/alumno/calendario', inicio: '/alumno/inicio' },
     tutor:                    { anuncios: '/tutor/calendario', calendario: '/tutor/calendario', inicio: '/tutor/calendario' },
   };

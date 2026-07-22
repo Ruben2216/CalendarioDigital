@@ -6,8 +6,11 @@ from rest_framework.response import Response
 from rest_framework import status, permissions
 
 from ._comunes import _usuario_sesion
-from ..models import Agrupacion, Plantel, Rol, Turno, Usuario, UsuarioPlantel
+from ..models import Notificacion, Agrupacion, Plantel, Rol, Turno, Usuario, UsuarioPlantel
+from ..services import notificaciones_personales as notif
 from ..services.mock_institucional import es_alumno, obtener_datos_por_correo
+
+ROL_LEGIBLE = {'docente': 'Docente', 'colaborador': 'Colaborador', 'admin': 'Administrador'}
 
 from datetime import timedelta
 
@@ -231,25 +234,6 @@ class CrearAdminView(APIView):
         if rol_acceso == 'admin':
             UsuarioPlantel.objects.create(usuario=usuario, plantel=plantel, turno=turno)
 
-        agrupacion_obj = None
-        if rol_acceso in ('director_departamento', 'subdirector_departamento') and agrupacion_id:
-            try:
-                agrupacion_obj = Agrupacion.objects.get(pk=agrupacion_id)
-            except Agrupacion.DoesNotExist:
-                return Response({'error': 'Agrupación no encontrada.'}, status=status.HTTP_400_BAD_REQUEST)
-            existe = Usuario.objects.filter(
-                rol__nombre_rol=rol_acceso, agrupacion_id=agrupacion_id, activo=True
-            )
-            if not creado:
-                existe = existe.exclude(pk=usuario.pk)
-            if existe.exists():
-                return Response(
-                    {'error': f'Ya existe un {rol_acceso} asignado a esa agrupación.'},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-            usuario.agrupacion = agrupacion_obj
-            usuario.save(update_fields=['agrupacion'])
-
         return Response({
             'id_usuario': usuario.id_usuario,
             'nombre': usuario.nombre or '',
@@ -281,6 +265,8 @@ class ActualizarAdminView(APIView):
         nombre = (request.data.get('nombre') or '').strip()
         nuevo_rol = request.data.get('rol')
 
+        es_otro_usuario = usuario.pk != superadmin.pk
+
         if nuevo_rol in ('docente', 'colaborador', 'admin', 'director_departamento', 'subdirector_departamento'):
             try:
                 rol_obj = Rol.objects.get(nombre_rol=nuevo_rol)
@@ -289,7 +275,8 @@ class ActualizarAdminView(APIView):
             if usuario.rol_id != rol_obj.id_rol:
                 usuario.rol = rol_obj
                 usuario.save(update_fields=['rol'])
-            if nuevo_rol in ('colaborador', 'docente', 'admin', 'director_departamento', 'subdirector_departamento'):
+            # Docentes y colaboradores se reinician sin asignación: su plantel se
+            if nuevo_rol in ('colaborador', 'docente'):
                 UsuarioPlantel.objects.filter(usuario=usuario).delete()
             if nuevo_rol in ('director_departamento', 'subdirector_departamento'):
                 if agrupacion_id:
@@ -328,6 +315,13 @@ class ActualizarAdminView(APIView):
                 return Response({'error': 'Plantel o turno no encontrado.'}, status=status.HTTP_400_BAD_REQUEST)
             UsuarioPlantel.objects.filter(usuario=usuario).delete()
             UsuarioPlantel.objects.create(usuario=usuario, plantel=plantel, turno=turno)
+            if es_otro_usuario:
+                notif.notificar(
+                    usuario, Notificacion.CATEGORIA_CUENTA,
+                    'Se actualizó tu asignación',
+                    f'Ahora estás asignado a {plantel.nombre} · turno {turno.nombre_turno}.',
+                    {'url': '/ir/inicio'},
+                )
 
         if nombre:
             Usuario.objects.filter(pk=usuario.pk).update(nombre=nombre)

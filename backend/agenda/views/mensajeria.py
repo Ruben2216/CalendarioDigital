@@ -5,7 +5,38 @@ from rest_framework.response import Response
 from rest_framework import status, permissions
 
 from ._comunes import _usuario_sesion
-from ..models import Conversacion, LecturaMensaje, Mensaje, Plantel, Usuario, UsuarioPlantel
+from ..models import (
+    Conversacion, LecturaMensaje, Mensaje, Notificacion, Plantel, Usuario, UsuarioPlantel,
+)
+from ..services import notificaciones_personales as notif
+
+def _notificar_mensaje(destinatario, remitente, metadatos):
+    """Notifica al destinatario de un mensaje entrante"""
+    if destinatario is None:
+        return
+
+    quien = remitente.nombre or remitente.correo
+    tipo = metadatos.get('tipo') if isinstance(metadatos, dict) else None
+    datos = {'url': '/ir/mensajes'}
+
+    if tipo == 'solicitud_aprobada':
+        notif.notificar(
+            destinatario, Notificacion.CATEGORIA_SOLICITUD,
+            'Solicitud de espacio aceptada',
+            f'{quien} aprobó tu solicitud de espacio.', datos,
+        )
+    elif tipo == 'solicitud_rechazada':
+        notif.notificar(
+            destinatario, Notificacion.CATEGORIA_SOLICITUD,
+            'Solicitud de espacio rechazada',
+            f'{quien} rechazó tu solicitud de espacio.', datos,
+        )
+    else:
+        notif.notificar(
+            destinatario, Notificacion.CATEGORIA_MENSAJE,
+            f'Nuevo mensaje de {quien}',
+            'Tienes un mensaje nuevo.', datos,
+        )
 
 
 class DocentesListView(APIView):
@@ -189,6 +220,14 @@ class MensajeListView(APIView):
             return Response({'error': 'El mensaje no puede estar vacío.'}, status=status.HTTP_400_BAD_REQUEST)
 
         msg = Mensaje.crear(conv, usuario, texto, metadatos)
+
+        otro_id = (
+            conv.participante_b_id if conv.participante_a_id == usuario.id_usuario
+            else conv.participante_a_id
+        )
+        destinatario = Usuario.objects.filter(pk=otro_id, activo=True).first()
+        _notificar_mensaje(destinatario, usuario, metadatos)
+
         return Response(
             {'id_mensaje': msg.id_mensaje, 'fecha_envio': msg.fecha_envio.isoformat()},
             status=status.HTTP_201_CREATED,
@@ -316,5 +355,12 @@ class SolicitudBroadcastView(APIView):
             )
             Mensaje.crear(conv, usuario, texto, metadatos)
             conversacion_ids.append(conv.id_conversacion)
+
+            notif.notificar(
+                dest, Notificacion.CATEGORIA_SOLICITUD,
+                'Nueva solicitud de espacio',
+                f'{usuario.nombre or usuario.correo} envió una solicitud de espacio.',
+                {'url': '/ir/mensajes'},
+            )
 
         return Response({'conversaciones': conversacion_ids}, status=status.HTTP_201_CREATED)

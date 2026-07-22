@@ -5,7 +5,8 @@ from rest_framework.response import Response
 from rest_framework import status, permissions
 
 from ._comunes import _usuario_sesion
-from ..models import Plantel, Rol, SolicitudAdmin, Turno, UsuarioPlantel
+from ..models import Notificacion, Plantel, Rol, SolicitudAdmin, Turno, UsuarioPlantel
+from ..services import notificaciones_personales as notif
 
 
 def _solicitud_dict(s):
@@ -220,7 +221,45 @@ class ResolverSolicitudAdminView(APIView):
         solicitud.fecha_resolucion = timezone.now()
         solicitud.save(update_fields=['estado', 'resuelta_por', 'fecha_resolucion'])
 
+        self._notificar_resolucion(solicitud, admin)
+
         return Response({'solicitud': _solicitud_dict(solicitud)}, status=status.HTTP_200_OK)
+
+    @staticmethod
+    def _notificar_resolucion(solicitud, admin):
+        """Avisa al solicitante cómo quedó su solicitud (aceptada/rechazada/revocada)"""
+        if solicitud.usuario_id == admin.pk:
+            return
+
+        plantel = solicitud.plantel.nombre if solicitud.plantel else ''
+        turno = solicitud.turno.nombre_turno if solicitud.turno else ''
+
+        if solicitud.estado == SolicitudAdmin.ESTADO_ACEPTADA:
+            titulo = 'Solicitud aceptada'
+            if solicitud.tipo == SolicitudAdmin.TIPO_ADMIN:
+                if plantel and turno:
+                    mensaje = f'Tu solicitud fue aceptada. Ahora eres Administrador de {plantel} · turno {turno}.'
+                elif plantel:
+                    mensaje = f'Tu solicitud fue aceptada. Ahora eres Administrador de {plantel}.'
+                else:
+                    mensaje = 'Tu solicitud fue aceptada. Ahora eres Administrador.'
+            elif solicitud.tipo == SolicitudAdmin.TIPO_VISUALIZACION:
+                mensaje = f'Se aprobó tu acceso de visualización a {plantel}.'
+            else:  # TIPO_TURNO
+                mensaje = f'Se aprobó tu cambio de turno a {turno} en {plantel}.'
+        elif solicitud.estado == SolicitudAdmin.ESTADO_RECHAZADA:
+            titulo = 'Solicitud rechazada'
+            mensaje = 'Tu solicitud fue rechazada por un administrador.'
+        elif solicitud.estado == SolicitudAdmin.ESTADO_REVOCADA:
+            titulo = 'Acceso revocado'
+            mensaje = f'Se revocó tu acceso de visualización a {plantel}.'
+        else:
+            return
+
+        notif.notificar(
+            solicitud.usuario, Notificacion.CATEGORIA_SOLICITUD,
+            titulo, mensaje, {'url': '/ir/inicio'},
+        )
 
     def _aplicar(self, solicitud):
         """Aplica el efecto de aceptar la solicitud. Devuelve un Response de

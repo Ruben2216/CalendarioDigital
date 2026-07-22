@@ -41,6 +41,7 @@ from .anuncios import (
 )
 from .notificaciones import (
     NotificacionListView,
+    MarcarNotificacionLeidaView,
     RegistrarDispositivoView,
 )
 
@@ -66,6 +67,7 @@ __all__ = [
     'MensajeListView',
     'MiSolicitudAdminView',
     'NotificacionListView',
+    'MarcarNotificacionLeidaView',
     'PlantelListView',
     'RegistrarDispositivoView',
     'ResolverSolicitudAdminView',

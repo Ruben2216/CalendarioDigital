@@ -574,12 +574,23 @@ class LecturaMensaje(models.Model):
 
 
 class Notificacion(models.Model):
+    # Temas / masivas (van a una audiencia por rol/plantel/turno)
     CATEGORIA_ANUNCIO = 'anuncio'
     CATEGORIA_EVENTO = 'evento'
+
+    # Personales (van a un único destinatario)
+    CATEGORIA_CUENTA = 'cuenta'        # cambio de rol, plantel o turno
+    CATEGORIA_MENSAJE = 'mensaje'      # mensajería directa
+    CATEGORIA_SOLICITUD = 'solicitud'  # resolución de una solicitud (evento/admin)
     CATEGORIAS = [
         (CATEGORIA_ANUNCIO, 'Anuncio'),
         (CATEGORIA_EVENTO, 'Evento'),
+        (CATEGORIA_CUENTA, 'Cuenta'),
+        (CATEGORIA_MENSAJE, 'Mensaje'),
+        (CATEGORIA_SOLICITUD, 'Solicitud'),
     ]
+
+    AUDIENCIA_PERSONAL = 'personal'
 
     id_notificacion = models.BigAutoField(primary_key=True)
     categoria      = models.CharField(max_length=20, choices=CATEGORIAS, default=CATEGORIA_ANUNCIO)
@@ -593,6 +604,11 @@ class Notificacion(models.Model):
         'Turno', on_delete=models.CASCADE, null=True, blank=True, related_name='notificaciones'
     )
 
+    destinatario = models.ForeignKey(
+        Usuario, on_delete=models.CASCADE, null=True, blank=True, related_name='notificaciones'
+    )
+    leido = models.BooleanField(default=False)
+
     anuncio = models.ForeignKey(
         Anuncio, on_delete=models.SET_NULL, null=True, blank=True, related_name='notificaciones'
     )
@@ -604,9 +620,16 @@ class Notificacion(models.Model):
     class Meta:
         db_table = 'Notificacion'
         ordering = ['-fecha_creacion']
+        indexes = [
+            models.Index(fields=['destinatario', 'leido']),
+        ]
 
     def __str__(self):
         return f'[{self.categoria}] {self.titulo}'
+
+    @property
+    def es_personal(self):
+        return self.destinatario_id is not None
 
 
 class SolicitudAdmin(models.Model):

@@ -30,6 +30,7 @@ from agenda.views import (
     AnuncioDetailView,
     RegistrarDispositivoView,
     NotificacionListView,
+    MarcarNotificacionLeidaView,
     AgrupacionListView,
     EstadisticasDashboardView,
 )
@@ -59,6 +60,8 @@ urlpatterns = [
     path('api/dispositivos/registrar/', RegistrarDispositivoView.as_view(), name='registrar-dispositivo'),
     # Centro de notificaciones (campana)
     path('api/notificaciones/', NotificacionListView.as_view(), name='notificaciones'),
+    path('api/notificaciones/leer/', MarcarNotificacionLeidaView.as_view(), name='notificaciones-leer-todas'),
+    path('api/notificaciones/<int:id_notificacion>/leer/', MarcarNotificacionLeidaView.as_view(), name='notificaciones-leer'),
 
     # Estadísticas del dashboard (usuarios activos, etc.)
     path('api/estadisticas/dashboard/', EstadisticasDashboardView.as_view(), name='estadisticas-dashboard'),
