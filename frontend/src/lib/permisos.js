@@ -5,9 +5,9 @@ export const esSuperusuario = (sesion) => sesion?.rol === "superusuario";
 export const esColaborador = (sesion) => sesion?.rol === "colaborador";
 export const esTutor = (sesion) => sesion?.rol === "tutor";
 
-// Gestión global del calendario: superusuario y colaborador comparten vista y
-// alcance (el colaborador no accede a mensajería ni usuarios).
-export const esGestorGlobal = (sesion) => esSuperusuario(sesion) || esColaborador(sesion);
+// Gestión global del calendario: superusuario, colaborador, director y
+// subdirector de departamento comparten vista y alcance de lectura total.
+export const esGestorGlobal = (sesion) => esSuperusuario(sesion) || esColaborador(sesion) || sesion?.rol === "director_departamento" || sesion?.rol === "subdirector_departamento";
 
 export function plantelesPermitidos(sesion) {
   if (esAlumno(sesion)) return sesion.plantel?.nombre ? [sesion.plantel.nombre] : [];

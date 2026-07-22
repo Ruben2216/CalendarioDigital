@@ -8,6 +8,7 @@ import { avisoExito, avisoError, confirmarAccion, confirmarEliminacion } from ".
 import { ROL, ROLES_GESTION, ESTADOS, TURNOS } from "../../../data/usuarios.js";
 import { listarSolicitudes, listarAdministradores, resolverSolicitud, eliminarSolicitud, crearAdmin, actualizarAdmin } from "../../../services/solicitudesService.js";
 import { obtenerPlanteles, obtenerTurnos } from "../../../services/authService.js";
+import { listarAgrupaciones } from "../../../services/plantelesService.js";
 import { useSolicitudesCtx } from "../../../context/SolicitudesContext.jsx";
 import BuscadorPlantelInline from "../../../components/buscador-plantel/BuscadorPlantelInline.jsx";
 import BuscadorUsuarioInline from "../../../components/buscador-usuario/BuscadorUsuarioInline.jsx";
@@ -42,6 +43,7 @@ function solicitudAFila(s) {
 function adminAFila(u) {
   const primera = u.planteles?.[0];
   const rol = u.rol || "admin";
+  const esAgrupacion = rol === 'director_departamento' || rol === 'subdirector_departamento';
   return {
     id: `adm-${u.id}`,
     id_usuario: u.id,
@@ -49,8 +51,11 @@ function adminAFila(u) {
     nombre: u.nombre,
     correo: u.correo,
     rol,
-    turno: primera?.turno ? primera.turno.toLowerCase() : (rol === "colaborador" ? null : "matutino"),
-    planteles: (u.planteles || []).map((p) => p.plantel).filter(Boolean),
+    turno: esAgrupacion ? null : (primera?.turno ? primera.turno.toLowerCase() : (rol === "colaborador" ? null : "matutino")),
+    planteles: esAgrupacion
+      ? (u.agrupacion ? [u.agrupacion.nombre] : [])
+      : (u.planteles || []).map((p) => p.plantel).filter(Boolean),
+    agrupacion: u.agrupacion || null,
     estado: "activo",
     solicitado: "",
   };
@@ -67,10 +72,12 @@ function fusionarFilas(solicitudes, admins) {
 const ROLES_EDICION = [
   { id: "admin", etiqueta: "Administrador" },
   { id: "colaborador", etiqueta: "Colaborador" },
+  { id: "director_departamento", etiqueta: "Director de departamentos" },
+  { id: "subdirector_departamento", etiqueta: "Subdirector de departamentos" },
   { id: "docente", etiqueta: "Docente / Administrativo" },
 ];
 
-const FORM_VACIO = { nombre: "", correo: "", turno: "matutino", planteles: [], usuarioId: null, rol: "admin" };
+const FORM_VACIO = { nombre: "", correo: "", turno: "matutino", planteles: [], agrupacion: null, usuarioId: null, rol: "admin" };
 
 function formatoFecha(clave) {
   if (!clave) return "—";
@@ -89,6 +96,7 @@ export default function Usuarios() {
   const [filtroEstado, setFiltroEstado] = useState("todos");
   const [plantelesDisponibles, setPlantelesDisponibles] = useState([]);
   const [turnosDisponibles, setTurnosDisponibles] = useState([]);
+  const [agrupacionesDisponibles, setAgrupacionesDisponibles] = useState([]);
 
   const [modalAbierto, setModalAbierto] = useState(false);
   const [form, setForm] = useState(FORM_VACIO);
@@ -100,12 +108,13 @@ export default function Usuarios() {
     let vigente = true;
     setCargando(true);
     setErrorCarga(false);
-    Promise.all([listarSolicitudes(null, "admin"), listarAdministradores(), obtenerPlanteles(), obtenerTurnos()])
-      .then(([solicitudes, admins, planteles, turnos]) => {
+    Promise.all([listarSolicitudes(null, "admin"), listarAdministradores(), obtenerPlanteles(), obtenerTurnos(), listarAgrupaciones()])
+      .then(([solicitudes, admins, planteles, turnos, agrupaciones]) => {
         if (!vigente) return;
         setUsuarios(fusionarFilas(solicitudes, admins));
         setPlantelesDisponibles(planteles);
         setTurnosDisponibles(turnos);
+        setAgrupacionesDisponibles(agrupaciones);
       })
       .catch(() => { if (vigente) setErrorCarga(true); })
       .finally(() => { if (vigente) setCargando(false); });
@@ -166,6 +175,7 @@ export default function Usuarios() {
       correo: usuario.correo,
       turno: usuario.turno || "matutino",
       planteles: [...usuario.planteles],
+      agrupacion: usuario.agrupacion || null,
       usuarioId: usuario.id_usuario ?? null,
       rol: usuario.rol || "admin",
     });
@@ -209,6 +219,9 @@ export default function Usuarios() {
           payload.plantel_id = plantelId;
           payload.turno_id = turnoId;
         }
+        if (rolFinal === "director_departamento" || rolFinal === "subdirector_departamento") {
+          if (form.agrupacion?.id) payload.agrupacion_id = form.agrupacion.id;
+        }
         try {
           await actualizarAdmin(usuarioEditando.id_usuario, payload);
         } catch (err) {
@@ -231,6 +244,8 @@ export default function Usuarios() {
               rol: rolFinal,
               turno: rolFinal === "admin" ? form.turno : null,
               planteles: rolFinal === "admin" ? [...form.planteles] : [],
+              agrupacion: (rolFinal === "director_departamento" || rolFinal === "subdirector_departamento")
+                ? form.agrupacion : null,
             }
             : u,
         ),
@@ -245,6 +260,9 @@ export default function Usuarios() {
       if (rolFinal === "admin") {
         if (turnoId) payload.turno_id = turnoId;
         if (plantelId) payload.plantel_id = plantelId;
+      }
+      if (rolFinal === "director_departamento" || rolFinal === "subdirector_departamento") {
+        if (form.agrupacion?.id) payload.agrupacion_id = form.agrupacion.id;
       }
       let res;
       try {
@@ -263,6 +281,7 @@ export default function Usuarios() {
           rol: res.rol || rolFinal,
           turno: res.turno,
           planteles: res.plantel ? [res.plantel] : [],
+          agrupacion: res.agrupacion || null,
           estado: "activo",
           solicitado: new Date().toISOString().slice(0, 10),
           origenBackend: false,
@@ -655,10 +674,26 @@ export default function Usuarios() {
             </label>
           )}
 
+          {editando ? (
+            <label className="formulario__campo">
+              <span className="formulario__etiqueta">Rol</span>
+              <select value={form.rol} onChange={fijarCampo("rol")}>
+                {ROLES_EDICION.map((r) => (
+                  <option key={r.id} value={r.id}>{r.etiqueta}</option>
+                ))}
+              </select>
+              {form.rol === "docente" && (
+                <span className={styles["aviso-campo"]}>
+                  Al guardar, el usuario perderá su acceso de gestión. Su rol dependerá de sus credenciales institucionales.
+                </span>
+              )}
+            </label>
+          ) : null}
+
           {form.rol === "admin" && (
             <div className="formulario__campo">
               <span className="formulario__etiqueta">
-                Plantel donde puede gestionar fechas
+                Plantel o departamento donde puede gestionar fechas
               </span>
               {form.planteles.length > 0 ? (
                 <div className={styles["plantel-seleccionado"]}>
@@ -699,23 +734,36 @@ export default function Usuarios() {
             </label>
           )}
 
-          {editando ? (
+          {(form.rol === "director_departamento" || form.rol === "subdirector_departamento") && (
             <label className="formulario__campo">
-              <span className="formulario__etiqueta">Rol</span>
-              <select value={form.rol} onChange={fijarCampo("rol")}>
-                {ROLES_EDICION.map((r) => (
-                  <option key={r.id} value={r.id}>{r.etiqueta}</option>
-                ))}
+              <span className="formulario__etiqueta">Agrupación</span>
+              <select
+                value={form.agrupacion?.id || ""}
+                onChange={(e) => {
+                  const id = e.target.value;
+                  const ag = agrupacionesDisponibles.find((a) => a.id === id);
+                  setForm((prev) => ({ ...prev, agrupacion: ag || null }));
+                }}
+              >
+                <option value="">
+                  {form.rol === "director_departamento"
+                    ? "Seleccionar dirección…"
+                    : "Seleccionar subdirección…"}
+                </option>
+                {agrupacionesDisponibles
+                  .filter((a) =>
+                    form.rol === "director_departamento"
+                      ? !a.parent_id
+                      : !!a.parent_id
+                  )
+                  .map((a) => (
+                    <option key={a.id} value={a.id}>{a.nombre}</option>
+                  ))}
               </select>
-              {form.rol === "docente" && (
-                <span className={styles["aviso-campo"]}>
-                  Al guardar, el usuario perderá su acceso de gestión. Su rol dependerá de sus credenciales institucionales.
-                </span>
-              )}
             </label>
-          ) : null}
+          )}
 
-          {(ROLES_GESTION[form.rol] && (!editando || form.rol === "colaborador")) && (
+          {(ROLES_GESTION[form.rol] && (!editando || form.rol === "colaborador" || form.rol === "director_departamento" || form.rol === "subdirector_departamento")) && (
             <p className={styles["rol-nota"]}>
               <ShieldCheck size={13} />
               <span>

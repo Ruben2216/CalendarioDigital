@@ -109,7 +109,7 @@ class LoginInstitucionalView(APIView):
         # Sincronizar plantel desde adscripción institucional: usuarios nuevos y
         # usuarios reiniciados (sin asignación) recuperan su adscripción original
         resincronizar = usuario.rol.nombre_rol in ('colaborador', 'docente', 'personal') and not usuario.ids_planteles()
-        if datos_empleado and (not usuario_local or resincronizar):
+        if datos_empleado and usuario.rol.nombre_rol != 'admin' and (not usuario_local or resincronizar):
             adscripcion_nombre = (
                 datos_empleado.get('adscripcion') or
                 datos_empleado.get('nombreAdscripcion') or ''

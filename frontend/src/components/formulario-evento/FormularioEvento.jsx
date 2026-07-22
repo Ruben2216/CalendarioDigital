@@ -15,6 +15,10 @@ export default function FormularioEvento({
   turnos = [],
   error = null,
   minFecha = '',
+  soloDepartamento = false,
+  nombreAgrupacion = "",
+  idAgrupacion = "",
+  plantelesSelector,
   onChange,
   onSubmit,
 }) {
@@ -25,14 +29,17 @@ export default function FormularioEvento({
   const errorDe = (campo) =>
     error?.campo === campo ? <MensajeError>{error.mensaje}</MensajeError> : null;
 
-  const esGeneral = !restringido && !form.plantel;
+  const esGeneral = !restringido && !form.plantel && !form.agrupacion;
 
   const cambiarPlantel = (valor) => {
     fij('plantel', valor);
     if (!valor) {
+      fij('agrupacion', soloDepartamento && idAgrupacion ? idAgrupacion : "");
       fij('especifico', false);
       fij('semestre', '');
       fij('grupo', '');
+    } else {
+      fij('agrupacion', "");
     }
   };
 
@@ -141,7 +148,7 @@ export default function FormularioEvento({
 
       <div className="formulario__fila">
         <label className="formulario__campo">
-          <span className="formulario__etiqueta">Plantel o Departamento</span>
+          <span className="formulario__etiqueta">{soloDepartamento ? "Departamento" : "Plantel o Departamento"}</span>
           {restringido ? (
             <select value={form.plantel} onChange={set('plantel')} required>
               {planteles.map((p) => (
@@ -152,7 +159,8 @@ export default function FormularioEvento({
             <SelectorPlantel
               value={form.plantel}
               onChange={cambiarPlantel}
-              textoTodos="Todos"
+              textoTodos={nombreAgrupacion || "Todos"}
+              planteles={plantelesSelector}
             />
           )}
         </label>

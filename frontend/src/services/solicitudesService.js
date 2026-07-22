@@ -36,8 +36,8 @@ export async function listarSolicitudes(estado, tipo) {
 
 export async function listarAdministradores() {
     const url = new URL('/api/usuarios/', window.location.origin);
-    url.searchParams.set('rol', 'admin,colaborador');
-    return peticionJson(url, {}, 'No se pudieron cargar los administradores.'); // [{ id, nombre, correo, planteles: [{plantel, turno}], rol }]
+    url.searchParams.set('rol', 'admin,colaborador,director_departamento,subdirector_departamento');
+    return peticionJson(url, {}, 'No se pudieron cargar los administradores.'); // [{ id, nombre, correo, planteles: [{plantel, turno}], rol, agrupacion }]
 }
 
 // Superusuario crea un admin (con plantel y turno) o un colaborador directamente.

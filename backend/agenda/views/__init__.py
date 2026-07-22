@@ -7,6 +7,7 @@ from .auth import (
 )
 from .usuarios import (
     ActualizarAdminView,
+    AgrupacionListView,
     CrearAdminView,
     EstadisticasDashboardView,
     GuardarConfiguracionPlantelesView,
@@ -46,6 +47,7 @@ from .notificaciones import (
 __all__ = [
     'ActualizarAdminView',
     'AdminsDisponiblesView',
+    'AgrupacionListView',
     'AnuncioDetailView',
     'AnuncioListView',
     'CalendarioListView',

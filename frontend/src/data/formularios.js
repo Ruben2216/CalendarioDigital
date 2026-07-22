@@ -9,6 +9,7 @@ export const EVENTO_BASE = {
   lugar: "",
   plantel: "",
   turno: "",
+  agrupacion: "",
   formato: "punto",
   todoElDia: false,
   especifico: false,

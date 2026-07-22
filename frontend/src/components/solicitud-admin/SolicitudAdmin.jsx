@@ -31,7 +31,7 @@ const NOTAS = {
     <>Tu solicitud será revisada por un <b>superusuario</b>. Si la aprueba, tu cuenta pasará de <b>Docente/Administrativo</b> a <b>Administrador</b> y podrás gestionar el calendario correspondiente.</>
   ),
   visualizacion: (
-    <>Tu solicitud será revisada por un <b>administrador del plantel</b>. Si la aprueba, podrás visualizar el calendario de ese plantel (máximo {LIMITE_PLANTELES} planteles asignados).</>
+    <>Tu solicitud será revisada por un <b>administrador del plantel o departamento</b>. Si la aprueba, podrás visualizar el calendario de ese plantel (máximo {LIMITE_PLANTELES} planteles asignados).</>
   ),
   turno: (
     <>Tu solicitud será revisada por un <b>administrador del plantel</b>. Si la aprueba, tu turno en ese plantel se actualizará.</>
@@ -266,7 +266,7 @@ export default function SolicitudAdmin({ abierto, onCerrar }) {
               </label>
             ) : (
               <div className="formulario__campo">
-                <span className="formulario__etiqueta">Plantel</span>
+                <span className="formulario__etiqueta">Plantel o departamento</span>
                 {form.plantel ? (
                   <div className={styles["plantel-seleccionado"]}>
                     <MapPin size={13} />

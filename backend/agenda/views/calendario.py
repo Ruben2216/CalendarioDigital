@@ -9,7 +9,8 @@ from rest_framework.response import Response
 from rest_framework import status, permissions
 
 from ._comunes import _resolver_semestre_grupo, _usuario_sesion
-from ..models import Calendario, Evento, Grupo, Notificacion, Plantel, TipoEvento, Turno
+from ..models import (Agrupacion, Calendario, Evento, Grupo, Notificacion, Plantel,
+                      TipoEvento, Turno)
 from ..services import notificaciones_push as push
 from ..services.google_calendar import sincronizar_actualizacion, sincronizar_creacion, sincronizar_eliminacion
 
@@ -39,7 +40,7 @@ class TipoEventoListView(APIView):
     def get(self, request):
         usuario = _usuario_sesion(request)
         if usuario is None:
-            cond = Q(plantel__isnull=True)
+            cond = Q(plantel__isnull=True, agrupacion__isnull=True)
             plantel_id = request.query_params.get('plantel_id')
             plantel_nombre = request.query_params.get('plantel')
             if plantel_id:
@@ -48,27 +49,52 @@ class TipoEventoListView(APIView):
                 cond |= Q(plantel_id__in=Plantel.equivalentes(plantel_nombre))
             else:
                 cond |= Q(eventos__publico=True)
-            tipos = TipoEvento.objects.select_related('plantel').filter(cond).distinct()
-        elif usuario.es_gestor_global():
-            tipos = TipoEvento.objects.select_related('plantel').all()
+            tipos = TipoEvento.objects.select_related('plantel', 'agrupacion').filter(cond).distinct()
         else:
-            tipos = TipoEvento.objects.select_related('plantel').filter(
-                Q(plantel__isnull=True) | Q(plantel_id__in=usuario.ids_planteles())
-            )
-        rol = usuario.rol.nombre_rol if usuario else ''
-        es_gestor = usuario.es_gestor_global() if usuario else False
-        planteles = set(usuario.ids_planteles()) if usuario and rol == 'admin' else set()
+            rol = usuario.rol.nombre_rol
+            if rol in ('superusuario', 'colaborador'):
+                tipos = TipoEvento.objects.select_related('plantel', 'agrupacion').all()
+            elif rol == 'director_departamento':
+                ids_plantel = set(usuario.ids_planteles_agrupacion_herencia())
+                cond = Q(agrupacion_id=usuario.agrupacion_id) | Q(plantel__isnull=True, agrupacion__isnull=True)
+                if ids_plantel:
+                    cond |= Q(plantel_id__in=ids_plantel)
+                tipos = TipoEvento.objects.select_related('plantel', 'agrupacion').filter(cond)
+            elif rol == 'subdirector_departamento':
+                ids_plantel = set(usuario.ids_planteles_agrupacion())
+                cond = Q(agrupacion_id=usuario.agrupacion_id) | Q(plantel__isnull=True, agrupacion__isnull=True)
+                if ids_plantel:
+                    cond |= Q(plantel_id__in=ids_plantel)
+                tipos = TipoEvento.objects.select_related('plantel', 'agrupacion').filter(cond)
+            else:
+                tipos = TipoEvento.objects.select_related('plantel', 'agrupacion').filter(
+                    Q(plantel__isnull=True, agrupacion__isnull=True) | Q(plantel_id__in=usuario.ids_planteles())
+                )
+
+        planteles = set(usuario.ids_planteles()) if usuario and usuario.rol.nombre_rol == 'admin' else set()
+        agrupacion_ids = set()
+        if usuario and usuario.agrupacion_id:
+            if usuario.rol.nombre_rol == 'director_departamento':
+                agrupacion_ids.add(usuario.agrupacion_id)
+                for sub in usuario.agrupacion.subagrupaciones.all():
+                    agrupacion_ids.add(sub.id_agrupacion)
+            else:
+                agrupacion_ids.add(usuario.agrupacion_id)
 
         def _puede_editar(t):
-            if es_gestor:
+            if usuario.rol.nombre_rol in ('superusuario', 'colaborador'):
                 return True
-            if rol == 'admin':
+            if usuario.rol.nombre_rol == 'admin':
                 return t.plantel_id is not None and t.plantel_id in planteles
+            if usuario.rol.nombre_rol in ('director_departamento', 'subdirector_departamento'):
+                return t.agrupacion_id in agrupacion_ids
             return False
 
         return Response([
             {'id': str(t.id_tipo_evento), 'etiqueta': t.nombre, 'color': t.color_hex,
-             'es_global': t.plantel_id is None, 'plantel': t.plantel.nombre if t.plantel else None,
+             'es_global': t.plantel_id is None and t.agrupacion_id is None,
+             'plantel': t.plantel.nombre if t.plantel else None,
+             'agrupacion': {'id': str(t.agrupacion.id_agrupacion), 'nombre': t.agrupacion.nombre} if t.agrupacion_id else None,
              'puede_editar': _puede_editar(t)}
             for t in tipos
         ])
@@ -78,7 +104,7 @@ class TipoEventoListView(APIView):
         if not usuario:
             return Response({'error': 'No autenticado.'}, status=status.HTTP_401_UNAUTHORIZED)
         rol = usuario.rol.nombre_rol
-        if rol != 'admin' and not usuario.es_gestor_global():
+        if rol not in ('admin', 'superusuario', 'colaborador', 'director_departamento', 'subdirector_departamento'):
             return Response({'error': 'No autorizado.'}, status=status.HTTP_403_FORBIDDEN)
 
         nombre = (request.data.get('nombre') or '').strip()
@@ -94,12 +120,15 @@ class TipoEventoListView(APIView):
             except Plantel.DoesNotExist:
                 return Response({'error': 'Plantel no encontrado.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        if usuario.agrupacion_id and usuario.es_gestor_global():
+        agrupacion = None
+        if rol in ('director_departamento', 'subdirector_departamento'):
+            agrupacion = usuario.agrupacion
+            if plantel_id:
+                ids = set(usuario.ids_planteles_agrupacion_herencia() if rol == 'director_departamento' else usuario.ids_planteles_agrupacion())
+                if str(plantel_id) not in [str(pid) for pid in ids]:
+                    return Response({'error': 'No tienes acceso a ese plantel.'}, status=status.HTTP_403_FORBIDDEN)
+        elif usuario.agrupacion_id and usuario.es_gestor_global():
             ids_permitidos = [str(pid) for pid in usuario.ids_planteles_agrupacion_herencia()]
-            if plantel_id and str(plantel_id) not in ids_permitidos:
-                return Response({'error': 'No tienes acceso a ese plantel.'}, status=status.HTTP_403_FORBIDDEN)
-        elif usuario.agrupacion_id:
-            ids_permitidos = [str(pid) for pid in usuario.ids_planteles_agrupacion()]
             if plantel_id and str(plantel_id) not in ids_permitidos:
                 return Response({'error': 'No tienes acceso a ese plantel.'}, status=status.HTTP_403_FORBIDDEN)
         elif not usuario.es_gestor_global():
@@ -109,11 +138,12 @@ class TipoEventoListView(APIView):
             if str(plantel_id) not in ids:
                 return Response({'error': 'No tienes acceso a ese plantel.'}, status=status.HTTP_403_FORBIDDEN)
 
-        tipo = TipoEvento.objects.create(nombre=nombre, color_hex=color_hex, plantel=plantel)
+        tipo = TipoEvento.objects.create(nombre=nombre, color_hex=color_hex, plantel=plantel, agrupacion=agrupacion)
         return Response(
             {'id': str(tipo.id_tipo_evento), 'etiqueta': tipo.nombre, 'color': tipo.color_hex,
-             'es_global': tipo.plantel_id is None,
+             'es_global': tipo.plantel_id is None and tipo.agrupacion_id is None,
              'plantel': tipo.plantel.nombre if tipo.plantel else None,
+             'agrupacion': {'id': str(tipo.agrupacion.id_agrupacion), 'nombre': tipo.agrupacion.nombre} if tipo.agrupacion_id else None,
              'puede_editar': True},
             status=status.HTTP_201_CREATED,
         )
@@ -132,7 +162,7 @@ class TipoEventoDetailView(APIView):
             return None, None, Response(status=status.HTTP_404_NOT_FOUND)
 
         rol = usuario.rol.nombre_rol
-        if usuario.es_gestor_global():
+        if rol in ('superusuario', 'colaborador'):
             return usuario, tipo, None
         if rol == 'admin':
             if tipo.plantel_id is None:
@@ -141,6 +171,10 @@ class TipoEventoDetailView(APIView):
                     status=status.HTTP_403_FORBIDDEN,
                 )
             if tipo.plantel_id not in usuario.ids_planteles():
+                return None, None, Response({'error': 'No autorizado.'}, status=status.HTTP_403_FORBIDDEN)
+            return usuario, tipo, None
+        if rol in ('director_departamento', 'subdirector_departamento'):
+            if tipo.agrupacion_id != usuario.agrupacion_id:
                 return None, None, Response({'error': 'No autorizado.'}, status=status.HTTP_403_FORBIDDEN)
             return usuario, tipo, None
         return None, None, Response({'error': 'No autorizado.'}, status=status.HTTP_403_FORBIDDEN)
@@ -182,6 +216,10 @@ def _evento_dict(ev, usuario):
         'semestre': ev.semestre_id,
         'grupo': ev.grupo.letra_id if ev.grupo else None,
         'plantel': ev.plantel.nombre if ev.plantel else None,
+        'agrupacion': {
+            'id': str(ev.agrupacion_id),
+            'nombre': ev.agrupacion.nombre,
+        } if ev.agrupacion_id else None,
         'turno': ev.turno.nombre_turno if ev.turno else None,
         'id_calendario': ev.calendario_id,
         'publico': ev.publico,
@@ -284,7 +322,7 @@ class EventoListView(APIView):
             return Response({'error': 'Calendario no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
 
         qs = Evento.objects.filter(calendario=calendario).select_related(
-            'tipo_evento', 'plantel', 'turno', 'creado_por__rol', 'semestre', 'grupo__letra'
+            'tipo_evento', 'plantel', 'turno', 'creado_por__rol', 'semestre', 'grupo__letra', 'agrupacion'
         )
         usuario = _usuario_sesion(request)
         turno_para_todos = Q(turno__isnull=True)
@@ -292,17 +330,37 @@ class EventoListView(APIView):
         if usuario:
             rol = usuario.rol.nombre_rol
             if usuario.es_gestor_global():
-                # Por defecto solo eventos generales (evita saturar el calendario)
-                # Con plantel_filtro: generales + los de ese plantel en específico
                 nombre_filtro = request.query_params.get('plantel_filtro')
-                qs = qs.filter(usuario.alcance_plantel(plantel_filtro=nombre_filtro))
+                if usuario.agrupacion_id:
+                    if rol == 'director_departamento':
+                        q = Q(plantel__isnull=True, agrupacion__isnull=True)
+                        q |= Q(agrupacion_id=usuario.agrupacion_id)
+                        q |= Q(agrupacion__parent_id=usuario.agrupacion_id)
+                        if nombre_filtro:
+                            q |= Q(plantel__nombre=nombre_filtro)
+                    else:
+                        q = Q(plantel__isnull=True, agrupacion__isnull=True)
+                        if nombre_filtro:
+                            q |= Q(plantel__nombre=nombre_filtro)
+                        q |= Q(agrupacion_id=usuario.agrupacion_id)
+                else:
+                    q = usuario.alcance_plantel(plantel_filtro=nombre_filtro)
+                qs = qs.filter(q)
             elif rol == 'admin':
-                qs = qs.filter(usuario.alcance_plantel())
+                q = Q(plantel__isnull=True, agrupacion__isnull=True)
+                base_ids = usuario.ids_planteles()
+                if base_ids:
+                    q |= Q(plantel_id__in=base_ids)
+                qs = qs.filter(q)
             else:
                 cond_turno = turno_para_todos | Q(turno_id__in=usuario.ids_turnos())
-                qs = qs.filter(usuario.alcance_plantel() & cond_turno)
+                q = Q(plantel__isnull=True, agrupacion__isnull=True)
+                base_ids = usuario.ids_planteles_agrupacion() or usuario.ids_planteles()
+                if base_ids:
+                    q |= Q(plantel_id__in=base_ids)
+                qs = qs.filter(q & cond_turno)
         else:
-            plantel_para_todos = Q(plantel__isnull=True)
+            plantel_para_todos = Q(plantel__isnull=True, agrupacion__isnull=True)
             rol = request.query_params.get('rol')
             plantel_id_param = request.query_params.get('plantel_id')
             plantel_nombre = request.query_params.get('plantel')
@@ -354,7 +412,7 @@ class EventoListView(APIView):
             return Response({'error': 'No autenticado.'}, status=status.HTTP_401_UNAUTHORIZED)
 
         rol = usuario.rol.nombre_rol
-        if rol != 'admin' and not usuario.es_gestor_global():
+        if rol not in ('admin', 'subdirector_departamento') and not usuario.es_gestor_global():
             return Response({'error': 'No autorizado para crear eventos.'}, status=status.HTTP_403_FORBIDDEN)
 
         datos, error = self._leer_evento(request, usuario, rol)
@@ -362,7 +420,7 @@ class EventoListView(APIView):
             return Response({'error': error}, status=status.HTTP_400_BAD_REQUEST)
 
         evento = Evento.objects.create(creado_por=usuario, **datos)
-        evento = Evento.objects.select_related('tipo_evento', 'plantel', 'turno', 'creado_por__rol', 'semestre', 'grupo__letra').get(pk=evento.pk)
+        evento = Evento.objects.select_related('tipo_evento', 'plantel', 'turno', 'creado_por__rol', 'semestre', 'grupo__letra', 'agrupacion').get(pk=evento.pk)
         _notificar_evento(evento, 'creado')
         agregar_google = request.data.get('agregar_a_google_calendar', True)
         excluir = set() if agregar_google else {usuario.id_usuario}
@@ -389,21 +447,31 @@ class EventoListView(APIView):
         plantel = Plantel.objects.filter(nombre=d.get('plantel')).first() if d.get('plantel') else None
         turno = Turno.objects.filter(nombre_turno=d.get('turno')).first() if d.get('turno') else None
 
+        agrupacion = None
+        if d.get('agrupacion'):
+            try:
+                agrupacion = Agrupacion.objects.get(pk=d['agrupacion'])
+            except (Agrupacion.DoesNotExist, ValueError):
+                return None, 'Agrupación inválida.'
+
         semestre_obj, grupo_obj = _resolver_semestre_grupo(d.get('semestre'), d.get('grupo'))
 
-        if usuario.agrupacion_id and usuario.es_gestor_global():
+        if usuario.agrupacion_id and rol == 'director_departamento':
             ids_permitidos = usuario.ids_planteles_agrupacion_herencia()
         elif usuario.agrupacion_id:
             ids_permitidos = usuario.ids_planteles_agrupacion()
         else:
             ids_permitidos = usuario.ids_planteles()
         if ids_permitidos:
-            if not plantel:
-                return None, 'Debes seleccionar tu plantel.'
-            if plantel.id_plantel not in ids_permitidos:
-                return None, 'No tienes permiso para crear eventos en este plantel.'
+            if plantel:
+                if plantel.id_plantel not in ids_permitidos:
+                    return None, 'No tienes permiso para crear eventos en este plantel.'
+            if agrupacion and agrupacion.id_agrupacion != usuario.agrupacion_id:
+                return None, 'No tienes permiso para crear eventos en esta agrupación.'
             if tipo.plantel_id is not None and tipo.plantel_id not in ids_permitidos:
                 return None, 'El tipo de evento no pertenece a tu catálogo de plantel.'
+            if tipo.agrupacion_id and tipo.agrupacion_id != usuario.agrupacion_id:
+                return None, 'El tipo de evento no pertenece a tu catálogo.'
         elif rol == 'admin':
             if calendario.clave != Calendario.CLAVE_ESCOLARIZADO:
                 return None, 'Solo puedes crear eventos en el calendario escolarizado.'
@@ -430,12 +498,13 @@ class EventoListView(APIView):
             'hora_fin': _parse_hora(d.get('horaFin')),
             'lugar': (d.get('lugar') or '').strip(),
             'plantel': plantel,
+            'agrupacion': agrupacion,
             'turno': turno,
             'semestre': semestre_obj,
             'grupo': grupo_obj,
         }
 
-        if usuario.es_gestor_global():
+        if usuario.rol.nombre_rol in ('superusuario', 'colaborador'):
             datos['publico'] = True if d.get('publico') else None
         return datos, None
 
@@ -448,7 +517,7 @@ class EventoDetailView(APIView):
         try:
             evento = Evento.objects.select_related(
                 'tipo_evento', 'plantel', 'turno', 'creado_por__rol', 'calendario',
-                'semestre', 'grupo__letra'
+                'semestre', 'grupo__letra', 'agrupacion'
             ).get(pk=id_evento)
         except Evento.DoesNotExist:
             return None, None
@@ -468,7 +537,7 @@ class EventoDetailView(APIView):
         for campo, valor in datos.items():
             setattr(evento, campo, valor)
         evento.save()
-        evento = Evento.objects.select_related('tipo_evento', 'plantel', 'turno', 'creado_por__rol', 'semestre', 'grupo__letra').get(pk=evento.pk)
+        evento = Evento.objects.select_related('tipo_evento', 'plantel', 'turno', 'creado_por__rol', 'semestre', 'grupo__letra', 'agrupacion').get(pk=evento.pk)
         _notificar_evento(evento, 'actualizado')
         threading.Thread(target=sincronizar_actualizacion, args=(evento,), daemon=True).start()
         return Response(_evento_dict(evento, usuario))

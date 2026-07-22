@@ -38,7 +38,7 @@ export function useEventoCrud({
       titulo: ev.titulo, tipo: ev.tipo, area: ev.area || "", fecha: ev.fecha,
       fechaFin: ev.fechaFin || "", horaInicio: ev.horaInicio || "",
       horaFin: ev.horaFin || "", lugar: ev.lugar || "", plantel: ev.plantel ?? "",
-      turno: ev.turno ?? "", formato: ev.formato || "punto",
+      agrupacion: ev.agrupacion?.id ?? "", turno: ev.turno ?? "", formato: ev.formato || "punto",
       todoElDia: !ev.horaInicio,
       especifico: ev.semestre != null || ev.grupo != null,
       semestre: ev.semestre ?? "", grupo: ev.grupo ?? "",

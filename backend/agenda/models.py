@@ -22,7 +22,7 @@ class Rol(models.Model):
 
 
 class Agrupacion(models.Model):
-    id_agrupacion = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False, db_column='id_agrupacion')
+    id_agrupacion = UniqueIdentifierField(primary_key=True, default=uuid.uuid4, editable=False)
     nombre = models.CharField(max_length=200, unique=True)
     parent = models.ForeignKey(
         'self', on_delete=models.CASCADE, null=True, blank=True,
@@ -128,7 +128,7 @@ class Usuario(models.Model):
     # Roles con gestión global del calendario: ven y editan eventos/anuncios de
     # toda la institución. El colaborador comparte alcance con el superusuario
     # salvo mensajería y administración de usuarios (exclusivas del superusuario).
-    ROLES_GESTION_GLOBAL = ('superusuario', 'colaborador')
+    ROLES_GESTION_GLOBAL = ('superusuario', 'colaborador', 'director_departamento', 'subdirector_departamento')
 
     id_usuario = models.BigAutoField(primary_key=True)
     rol = models.ForeignKey(
@@ -201,16 +201,14 @@ class Usuario(models.Model):
 
     def alcance_plantel(self, campo='plantel', plantel_filtro=None):
         """Q para filtrar `campo` según el rol y agrupación:
-        - Director (gestor global con agrupación): todos los eventos, sin filtro.
-        - Gestor global sin agrupación: solo eventos generales (+ plantel_filtro).
-        - Subdirector/Colaborador (admin con agrupación): eventos del alcance
+        - Gestor global (superusuario/colaborador/director): solo eventos
+          generales por defecto, + plantel_filtro si se proporciona.
+        - Subdirector de departamento (con agrupación): eventos del alcance
           de su agrupación + generales.
         - Otros (admin sin agrupación, docente, alumno): eventos de sus planteles
           asignados + generales."""
         general = Q(**{f'{campo}__isnull': True})
         if self.es_gestor_global():
-            if self.agrupacion_id:
-                return Q()
             if plantel_filtro:
                 return general | Q(**{f'{campo}__nombre': plantel_filtro})
             return general
@@ -218,10 +216,19 @@ class Usuario(models.Model):
         return general | Q(**{f'{campo}_id__in': base_ids})
 
     def a_sesion_dict(self, **extra):
+        agrupacion_data = None
+        if self.agrupacion_id:
+            ids = self.ids_planteles_agrupacion_herencia() if self.rol.nombre_rol == 'director_departamento' else self.ids_planteles_agrupacion()
+            agrupacion_data = {
+                'id': str(self.agrupacion.id_agrupacion),
+                'nombre': self.agrupacion.nombre,
+                'planteles': list(Plantel.objects.filter(id_plantel__in=ids).values_list('nombre', flat=True)) if ids else [],
+            }
         return {
             'id_usuario': self.id_usuario,
             'rol': self.rol.nombre_rol,
             'correo': self.correo or '',
+            'agrupacion': agrupacion_data,
             'planteles': [
                 {
                     'plantel': {'id': up.plantel.id_plantel, 'nombre': up.plantel.nombre},
@@ -315,10 +322,13 @@ class TipoEvento(models.Model):
     plantel = models.ForeignKey(
         'Plantel', on_delete=models.CASCADE, null=True, blank=True, related_name='tipos_evento'
     )
+    agrupacion = models.ForeignKey(
+        'Agrupacion', on_delete=models.CASCADE, null=True, blank=True, related_name='tipos_evento'
+    )
 
     class Meta:
         db_table = 'TipoEvento'
-        ordering = ['plantel', 'id_tipo_evento']
+        ordering = ['plantel', 'agrupacion', 'id_tipo_evento']
 
     def __str__(self):
         return self.nombre
@@ -341,6 +351,9 @@ class Evento(models.Model):
     lugar = models.CharField(max_length=150, blank=True, default='')
     plantel = models.ForeignKey(
         Plantel, on_delete=models.CASCADE, null=True, blank=True, related_name='eventos'
+    )
+    agrupacion = models.ForeignKey(
+        Agrupacion, on_delete=models.CASCADE, null=True, blank=True, related_name='eventos'
     )
     turno = models.ForeignKey(
         Turno, on_delete=models.CASCADE, null=True, blank=True, related_name='eventos'
@@ -376,9 +389,13 @@ class Evento(models.Model):
             return False
         if usuario.es_gestor_global():
             if usuario.agrupacion_id:
+                if self.agrupacion_id == usuario.agrupacion_id:
+                    return True
                 return self.plantel_id in usuario.ids_planteles_agrupacion_herencia()
             return True
-        if usuario.rol.nombre_rol == 'admin':
+        if usuario.rol.nombre_rol in ('admin', 'subdirector_departamento'):
+            if self.agrupacion_id and self.agrupacion_id == usuario.agrupacion_id:
+                return True
             ids = usuario.ids_planteles_agrupacion() or usuario.ids_planteles()
             return self.plantel_id in ids
         return False
@@ -443,6 +460,11 @@ class Anuncio(models.Model):
         if usuario is None:
             return False
         if usuario.es_gestor_global():
+            if usuario.agrupacion_id:
+                ids = usuario.ids_planteles_agrupacion_herencia() if usuario.rol.nombre_rol == 'director_departamento' else usuario.ids_planteles_agrupacion()
+                if not ids or self.plantel_id is None:
+                    return False
+                return self.plantel_id in ids
             return True
         if usuario.rol.nombre_rol == 'admin':
             return self.creado_por_id == usuario.id_usuario

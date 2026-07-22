@@ -20,6 +20,7 @@ function fetchPlanteles() {
  *   placeholder  string                Texto del input (opcional)
  *   maxResultados number               Límite de filas visibles (default 6)
  *   autoFocus    bool                  (default true)
+ *   planteles    {id:number, nombre:string}[]  Lista predefinida (sino se obtienen del servidor)
  */
 export default function BuscadorPlantelInline({
   excluirIds = [],
@@ -27,12 +28,14 @@ export default function BuscadorPlantelInline({
   placeholder = "Buscar por nombre o número…",
   maxResultados = 6,
   autoFocus = true,
+  planteles: plantelesProp,
 }) {
   const [query, setQuery] = useState("");
-  const [planteles, setPlanteles] = useState(_cache ?? []);
-  const [cargando, setCargando] = useState(!_cache);
+  const [planteles, setPlanteles] = useState(plantelesProp ?? _cache ?? []);
+  const [cargando, setCargando] = useState(!plantelesProp && !_cache);
 
   useEffect(() => {
+    if (plantelesProp) { setPlanteles(plantelesProp); return; }
     if (_cache) return;
     let vigente = true;
     fetchPlanteles()
@@ -40,7 +43,7 @@ export default function BuscadorPlantelInline({
       .catch(() => {})
       .finally(() => { if (vigente) setCargando(false); });
     return () => { vigente = false; };
-  }, []);
+  }, [plantelesProp]);
 
   const excluirSet = new Set(excluirIds);
   const q = query.trim().toLowerCase();

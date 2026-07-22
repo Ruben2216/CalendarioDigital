@@ -21,6 +21,7 @@ export default function Anuncios() {
   const esAdmin = rolEsAdmin(sesion);
   const esColaborador = rolEsColaborador(sesion);
   const esGestor = esGestorGlobal(sesion);
+  const esAgrupacionRol = sesion?.rol === 'director_departamento' || sesion?.rol === 'subdirector_departamento';
   
   const audienciasVisibles = AUDIENCIAS.filter((a) => {
     if (a.id === "todos") return true;
@@ -29,9 +30,9 @@ export default function Anuncios() {
     return true;
   });
   // Planteles asignados al admin (un admin no crea anuncios generales).
-  const plantelesAdmin = [...new Set((sesion?.planteles || [])
-    .map((p) => p.plantel?.nombre)
-    .filter(Boolean))];
+  const plantelesAdmin = esAgrupacionRol
+    ? (sesion?.agrupacion?.planteles || [])
+    : [...new Set((sesion?.planteles || []).map((p) => p.plantel?.nombre).filter(Boolean))];
   // Turnos asignados al admin (solo puede publicar en su turno)
   const turnosAdmin = [...new Set((sesion?.planteles || [])
     .map((p) => p.turno?.nombre)
@@ -87,6 +88,11 @@ export default function Anuncios() {
       if (editando) {
         await actualizarAnuncio(editando.id, datos);
         avisoExito("Anuncio actualizado");
+      } else if (datos.plantel === '__todos__') {
+        for (const nombre of plantelesAdmin) {
+          await crearAnuncio({ ...datos, plantel: nombre });
+        }
+        avisoExito(`Anuncio publicado en ${plantelesAdmin.length} departamentos`);
       } else {
         await crearAnuncio(datos);
         avisoExito("Anuncio publicado");
@@ -123,7 +129,9 @@ export default function Anuncios() {
           <p className={styles["encabezado__subtitulo"]}>
             {esAdmin
               ? "Publica comunicados para tu plantel dirigidos a administrativos, docentes o alumnos."
-              : "Publica comunicados para administrativos, docentes, alumnos o toda la comunidad."}
+              : esAgrupacionRol
+                ? "Publica comunicados para tus departamentos dirigidos a administrativos, docentes o alumnos."
+                : "Publica comunicados para administrativos, docentes, alumnos o toda la comunidad."}
           </p>
         </div>
         <button type="button" className="boton boton--primario" onClick={abrirNuevo}>
@@ -200,6 +208,7 @@ export default function Anuncios() {
         <ModalAnuncio
           anuncio={editando}
           esAdmin={esAdmin}
+          esAgrupacionRol={esAgrupacionRol}
           audiencias={audienciasVisibles}
           plantelesAdmin={plantelesAdmin}
           turnosAdmin={turnosAdmin}

@@ -16,12 +16,11 @@ export function SolicitudesProvider({ children }) {
   const [pendientes, setPendientes] = useState({ plantel: 0, admin: 0 });
 
   const refrescar = useCallback(async () => {
-    if (rol !== 'admin' && rol !== 'superusuario') return;
+    if (rol !== 'admin' && rol !== 'superusuario' && rol !== 'director_departamento' && rol !== 'subdirector_departamento') return;
     try {
       const dePlantel = await listarSolicitudes('pendiente', 'visualizacion,turno');
-      const deAdmin = rol === 'superusuario'
-        ? await listarSolicitudes('pendiente', 'admin')
-        : [];
+      const esSuper = rol === 'superusuario';
+      const deAdmin = esSuper ? await listarSolicitudes('pendiente', 'admin') : [];
       setPendientes({ plantel: dePlantel.length, admin: deAdmin.length });
     } catch { /* silencioso */ }
   }, [rol]);

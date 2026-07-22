@@ -38,7 +38,7 @@ export default function Mensajeria() {
     recargarConversaciones,
   } = useMensajeria(id_usuario, refrescarBadge);
 
-  const esSuperadmin = rol === 'superusuario';
+  const esSuperadmin = rol === 'superusuario' || rol === 'director_departamento' || rol === 'subdirector_departamento';
 
   const handleSeleccionarDocente = async (idDocente) => {
     setSelectorAbierto(false);
@@ -228,7 +228,7 @@ export default function Mensajeria() {
         onSeleccionar={handleSeleccionarDocente}
         idPlantel={plantel?.id ?? null}
         esSuperadmin={esSuperadmin}
-        rol="docente"
+        rol={esSuperadmin ? '' : 'docente'}
         titulo="Contactar"
       />
 

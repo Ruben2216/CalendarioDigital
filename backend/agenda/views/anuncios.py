@@ -55,6 +55,15 @@ class AnuncioListView(APIView):
                     usuario.alcance_plantel()
                     & (~Q(audiencia='colaborador') | propios)
                 )
+            elif rol in ('director_departamento', 'subdirector_departamento'):
+                ids = usuario.ids_planteles_agrupacion_herencia() if rol == 'director_departamento' else usuario.ids_planteles_agrupacion()
+                cond = Q(plantel__isnull=True)
+                if ids:
+                    cond = cond | Q(plantel_id__in=ids)
+                nombre_filtro = request.query_params.get('plantel_filtro')
+                if nombre_filtro:
+                    cond = cond | Q(plantel__nombre=nombre_filtro)
+                qs = qs.filter(cond & (~Q(audiencia='colaborador') | propios))
             else:
                 qs = qs.filter(
                     usuario.alcance_plantel()
@@ -149,6 +158,26 @@ class AnuncioListView(APIView):
                 turno = next(iter(mis_turnos.values()))
             else:
                 return None, 'Debes seleccionar el turno.'
+        elif rol == 'director_departamento':
+            ids = set(usuario.ids_planteles_agrupacion_herencia())
+            if not ids:
+                return None, 'No tienes planteles en tu agrupación.'
+            if not plantel:
+                return None, 'Debes seleccionar un plantel de tu agrupación.'
+            if plantel.id_plantel not in ids:
+                return None, 'Solo puedes publicar anuncios en planteles de tu agrupación.'
+            if turno_nombre and turno_nombre.lower() != 'todos':
+                turno = Turno.objects.filter(nombre_turno=turno_nombre).first()
+        elif rol == 'subdirector_departamento':
+            ids = set(usuario.ids_planteles_agrupacion())
+            if not ids:
+                return None, 'No tienes planteles en tu agrupación.'
+            if not plantel:
+                return None, 'Debes seleccionar un plantel de tu agrupación.'
+            if plantel.id_plantel not in ids:
+                return None, 'Solo puedes publicar anuncios en planteles de tu agrupación.'
+            if turno_nombre and turno_nombre.lower() != 'todos':
+                turno = Turno.objects.filter(nombre_turno=turno_nombre).first()
         else:
             if turno_nombre and turno_nombre.lower() != 'todos':
                 turno = Turno.objects.filter(nombre_turno=turno_nombre).first()

@@ -12,6 +12,7 @@ export default function SelectorPlantel({
   onChange,
   textoTodos = "Todos",
   placeholder = "Buscar plantel…",
+  planteles: plantelesProp,
 }) {
   const [abierto, setAbierto] = useState(false);
   const [query, setQuery] = useState("");
@@ -19,7 +20,10 @@ export default function SelectorPlantel({
   const controlRef = useRef(null);
   const panelRef = useRef(null);
 
-  const { datos, cargando } = useCargaAsync(listarPlanteles, []);
+  const { datos, cargando } = useCargaAsync(
+    plantelesProp ? () => Promise.resolve(plantelesProp) : listarPlanteles,
+    [plantelesProp]
+  );
   const planteles = datos ?? [];
 
   const recalcular = () => {

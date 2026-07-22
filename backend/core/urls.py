@@ -30,6 +30,7 @@ from agenda.views import (
     AnuncioDetailView,
     RegistrarDispositivoView,
     NotificacionListView,
+    AgrupacionListView,
     EstadisticasDashboardView,
 )
 
@@ -40,6 +41,7 @@ urlpatterns = [
     path('api/auth/login/', LoginInstitucionalView.as_view(), name='login-institucional'),
     
     path('api/planteles/', PlantelListView.as_view(), name='planteles-list'),
+    path('api/agrupaciones/', AgrupacionListView.as_view(), name='agrupaciones-list'),
     path('api/turnos/', TurnoListView.as_view(), name='turnos-list'),
 
     # Calendario y eventos

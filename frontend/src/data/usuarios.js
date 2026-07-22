@@ -15,6 +15,18 @@ export const ROLES_GESTION = {
     color: "morado",
     descripcion: "Puede agregar y modificar fechas del calendario oficial y de todos los planteles.",
   },
+  director_departamento: {
+    id: "director_departamento",
+    etiqueta: "Director de departamentos",
+    color: "azul",
+    descripcion: "Puede gestionar eventos de su dirección y subdirecciones.",
+  },
+  subdirector_departamento: {
+    id: "subdirector_departamento",
+    etiqueta: "Subdirector de departamentos",
+    color: "azul",
+    descripcion: "Puede gestionar eventos de su subdirección asignada.",
+  },
 };
 
 export const ROL = ROLES_GESTION.admin;

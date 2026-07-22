@@ -4,23 +4,28 @@ export const ROL_ETIQUETA = {
   superusuario: 'Superusuario',
   admin: 'Administrador',
   colaborador: 'Colaborador',
+  director_departamento: 'Director de departamentos',
+  subdirector_departamento: 'Subdirector de departamentos',
   docente: 'Docente',
   alumno: 'Alumno',
   tutor: 'Visitante',
 };
 
+const ROLES_AGRUPACION = ['director_departamento', 'subdirector_departamento'];
 // Roles de gestión global: no pertenecen a un solo plantel, administran todos.
-const GESTION_GLOBAL = ['superusuario', 'colaborador'];
+const GESTION_GLOBAL = ['superusuario', 'colaborador', ...ROLES_AGRUPACION];
 
 // Etiqueta ÚNICA del "lugar" del usuario
 export function etiquetaLugar({ rol, tipoEmpleado, tienePlantel, nombreLugar } = {}) {
+  if (ROLES_AGRUPACION.includes(rol)) return 'Departamento';
   if (GESTION_GLOBAL.includes(rol)) return 'Plantel';
   if (esAreaAdministrativa(nombreLugar)) return 'Departamento';
   if (tienePlantel) return 'Plantel';
   return tipoEmpleado === 'Administrativo' ? 'Departamento' : 'Plantel';
 }
 
-export function valorLugar({ rol, nombrePlantel, adscripcion } = {}) {
+export function valorLugar({ rol, nombrePlantel, adscripcion, agrupacion } = {}) {
+  if (ROLES_AGRUPACION.includes(rol)) return agrupacion || 'Sin agrupación';
   if (GESTION_GLOBAL.includes(rol)) return 'Todos los planteles';
   return nombrePlantel || adscripcion || 'Sin plantel';
 }

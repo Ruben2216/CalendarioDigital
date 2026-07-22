@@ -34,10 +34,14 @@ def _ids_planteles_usuario(usuario):
 def _puede_resolver(admin, solicitud):
     """Superusuario resuelve cualquier solicitud. El admin resuelve las de tipo
     admin (comportamiento original) y las de visualización/turno solo si el
-    plantel de la solicitud es uno de los suyos."""
+    plantel de la solicitud es uno de los suyos.
+    Director/subdirector resuelve solicitudes dentro del alcance de su agrupación."""
     rol = admin.rol.nombre_rol
     if rol == 'superusuario':
         return True
+    if rol in ('director_departamento', 'subdirector_departamento'):
+        ids = admin.ids_planteles_agrupacion_herencia() if rol == 'director_departamento' else admin.ids_planteles_agrupacion()
+        return solicitud.plantel_id in set(ids) if ids else False
     if rol != 'admin':
         return False
     if solicitud.tipo == SolicitudAdmin.TIPO_ADMIN:
@@ -51,7 +55,7 @@ class SolicitudAdminView(APIView):
 
     def get(self, request):
         usuario = _usuario_sesion(request)
-        if not usuario or usuario.rol.nombre_rol not in ('admin', 'superusuario'):
+        if not usuario or usuario.rol.nombre_rol not in ('admin', 'superusuario', 'director_departamento', 'subdirector_departamento'):
             return Response({'error': 'No autorizado.'}, status=status.HTTP_403_FORBIDDEN)
 
         qs = SolicitudAdmin.objects.select_related('usuario', 'plantel', 'turno')
@@ -65,8 +69,21 @@ class SolicitudAdminView(APIView):
             qs = qs.filter(tipo__in=tipos)
 
         # El admin solo ve solicitudes dirigidas a sus planteles.
-        if usuario.rol.nombre_rol == 'admin':
+        rol = usuario.rol.nombre_rol
+        if rol == 'admin':
             qs = qs.filter(plantel_id__in=usuario.ids_planteles())
+        elif rol == 'director_departamento':
+            ids = usuario.ids_planteles_agrupacion_herencia()
+            if ids:
+                qs = qs.filter(plantel_id__in=ids)
+            else:
+                qs = qs.none()
+        elif rol == 'subdirector_departamento':
+            ids = usuario.ids_planteles_agrupacion()
+            if ids:
+                qs = qs.filter(plantel_id__in=ids)
+            else:
+                qs = qs.none()
 
         return Response([_solicitud_dict(s) for s in qs])
 
@@ -163,7 +180,7 @@ class ResolverSolicitudAdminView(APIView):
 
     def post(self, request, id_solicitud):
         admin = _usuario_sesion(request)
-        if not admin or admin.rol.nombre_rol not in ('admin', 'superusuario'):
+        if not admin or admin.rol.nombre_rol not in ('admin', 'superusuario', 'director_departamento', 'subdirector_departamento'):
             return Response({'error': 'No autorizado.'}, status=status.HTTP_403_FORBIDDEN)
 
         try:
@@ -219,10 +236,13 @@ class ResolverSolicitudAdminView(APIView):
                     status=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 )
             usuario.rol = rol_admin
-            usuario.save(update_fields=['rol'])
-            # Crear entrada UsuarioPlantel con el plantel/turno de la solicitud
+            update_fields = ['rol']
+            if usuario.agrupacion_id:
+                usuario.agrupacion = None
+                update_fields.append('agrupacion')
+            usuario.save(update_fields=update_fields)
+            UsuarioPlantel.objects.filter(usuario=usuario).delete()
             if solicitud.plantel_id and solicitud.turno_id:
-                UsuarioPlantel.objects.filter(usuario=usuario).delete()
                 UsuarioPlantel.objects.create(usuario=usuario, plantel=solicitud.plantel, turno=solicitud.turno)
             return None
 
@@ -252,7 +272,7 @@ class ResolverSolicitudAdminView(APIView):
     def patch(self, request, id_solicitud):
         """Edita el plantel/turno de una solicitud pendiente antes de resolverla."""
         admin = _usuario_sesion(request)
-        if not admin or admin.rol.nombre_rol not in ('admin', 'superusuario'):
+        if not admin or admin.rol.nombre_rol not in ('admin', 'superusuario', 'director_departamento', 'subdirector_departamento'):
             return Response({'error': 'No autorizado.'}, status=status.HTTP_403_FORBIDDEN)
 
         try:
@@ -291,7 +311,7 @@ class ResolverSolicitudAdminView(APIView):
     def delete(self, request, id_solicitud):
         """Elimina la solicitud de la BD. No afecta al Usuario ni a su rol."""
         admin = _usuario_sesion(request)
-        if not admin or admin.rol.nombre_rol not in ('admin', 'superusuario'):
+        if not admin or admin.rol.nombre_rol not in ('admin', 'superusuario', 'director_departamento', 'subdirector_departamento'):
             return Response({'error': 'No autorizado.'}, status=status.HTTP_403_FORBIDDEN)
 
         try:

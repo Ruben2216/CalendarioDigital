@@ -21,18 +21,23 @@ const NAV = [
 const RUTAS_OCULTAS = {
   admin: ['/usuarios'],
   colaborador: ['/usuarios', '/mensajeria', '/solicitudes'],
+  director_departamento: ['/usuarios'],
+  subdirector_departamento: ['/usuarios'],
 };
 
-// Layout para admin, superusuario y colaborador.
+// Layout para admin, superusuario, colaborador, director y subdirector de departamento.
 export default function Layout() {
   const [sesion, setSesion] = useState(leerSesion);
-  const { nombre, iniciales, rol, plantel, turno, tipoEmpleado, adscripcion } = sesion;
+  const { nombre, iniciales, rol, plantel, turno, tipoEmpleado, adscripcion, agrupacion } = sesion;
   const { totalSinLeer } = useMensajeriaCtx();
   const { pendientesPlantel, pendientesAdmin } = useSolicitudesCtx();
 
   useEffect(() => {
     refrescarSesion().then(() => setSesion(leerSesion()));
   }, []);
+
+  const esAgrupacionRol = rol === 'director_departamento' || rol === 'subdirector_departamento';
+  const nombreAgrupacion = agrupacion?.nombre || null;
 
   const BADGES = {
     'Mensajería': totalSinLeer,
@@ -45,7 +50,7 @@ export default function Layout() {
     .map(item => ({ ...item, badge: BADGES[item.etiqueta] || 0 }));
 
   const nombrePlantel = plantel?.nombre || null;
-  const valorPlantel = valorLugar({ rol, nombrePlantel, adscripcion });
+  const valorPlantel = valorLugar({ rol, nombrePlantel, adscripcion, agrupacion: nombreAgrupacion });
   const labelPlantel = etiquetaLugar({
     rol,
     tipoEmpleado,
@@ -59,7 +64,7 @@ export default function Layout() {
         <span>{labelPlantel}</span>
         <strong>{valorPlantel}</strong>
       </li>
-      <li><span>Turno</span><strong>{turno?.nombre || '—'}</strong></li>
+      <li><span>Turno</span><strong>{esAgrupacionRol ? '—' : (turno?.nombre || '—')}</strong></li>
       <li><span>Ciclo escolar</span><strong>{cicloEscolar()}</strong></li>
     </ul>
   );

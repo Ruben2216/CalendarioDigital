@@ -16,7 +16,7 @@ class DocentesListView(APIView):
         if not usuario:
             return Response({'error': 'No autenticado.'}, status=status.HTTP_401_UNAUTHORIZED)
 
-        if usuario.rol.nombre_rol == 'superusuario':
+        if usuario.rol.nombre_rol in ('superusuario', 'director_departamento', 'subdirector_departamento'):
             docentes = Usuario.objects.filter(rol__nombre_rol='docente', activo=True)
         else:
             docentes = Usuario.objects.filter(
@@ -108,8 +108,10 @@ class ConversacionListView(APIView):
         rol_usuario = usuario.rol.nombre_rol
         rol_otro = otro.rol.nombre_rol
 
-        # El superusuario puede hablar con todos; cualquiera puede hablar con el superusuario.
-        if rol_usuario != 'superusuario' and rol_otro != 'superusuario':
+        # El superusuario y director/subdirector pueden hablar con todos;
+        # cualquiera puede hablar con ellos.
+        roles_irrestrictos = ('superusuario', 'director_departamento', 'subdirector_departamento')
+        if rol_usuario not in roles_irrestrictos and rol_otro not in roles_irrestrictos:
             planteles_usuario = set(usuario.ids_planteles())
             planteles_otro = set(otro.ids_planteles())
             if not planteles_usuario.intersection(planteles_otro):

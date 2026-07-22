@@ -44,12 +44,14 @@ function RedireccionNotif() {
   if (!sesion) return <Navigate to="/login" replace />;
 
   const mapa = {
-    admin:        { anuncios: '/anuncios', calendario: '/calendario', inicio: '/dashboard' },
-    superusuario: { anuncios: '/anuncios', calendario: '/calendario', inicio: '/dashboard' },
-    colaborador:  { anuncios: '/anuncios', calendario: '/calendario', inicio: '/dashboard' },
-    docente:      { anuncios: '/docente/anuncios', calendario: '/docente/calendario', inicio: '/docente/inicio' },
-    alumno:       { anuncios: '/alumno/anuncios', calendario: '/alumno/calendario', inicio: '/alumno/inicio' },
-    tutor:        { anuncios: '/tutor/calendario', calendario: '/tutor/calendario', inicio: '/tutor/calendario' },
+    admin:                    { anuncios: '/anuncios', calendario: '/calendario', inicio: '/dashboard' },
+    superusuario:             { anuncios: '/anuncios', calendario: '/calendario', inicio: '/dashboard' },
+    colaborador:              { anuncios: '/anuncios', calendario: '/calendario', inicio: '/dashboard' },
+    director_departamento:    { anuncios: '/anuncios', calendario: '/calendario', inicio: '/dashboard' },
+    subdirector_departamento: { anuncios: '/anuncios', calendario: '/calendario', inicio: '/dashboard' },
+    docente:                  { anuncios: '/docente/anuncios', calendario: '/docente/calendario', inicio: '/docente/inicio' },
+    alumno:                   { anuncios: '/alumno/anuncios', calendario: '/alumno/calendario', inicio: '/alumno/inicio' },
+    tutor:                    { anuncios: '/tutor/calendario', calendario: '/tutor/calendario', inicio: '/tutor/calendario' },
   };
   const rutas = mapa[sesion.rol] || {};
   return <Navigate to={rutas[destino] || rutas.inicio || '/login'} replace />;
@@ -92,8 +94,8 @@ function App() {
           element={<Suspense fallback={<Cargando />}><Calendario publico /></Suspense>}
         />
 
-        {/* Rutas admin / superusuario / colaborador */}
-        <Route element={<ProtectedRoute roles={['admin', 'superusuario', 'colaborador']} />}>
+        {/* Rutas admin / superusuario / colaborador / director_departamento / subdirector_departamento */}
+        <Route element={<ProtectedRoute roles={['admin', 'superusuario', 'colaborador', 'director_departamento', 'subdirector_departamento']} />}>
           <Route element={<MensajeriaProvider><SolicitudesProvider><Layout /></SolicitudesProvider></MensajeriaProvider>}>
             <Route path="/dashboard"  element={<Suspense fallback={<Cargando />}><Dashboard /></Suspense>} />
             <Route path="/calendario" element={<Suspense fallback={<Cargando />}><Calendario /></Suspense>} />
@@ -101,8 +103,8 @@ function App() {
           </Route>
         </Route>
 
-        {/* Ruta Mensajería: admin y superusuario (el colaborador no participa) */}
-        <Route element={<ProtectedRoute roles={['admin', 'superusuario']} />}>
+        {/* Ruta Mensajería: admin, superusuario y subdirector_departamento (colaborador y director_departamento no participan) */}
+        <Route element={<ProtectedRoute roles={['admin', 'superusuario', 'subdirector_departamento', 'director_departamento']} />}>
           <Route element={<MensajeriaProvider><SolicitudesProvider><Layout /></SolicitudesProvider></MensajeriaProvider>}>
             <Route path="/mensajeria" element={<Suspense fallback={<Cargando />}><Mensajeria /></Suspense>} />
             {/* Solicitudes de visualización de plantel y cambio de turno */}

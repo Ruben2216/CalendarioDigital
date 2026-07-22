@@ -125,7 +125,7 @@ Accept: */*
 Content-Length: 0
 
 ###
-POST /api/Seguridad/ObtenerDatosPorFiltro?data=Alfredo  HTTP/1.1
+POST /api/Seguridad/ObtenerDatosPorFiltro?data=José HTTP/1.1
 Host: 192.168.100.5:8087
 Accept: */*
 Content-Length: 0

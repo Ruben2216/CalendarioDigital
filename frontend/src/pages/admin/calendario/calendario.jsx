@@ -24,6 +24,7 @@ import { useTipoEventoCrud } from "./hooks/useTipoEventoCrud.js";
 import { useDatosCalendario } from "./hooks/useDatosCalendario.js";
 import { useEventoCrud } from "./hooks/useEventoCrud.js";
 import SelectorPlantel from "../../../components/selector-plantel/SelectorPlantel.jsx";
+
 import SelectorFecha from "../../../components/campos/SelectorFecha.jsx";
 import { useSesion } from "../../../hooks/useSesion.js";
 import { usePreferencia } from "../../../hooks/usePreferencia.js";
@@ -32,6 +33,7 @@ import VistaLista from "./vistas/VistaLista.jsx";
 import VistaMesMovil from "./vistas/VistaMesMovil.jsx";
 import { useGoogleCalendarSync } from "../../../hooks/useGoogleCalendarSync.js";
 import { esGestorGlobal, plantelesPermitidos as calcularPlantelesPermitidos, turnosPermitidos as calcularTurnosPermitidos } from "../../../lib/permisos.js";
+import { listarPlanteles } from "../../../services/plantelesService.js";
 import {
   mapaTipos, colorDeTipo, etiquetaDeTipo, filtrarEventos,
   eventosParaFullCalendar, agruparEventosPorDia,
@@ -73,6 +75,7 @@ export default function Calendario({ soloLectura = false, publico = false }) {
   const esGestor = esGestorGlobal(sesion);
   const esAdmin = sesion.rol === "admin";
   const esInvitado = publico || sesion.rol === "tutor";
+  const puedePublico = sesion.rol === "superusuario" || sesion.rol === "colaborador";
 
   // los roles de solo lectura nunca editan - el admin/superusuario sí.
   const lectura = soloLectura || publico;
@@ -113,6 +116,28 @@ export default function Calendario({ soloLectura = false, publico = false }) {
   // Buscador del superusuario = solo calendario general: nombre = generales + ese plantel.
   // (no aparecen todos los eventos) para no saturar el calendario
   const [vistaPlantel, setVistaPlantel] = useState("");
+
+  const esDepto = sesion.rol === "director_departamento" || sesion.rol === "subdirector_departamento";
+  // Para director/subdirector: lista de planteles de su agrupación
+  const [todosPlanteles, setTodosPlanteles] = useState([]);
+  useEffect(() => {
+    if (!esDepto) return;
+    listarPlanteles().then(setTodosPlanteles);
+  }, [esDepto]);
+  const agrupacionPlanteles = useMemo(() => {
+    if (!esDepto || !sesion.agrupacion?.planteles) return [];
+    const nombres = new Set(sesion.agrupacion.planteles);
+    return todosPlanteles.filter((p) => nombres.has(p.nombre));
+  }, [todosPlanteles, esDepto, sesion.agrupacion?.planteles]);
+  const plantelesIndependientes = useMemo(() => {
+    return todosPlanteles.filter((p) => !p.agrupacion_id);
+  }, [todosPlanteles]);
+  const plantelesDisponibles = useMemo(() => {
+    const set = new Map();
+    for (const p of agrupacionPlanteles) set.set(p.id, p);
+    for (const p of plantelesIndependientes) set.set(p.id, p);
+    return [...set.values()];
+  }, [agrupacionPlanteles, plantelesIndependientes]);
 
   // Datos del calendario (catálogo, tipos y eventos desde la BD)
   const {
@@ -292,15 +317,21 @@ export default function Calendario({ soloLectura = false, publico = false }) {
      generales (los de plantel son responsabilidad del admin de cada plantel). */
   const tiposParaCrear = useMemo(() => {
     if (esAdmin) return tipos.filter((t) => !t.es_global);
+    if (sesion.rol === "director_departamento" || sesion.rol === "subdirector_departamento") {
+      return tipos.filter((t) => t.agrupacion?.id === sesion.agrupacion?.id);
+    }
     if (esGestor) return tipos.filter((t) => t.es_global);
     return tipos;
-  }, [tipos, esAdmin, esGestor]);
+  }, [tipos, esAdmin, esGestor, sesion.rol, sesion.agrupacion?.id]);
 
   const tiposSimbologia = useMemo(() => {
     if (!esGestor) return tipos;
+    if (sesion.rol === "director_departamento" || sesion.rol === "subdirector_departamento") {
+      return tipos.filter((t) => t.es_global || t.agrupacion?.id === sesion.agrupacion?.id || (vistaPlantel && t.plantel === vistaPlantel));
+    }
     if (!vistaPlantel) return tipos.filter((t) => t.es_global);
     return tipos.filter((t) => t.es_global || t.plantel === vistaPlantel);
-  }, [tipos, esGestor, vistaPlantel]);
+  }, [tipos, esGestor, vistaPlantel, sesion.rol, sesion.agrupacion?.id]);
   const tienesTipos = tiposParaCrear.length > 0;
   const puedeCrear = !lectura && tienesTipos && (esGestor || (esAdmin && calActivo?.clave === "escolarizado"));
 
@@ -559,6 +590,7 @@ export default function Calendario({ soloLectura = false, publico = false }) {
       tipo: tiposParaCrear[0]?.id || "",
       plantel: esAdmin ? (misAsignaciones[0]?.plantel || "") : "",
       turno: esAdmin ? (misAsignaciones[0]?.turno || "") : "",
+      agrupacion: esDepto ? (sesion.agrupacion?.id || "") : "",
       agregarAGoogleCalendar: Boolean(calVinculado?.vinculado),
     }),
     alGuardar: (fecha) => {
@@ -621,14 +653,19 @@ export default function Calendario({ soloLectura = false, publico = false }) {
   };
 
   // CRUD de tipos de evento
-  const puedeGestionarTipos = !lectura && (esGestor || esAdmin);
+  const puedeGestionarTipos = !lectura && (sesion.rol === "superusuario" || sesion.rol === "colaborador" || esAdmin || sesion.rol === "director_departamento" || sesion.rol === "subdirector_departamento");
 
   const simbologiaAgrupada = useMemo(() => {
     const generales = [];
     const porPlantel = new Map();
+    const porAgrupacion = new Map();
     for (const t of tiposSimbologia) {
       if (t.es_global) {
         generales.push(t);
+      } else if (t.agrupacion) {
+        const nombre = t.agrupacion.nombre;
+        if (!porAgrupacion.has(nombre)) porAgrupacion.set(nombre, []);
+        porAgrupacion.get(nombre).push(t);
       } else {
         const nombre = t.plantel || "Sin plantel";
         if (!porPlantel.has(nombre)) porPlantel.set(nombre, []);
@@ -637,6 +674,9 @@ export default function Calendario({ soloLectura = false, publico = false }) {
     }
     const grupos = [];
     if (generales.length) grupos.push({ clave: "__generales", titulo: "Generales", tipos: generales });
+    for (const [nombre, lista] of porAgrupacion) {
+      grupos.push({ clave: `agrup-${nombre}`, titulo: nombre, tipos: lista });
+    }
     for (const [nombre, lista] of porPlantel) {
       grupos.push({ clave: nombre, titulo: nombre, tipos: lista });
     }
@@ -724,7 +764,17 @@ export default function Calendario({ soloLectura = false, publico = false }) {
 
         {/* Buscador del superusuario: por defecto tiene el "Calendario general": al elegir un
             plantel se suman sus eventos a los generales */}
-        {esGestor && (
+        {esGestor && esDepto ? (
+          <div className={styles["calendario__vista-plantel"]}>
+            <span>Mostrar</span>
+            <SelectorPlantel
+              value={vistaPlantel}
+              onChange={setVistaPlantel}
+              textoTodos={sesion.agrupacion?.nombre || "Calendario general"}
+              planteles={plantelesDisponibles.length > 0 ? plantelesDisponibles : undefined}
+            />
+          </div>
+        ) : esGestor && (
           <div className={styles["calendario__vista-plantel"]}>
             <span>Mostrar</span>
             <SelectorPlantel
@@ -879,7 +929,7 @@ export default function Calendario({ soloLectura = false, publico = false }) {
                   Nuevo evento
                 </button>
               )}
-              {!lectura && esAdmin && calActivo?.clave === "escolarizado" && !tienesTipos && (
+              {!lectura && ((esAdmin && calActivo?.clave === "escolarizado") || sesion.rol === "director_departamento" || sesion.rol === "subdirector_departamento") && !tienesTipos && (
                 <span className={styles["aviso-sin-tipos"]}>
                   Antes de crear eventos, agrega un tipo de evento
                 </span>
@@ -1085,7 +1135,7 @@ export default function Calendario({ soloLectura = false, publico = false }) {
                         <td className={styles["tabla__tenue"]}>
                           {ev.lugar || "—"}
                           <small className={styles["tabla__sub"]}>
-                            {ev.plantel || "Todos los planteles"}{ev.turno ? ` · ${ev.turno}` : ""}
+                            {ev.agrupacion?.nombre || ev.plantel || "Todos los planteles"}{ev.turno ? ` · ${ev.turno}` : ""}
                           </small>
                         </td>
                         <td>
@@ -1337,7 +1387,7 @@ export default function Calendario({ soloLectura = false, publico = false }) {
             )}
             <li>
               <Building2 size={14} />
-              {popover.ev.plantel || "Todos los planteles"}{popover.ev.turno ? ` · ${popover.ev.turno}` : ""}
+              {popover.ev.agrupacion?.nombre || popover.ev.plantel || "Todos los planteles"}{popover.ev.turno ? ` · ${popover.ev.turno}` : ""}
             </li>
             <li>
               <Tag size={14} />
@@ -1607,10 +1657,14 @@ export default function Calendario({ soloLectura = false, publico = false }) {
           form={formEvento}
           tipos={tiposFormulario}
           restringido={esAdmin}
-          puedePublico={esGestor}
+          puedePublico={puedePublico}
           planteles={misPlanteles}
           turnos={misTurnos}
           error={errorEvento}
+          soloDepartamento={esDepto}
+          nombreAgrupacion={esDepto ? (sesion.agrupacion?.nombre || "") : ""}
+          idAgrupacion={esDepto ? (sesion.agrupacion?.id || "") : ""}
+          plantelesSelector={esDepto && agrupacionPlanteles.length > 0 ? agrupacionPlanteles : undefined}
           minFecha={claveHoy}
           onChange={(campo, valor) => {
             if (errorEvento) setErrorEvento(null);

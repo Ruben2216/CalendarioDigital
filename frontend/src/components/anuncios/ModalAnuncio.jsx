@@ -8,7 +8,7 @@ import styles from "./ModalAnuncio.module.css";
 
 const TURNOS_DISPONIBLES = ["Matutino", "Vespertino", "Mixto"];
 
-export default function ModalAnuncio({ anuncio, esAdmin = false, audiencias = AUDIENCIAS, plantelesAdmin = [], turnosAdmin = [], onCerrar, onGuardar }) {
+export default function ModalAnuncio({ anuncio, esAdmin = false, esAgrupacionRol = false, audiencias = AUDIENCIAS, plantelesAdmin = [], turnosAdmin = [], onCerrar, onGuardar }) {
   const [form, setForm] = useState(() =>
     anuncio
       ? {
@@ -123,16 +123,16 @@ export default function ModalAnuncio({ anuncio, esAdmin = false, audiencias = AU
 
         <label className="formulario__campo">
           <span className="formulario__etiqueta">Alcance</span>
-          {esAdmin ? (
-            plantelesAdmin.length > 1 ? (
-              <select value={form.plantel} onChange={fijar("plantel")} required>
-                {plantelesAdmin.map((nombre) => (
-                  <option key={nombre} value={nombre}>{nombre}</option>
-                ))}
-              </select>
-            ) : (
-              <input type="text" value={form.plantel} disabled readOnly />
-            )
+          {esAdmin || esAgrupacionRol ? (
+            <select value={form.plantel} onChange={fijar("plantel")} required>
+              <option value="">Seleccionar plantel…</option>
+              {esAgrupacionRol && plantelesAdmin.length > 1 && (
+                <option value="__todos__">Todos los departamentos</option>
+              )}
+              {plantelesAdmin.map((nombre) => (
+                <option key={nombre} value={nombre}>{nombre}</option>
+              ))}
+            </select>
           ) : (
             <SelectorPlantel
               value={form.plantel}
@@ -144,7 +144,7 @@ export default function ModalAnuncio({ anuncio, esAdmin = false, audiencias = AU
 
         <label className="formulario__campo">
           <span className="formulario__etiqueta">Turno</span>
-          {esAdmin ? (
+          {esAdmin && !esAgrupacionRol ? (
             turnosAdmin.length > 1 ? (
               <select value={form.turno} onChange={fijar("turno")} required>
                 {turnosAdmin.map((t) => (
