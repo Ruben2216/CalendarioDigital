@@ -234,6 +234,28 @@ class CrearAdminView(APIView):
         if rol_acceso == 'admin':
             UsuarioPlantel.objects.create(usuario=usuario, plantel=plantel, turno=turno)
 
+        agrupacion_obj = None
+        if rol_acceso in ('director_departamento', 'subdirector_departamento') and agrupacion_id:
+            try:
+                agrupacion_obj = Agrupacion.objects.get(pk=agrupacion_id)
+            except Agrupacion.DoesNotExist:
+                return Response(
+                    {'error': 'Agrupación no encontrada.'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            existe = Usuario.objects.filter(
+                rol__nombre_rol=rol_acceso, agrupacion_id=agrupacion_id, activo=True
+            )
+            if not creado:
+                existe = existe.exclude(pk=usuario.pk)
+            if existe.exists():
+                return Response(
+                    {'error': f'Ya existe un {rol_acceso} asignado a esa agrupación.'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            usuario.agrupacion = agrupacion_obj
+            usuario.save(update_fields=['agrupacion'])
+
         return Response({
             'id_usuario': usuario.id_usuario,
             'nombre': usuario.nombre or '',
@@ -275,8 +297,7 @@ class ActualizarAdminView(APIView):
             if usuario.rol_id != rol_obj.id_rol:
                 usuario.rol = rol_obj
                 usuario.save(update_fields=['rol'])
-            # Docentes y colaboradores se reinician sin asignación: su plantel se
-            if nuevo_rol in ('colaborador', 'docente'):
+            if nuevo_rol in ('colaborador', 'docente', 'admin', 'director_departamento', 'subdirector_departamento'):
                 UsuarioPlantel.objects.filter(usuario=usuario).delete()
             if nuevo_rol in ('director_departamento', 'subdirector_departamento'):
                 if agrupacion_id:
