@@ -10,6 +10,19 @@ from ..models import (
 )
 from ..services import notificaciones_personales as notif
 
+def _resolver_ubicacion(u):
+    rol = u.rol.nombre_rol
+    if rol == 'superusuario':
+        return 'Superusuario'
+    if rol in ('director_departamento', 'subdirector_departamento', 'colaborador'):
+        return u.agrupacion.nombre if u.agrupacion_id else rol
+    if rol == 'admin':
+        planteles = list(dict.fromkeys(up.plantel.nombre for up in u.planteles_asignados.all()))
+        return f"Admin · {', '.join(planteles)}" if planteles else 'Admin'
+    planteles = list(dict.fromkeys(up.plantel.nombre for up in u.planteles_asignados.all()))
+    return ', '.join(planteles) if planteles else rol
+
+
 def _notificar_mensaje(destinatario, remitente, metadatos):
     """Notifica al destinatario de un mensaje entrante"""
     if destinatario is None:
@@ -81,8 +94,13 @@ class ConversacionListView(APIView):
             )
 
         convs = convs.select_related(
-            'participante_a__rol', 'participante_b__rol', 'plantel'
-        ).prefetch_related('lecturas', 'mensajes')
+            'participante_a__rol', 'participante_b__rol',
+            'participante_a__agrupacion', 'participante_b__agrupacion',
+        ).prefetch_related(
+            'lecturas', 'mensajes',
+            'participante_a__planteles_asignados__plantel',
+            'participante_b__planteles_asignados__plantel',
+        )
 
         resultado = []
         for conv in convs:
@@ -101,20 +119,15 @@ class ConversacionListView(APIView):
                     'id': u.id_usuario,
                     'nombre': u.nombre or u.correo,
                     'rol': u.rol.nombre_rol,
+                    'ubicacion': _resolver_ubicacion(u),
                 }
 
             resultado.append({
                 'id': conv.id_conversacion,
                 'es_participante': es_participante,
-                'otro_usuario': {
-                    'id': otro.id_usuario,
-                    'nombre': otro.nombre or otro.correo,
-                    'rol': otro.rol.nombre_rol,
-                },
-                
+                'otro_usuario': _persona(otro) if es_participante else None,
                 'participante_a': _persona(conv.participante_a),
                 'participante_b': _persona(conv.participante_b),
-                'plantel': conv.plantel.nombre,
                 'sin_leer': sin_leer,
                 'ultimo_mensaje': {
                     'texto': ultimo.texto() if ultimo else '',

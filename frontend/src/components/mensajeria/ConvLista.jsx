@@ -47,13 +47,16 @@ export default function ConvLista({
               <span className={`${styles['conv-item__avatar']} ${styles[`conv-item__avatar--${conv.colorAvatar}`]}`}>
                 {conv.iniciales}
               </span>
-              <div className={styles['conv-item__info']}>
-                <div className={styles['conv-item__fila']}>
-                  <span className={styles['conv-item__nombre']}>{conv.destinatario}</span>
-                  <span className={styles['conv-item__hora']}>{ultimo?.hora ?? ''}</span>
+                <div className={styles['conv-item__info']}>
+                  <div className={styles['conv-item__fila']}>
+                    <div className={styles['conv-item__nombre-col']}>
+                      <span className={styles['conv-item__nombre']}>{conv.destinatario}</span>
+                      <span className={styles['conv-item__ubicacion']}>{conv.ubicacion || ''}</span>
+                    </div>
+                    <span className={styles['conv-item__hora']}>{ultimo?.hora ?? ''}</span>
+                  </div>
+                  <div className={styles['conv-item__preview']}>{ultimo?.texto ?? ''}</div>
                 </div>
-                <div className={styles['conv-item__preview']}>{ultimo?.texto ?? ''}</div>
-              </div>
               {sinLeer > 0 && (
                 <span className={styles['conv-item__badge']}>{sinLeer}</span>
               )}

@@ -69,8 +69,6 @@ export default function ChatPanel({
     ? `${pA.nombre} ↔ ${pB.nombre}`
     : (conversacion.otro_usuario?.nombre ?? conversacion.destinatario ?? '—');
   const inicialesOtro = conversacion.otro_usuario?.iniciales ?? conversacion.iniciales ?? '?';
-  const rolOtro = observando ? '' : (conversacion.otro_usuario?.rol ?? '');
-  const plantelConv = conversacion.plantel ?? '';
 
   return (
     <div className={styles['chat-panel']}>
@@ -90,7 +88,9 @@ export default function ChatPanel({
         <div className={styles['chat-panel__cab-info']}>
           <strong className={styles['chat-panel__nombre']}>{nombreOtro}</strong>
           <span className={styles['chat-panel__estado']}>
-            {rolOtro && plantelConv ? `${rolOtro} · ${plantelConv}` : rolOtro || 'En línea'}
+            {observando
+              ? `${pA.ubicacion ?? pA.rol} ↔ ${pB.ubicacion ?? pB.rol}`
+              : (conversacion.otro_usuario?.ubicacion || conversacion.otro_usuario?.rol || 'En línea')}
           </span>
         </div>
 
