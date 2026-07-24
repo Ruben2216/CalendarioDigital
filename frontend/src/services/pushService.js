@@ -6,9 +6,21 @@ const VAPID_KEY = import.meta.env.VITE_VAPID_KEY;
 const BASE_URL =
   window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
     ? 'http://localhost:8000'
-    : (import.meta.env.VITE_BACKEND_URL ?? '');
+    : (import.meta.env.VITE_BACKEND_URL || '');
 
 let _escuchandoPrimerPlano = false;
+let _swRegistro = null;
+
+async function _registrarSW() {
+  if (_swRegistro) return _swRegistro;
+  if (!('serviceWorker' in navigator)) return null;
+  try {
+    _swRegistro = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+    return _swRegistro;
+  } catch {
+    return null;
+  }
+}
 
 /**
  * Pide permiso, obtiene el token FCM y lo registra en el backend
@@ -23,20 +35,33 @@ export const inicializarNotificaciones = async (usuarioActual) => {
       return;
     }
 
+    escucharPrimerPlano(messaging);
+
     const permission = await Notification.requestPermission();
     if (permission !== 'granted') {
       console.log('Permisos de notificación denegados.');
       return;
     }
 
-    const currentToken = await getToken(messaging, { vapidKey: VAPID_KEY });
+    await _registrarSW();
+
+    let currentToken;
+    try {
+      currentToken = await getToken(messaging, { vapidKey: VAPID_KEY });
+    } catch (e) {
+      console.warn('Error al obtener token FCM:', e);
+    }
+
     if (!currentToken) {
-      console.log('No se pudo obtener el token FCM.');
+      console.log('No se pudo obtener el token FCM, se reintentará en segundo plano.');
       return;
     }
 
-    await registrarDispositivo(currentToken, usuarioActual);
-    escucharPrimerPlano(messaging);
+    try {
+      await registrarDispositivo(currentToken, usuarioActual);
+    } catch (e) {
+      console.warn('Error al registrar dispositivo en backend:', e);
+    }
   } catch (error) {
     console.error('Error al inicializar notificaciones:', error);
   }
@@ -74,11 +99,16 @@ async function registrarDispositivo(token, usuarioActual = {}) {
   });
 
   if (!respuesta.ok) {
-    console.error('Fallo al registrar el dispositivo:', respuesta.status);
+    console.error('Fallo al registrar el dispositivo:', respuesta.status, 'en', BASE_URL);
     return;
   }
   const datos = await respuesta.json().catch(() => ({}));
-  console.log('Dispositivo registrado. Temas:', datos.temas);
+  const temas = datos?.temas;
+  if (temas) {
+    console.log('Dispositivo registrado. Temas:', temas);
+  } else {
+    console.warn('Dispositivo registrado, pero no se recibieron temas en la respuesta.');
+  }
 }
 
 /**
