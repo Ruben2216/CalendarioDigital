@@ -48,6 +48,7 @@ class Plantel(models.Model):
         db_column='agrupacion_id',
         related_name='planteles'
     )
+    clave_tipo = models.IntegerField(null=True, blank=True)
 
     class Meta:
         db_table = 'Plantel'
@@ -388,6 +389,8 @@ class Evento(models.Model):
         if usuario is None:
             return False
         if usuario.es_gestor_global():
+            if usuario.rol.nombre_rol == 'director_departamento':
+                return self.agrupacion_id == usuario.agrupacion_id
             if usuario.agrupacion_id:
                 if self.agrupacion_id == usuario.agrupacion_id:
                     return True
@@ -440,6 +443,9 @@ class Anuncio(models.Model):
     turno = models.ForeignKey(
         'Turno', on_delete=models.CASCADE, null=True, blank=True, related_name='anuncios'
     )
+    agrupacion = models.ForeignKey(
+        'Agrupacion', on_delete=models.SET_NULL, null=True, blank=True
+    )
     creado_por = models.ForeignKey(
         Usuario, on_delete=models.SET_NULL, null=True, blank=True, related_name='anuncios_creados'
     )
@@ -461,6 +467,8 @@ class Anuncio(models.Model):
             return False
         if usuario.es_gestor_global():
             if usuario.agrupacion_id:
+                if self.agrupacion_id:
+                    return self.agrupacion_id == usuario.agrupacion_id
                 ids = usuario.ids_planteles_agrupacion_herencia() if usuario.rol.nombre_rol == 'director_departamento' else usuario.ids_planteles_agrupacion()
                 if not ids or self.plantel_id is None:
                     return False
@@ -602,6 +610,9 @@ class Notificacion(models.Model):
     )
     turno          = models.ForeignKey(
         'Turno', on_delete=models.CASCADE, null=True, blank=True, related_name='notificaciones'
+    )
+    agrupacion     = models.ForeignKey(
+        'Agrupacion', on_delete=models.SET_NULL, null=True, blank=True
     )
 
     destinatario = models.ForeignKey(

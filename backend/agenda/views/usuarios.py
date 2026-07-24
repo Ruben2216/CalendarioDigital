@@ -72,7 +72,7 @@ class PlantelListView(APIView):
     def get(self, request):
         planteles = Plantel.objects.all().order_by('id_plantel')
         return Response([
-            {'id': p.id_plantel, 'nombre': p.nombre, 'agrupacion_id': str(p.agrupacion_id) if p.agrupacion_id else None}
+            {'id': p.id_plantel, 'nombre': p.nombre, 'agrupacion_id': str(p.agrupacion_id) if p.agrupacion_id else None, 'clave_tipo': p.clave_tipo}
             for p in planteles
         ])
 

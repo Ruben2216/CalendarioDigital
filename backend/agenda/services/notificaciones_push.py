@@ -90,13 +90,21 @@ def enviar_a_usuario(usuario, titulo: str, cuerpo: str, data: dict | None = None
 
 
 def enviar_anuncio(anuncio) -> str:
-    """Envía un anuncio al tema correspondiente según plantel + audiencia.
-    - Con plantel  -> tema_plantel_{id}
-    - Audiencia distinta de 'todos' -> + tema_rol_{audiencia}
-    - Sin plantel ni audiencia específica -> tema_todos
-    """
     temas: list[str] = []
-    if anuncio.plantel_id:
+    if anuncio.agrupacion_id:
+        creador = anuncio.creado_por
+        if creador and creador.rol.nombre_rol == 'director_departamento':
+            ids = creador.ids_planteles_agrupacion_herencia()
+        elif creador:
+            ids = creador.ids_planteles_agrupacion()
+        else:
+            from ..models import Plantel
+            from django.db.models import Q
+            q = Q(agrupacion=anuncio.agrupacion) | Q(agrupacion__parent=anuncio.agrupacion)
+            ids = list(Plantel.objects.filter(q).values_list('id_plantel', flat=True))
+        for pid in ids:
+            temas.append(tema_plantel(pid))
+    elif anuncio.plantel_id:
         temas.append(tema_plantel(anuncio.plantel_id))
     if anuncio.audiencia and anuncio.audiencia != 'todos':
         temas.append(tema_rol(anuncio.audiencia))

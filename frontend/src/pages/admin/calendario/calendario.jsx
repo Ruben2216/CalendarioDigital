@@ -117,8 +117,9 @@ export default function Calendario({ soloLectura = false, publico = false }) {
   // (no aparecen todos los eventos) para no saturar el calendario
   const [vistaPlantel, setVistaPlantel] = useState("");
 
-  const esDepto = sesion.rol === "director_departamento" || sesion.rol === "subdirector_departamento";
-  // Para director/subdirector: lista de planteles de su agrupación
+  const esDirector = sesion.rol === "director_departamento";
+  const esSubdirector = sesion.rol === "subdirector_departamento";
+  const esDepto = esDirector || esSubdirector;
   const [todosPlanteles, setTodosPlanteles] = useState([]);
   useEffect(() => {
     if (!esDepto) return;
@@ -133,11 +134,13 @@ export default function Calendario({ soloLectura = false, publico = false }) {
     return todosPlanteles.filter((p) => !p.agrupacion_id);
   }, [todosPlanteles]);
   const plantelesDisponibles = useMemo(() => {
+    if (esDirector) return todosPlanteles;
+    if (!esSubdirector) return [];
     const set = new Map();
     for (const p of agrupacionPlanteles) set.set(p.id, p);
     for (const p of plantelesIndependientes) set.set(p.id, p);
     return [...set.values()];
-  }, [agrupacionPlanteles, plantelesIndependientes]);
+  }, [todosPlanteles, esDirector, esSubdirector, agrupacionPlanteles, plantelesIndependientes]);
 
   // Datos del calendario (catálogo, tipos y eventos desde la BD)
   const {

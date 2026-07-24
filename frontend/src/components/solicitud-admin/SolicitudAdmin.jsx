@@ -18,7 +18,7 @@ const TURNOS_MAP = Object.fromEntries(TURNOS.map((t) => [t.id, t.etiqueta]));
 
 const TIPOS = [
   { id: "admin",         etiqueta: "Administrador" },
-  { id: "visualizacion", etiqueta: "Visualizar plantel" },
+  { id: "visualizacion", etiqueta: "Visualizar plantel/departamento" },
   { id: "turno",         etiqueta: "Turno" },
 ];
 const TIPOS_MAP = Object.fromEntries(TIPOS.map((t) => [t.id, t.etiqueta]));

@@ -55,10 +55,9 @@ class TipoEventoListView(APIView):
             if rol in ('superusuario', 'colaborador'):
                 tipos = TipoEvento.objects.select_related('plantel', 'agrupacion').all()
             elif rol == 'director_departamento':
-                ids_plantel = set(usuario.ids_planteles_agrupacion_herencia())
-                cond = Q(agrupacion_id=usuario.agrupacion_id) | Q(plantel__isnull=True, agrupacion__isnull=True)
-                if ids_plantel:
-                    cond |= Q(plantel_id__in=ids_plantel)
+                cond = Q(plantel__isnull=True, agrupacion__isnull=True)
+                cond |= Q(plantel__clave_tipo__in=[6, 7])
+                cond |= Q(agrupacion_id=usuario.agrupacion_id)
                 tipos = TipoEvento.objects.select_related('plantel', 'agrupacion').filter(cond)
             elif rol == 'subdirector_departamento':
                 ids_plantel = set(usuario.ids_planteles_agrupacion())
@@ -335,7 +334,6 @@ class EventoListView(APIView):
                     if rol == 'director_departamento':
                         q = Q(plantel__isnull=True, agrupacion__isnull=True)
                         q |= Q(agrupacion_id=usuario.agrupacion_id)
-                        q |= Q(agrupacion__parent_id=usuario.agrupacion_id)
                         if nombre_filtro:
                             q |= Q(plantel__nombre=nombre_filtro)
                     else:
