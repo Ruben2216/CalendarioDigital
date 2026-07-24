@@ -8,14 +8,14 @@ import styles from "./ModalAnuncio.module.css";
 
 const TURNOS_DISPONIBLES = ["Matutino", "Vespertino", "Mixto"];
 
-export default function ModalAnuncio({ anuncio, esAdmin = false, esAgrupacionRol = false, audiencias = AUDIENCIAS, plantelesAdmin = [], turnosAdmin = [], onCerrar, onGuardar }) {
+export default function ModalAnuncio({ anuncio, esAdmin = false, esAgrupacionRol = false, esDirectorDep = false, audiencias = AUDIENCIAS, plantelesAdmin = [], turnosAdmin = [], onCerrar, onGuardar }) {
   const [form, setForm] = useState(() =>
     anuncio
       ? {
           titulo: anuncio.titulo,
           descripcion: anuncio.descripcion,
           audiencia: anuncio.audiencia,
-          plantel: anuncio.plantel || "",
+          plantel: anuncio.agrupacion ? "__todos__" : (anuncio.plantel || ""),
           turno: anuncio.turno || "",
           color: anuncio.color,
         }
@@ -126,7 +126,7 @@ export default function ModalAnuncio({ anuncio, esAdmin = false, esAgrupacionRol
           {esAdmin || esAgrupacionRol ? (
             <select value={form.plantel} onChange={fijar("plantel")} required>
               <option value="">Seleccionar plantel…</option>
-              {esAgrupacionRol && plantelesAdmin.length > 1 && (
+              {esDirectorDep && plantelesAdmin.length > 1 && (
                 <option value="__todos__">Todos los departamentos</option>
               )}
               {plantelesAdmin.map((nombre) => (

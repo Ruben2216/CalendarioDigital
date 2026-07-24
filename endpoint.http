@@ -130,3 +130,8 @@ Host: 192.168.100.5:8087
 Accept: */*
 Content-Length: 0
 
+###
+curl -X POST -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $(gcloud auth application-default print-access-token)" \
+  -d '{"message":{"condition":"'''tema_plantel_X''' in topics || '''tema_plantel_Y''' in topics","data":{"title":"test","body":"test"}}}' \
+  https://fcm.googleapis.com/v1/projects/calendariodigital-cobach-798bd/messages:send

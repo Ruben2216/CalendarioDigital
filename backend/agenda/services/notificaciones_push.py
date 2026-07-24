@@ -90,6 +90,7 @@ def enviar_a_usuario(usuario, titulo: str, cuerpo: str, data: dict | None = None
 
 
 def enviar_anuncio(anuncio) -> str:
+    """Envía un anuncio al tema correspondiente según plantel + audiencia."""
     temas: list[str] = []
     if anuncio.agrupacion_id:
         creador = anuncio.creado_por
@@ -111,9 +112,25 @@ def enviar_anuncio(anuncio) -> str:
     if not temas:
         temas = [TEMA_TODOS]
 
-    return enviar_a_temas(
-        temas,
-        anuncio.titulo,
-        (anuncio.descripcion or '')[:1500],
-        {'tipo': 'anuncio', 'id_anuncio': anuncio.id_anuncio, 'url': '/ir/anuncios'},
-    )
+    _get_app()
+    payload = {'title': anuncio.titulo, 'body': (anuncio.descripcion or '')[:1500]}
+    payload.update({'tipo': 'anuncio', 'id_anuncio': str(anuncio.id_anuncio), 'url': '/ir/anuncios'})
+
+    plantel_temas = [t for t in temas if t.startswith('tema_plantel_')]
+    otros_temas = [t for t in temas if not t.startswith('tema_plantel_')]
+
+    if len(plantel_temas) > 1:
+        for pt in plantel_temas:
+            temas_combinados = [pt] + otros_temas
+            if len(temas_combinados) == 1:
+                messaging.send(messaging.Message(data=payload, topic=pt))
+            else:
+                cond = ' && '.join(f"'{t}' in topics" for t in temas_combinados)
+                messaging.send(messaging.Message(data=payload, condition=cond))
+        return 'ok'
+
+    if len(temas) == 1:
+        return messaging.send(messaging.Message(data=payload, topic=temas[0]))
+
+    cond = ' && '.join(f"'{t}' in topics" for t in temas)
+    return messaging.send(messaging.Message(data=payload, condition=cond))

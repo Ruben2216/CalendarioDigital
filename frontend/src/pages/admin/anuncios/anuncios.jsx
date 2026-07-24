@@ -22,6 +22,7 @@ export default function Anuncios() {
   const esColaborador = rolEsColaborador(sesion);
   const esGestor = esGestorGlobal(sesion);
   const esAgrupacionRol = sesion?.rol === 'director_departamento' || sesion?.rol === 'subdirector_departamento';
+  const esDirectorDep = sesion?.rol === 'director_departamento';
   
   const audienciasVisibles = AUDIENCIAS.filter((a) => {
     if (a.id === "todos") return true;
@@ -89,10 +90,8 @@ export default function Anuncios() {
         await actualizarAnuncio(editando.id, datos);
         avisoExito("Anuncio actualizado");
       } else if (datos.plantel === '__todos__') {
-        for (const nombre of plantelesAdmin) {
-          await crearAnuncio({ ...datos, plantel: nombre });
-        }
-        avisoExito(`Anuncio publicado en ${plantelesAdmin.length} departamentos`);
+        await crearAnuncio({ ...datos, plantel: null });
+        avisoExito("Anuncio publicado en todos los departamentos");
       } else {
         await crearAnuncio(datos);
         avisoExito("Anuncio publicado");
@@ -209,6 +208,7 @@ export default function Anuncios() {
           anuncio={editando}
           esAdmin={esAdmin}
           esAgrupacionRol={esAgrupacionRol}
+          esDirectorDep={esDirectorDep}
           audiencias={audienciasVisibles}
           plantelesAdmin={plantelesAdmin}
           turnosAdmin={turnosAdmin}
